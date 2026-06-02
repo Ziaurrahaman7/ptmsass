@@ -1,42 +1,43 @@
 <x-superadmin-layout title="Dashboard">
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <p class="text-sm text-gray-500 mb-1">Total Companies</p>
-            <p class="text-3xl font-bold text-gray-800">{{ $totalCompanies }}</p>
-            <p class="text-xs text-green-500 mt-1">{{ $activeCompanies }} active</p>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px;">
+            <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Total Companies</div>
+            <div style="font-size:26px; font-weight:600; color:#a78bfa;">{{ $totalCompanies }}</div>
+            <div style="font-size:11px; color:#4ade80; margin-top:4px; font-family:var(--mono);">{{ $activeCompanies }} active</div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <p class="text-sm text-gray-500 mb-1">Total Users</p>
-            <p class="text-3xl font-bold text-gray-800">{{ $totalUsers }}</p>
-            <p class="text-xs text-gray-400 mt-1">Across all companies</p>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px;">
+            <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Total Users</div>
+            <div style="font-size:26px; font-weight:600; color:#22d3ee;">{{ $totalUsers }}</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">Across all companies</div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <p class="text-sm text-gray-500 mb-1">Suspended</p>
-            <p class="text-3xl font-bold text-red-500">{{ $suspendedCompanies }}</p>
-            <p class="text-xs text-gray-400 mt-1">Need attention</p>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px;">
+            <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Suspended</div>
+            <div style="font-size:26px; font-weight:600; color:#f87171;">{{ $suspendedCompanies }}</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">Need attention</div>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 class="font-semibold text-gray-700">Recent Companies</h2>
-            <a href="{{ route('superadmin.companies.index') }}" class="text-sm text-purple-600 hover:underline">View all</a>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+        <div style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:11px; font-weight:600; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em;">Recent Companies</span>
+            <a href="{{ route('superadmin.companies.index') }}" style="font-size:12px; color:#a78bfa; text-decoration:none;">View all →</a>
         </div>
-        <div class="divide-y divide-gray-50">
+        <div>
             @forelse($recentCompanies as $company)
-            <div class="px-6 py-4 flex items-center justify-between">
+            <div style="padding:12px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
                 <div>
-                    <p class="font-medium text-gray-800">{{ $company->name }}</p>
-                    <p class="text-sm text-gray-400">{{ $company->email }}</p>
+                    <div style="font-size:13px; font-weight:500; color:var(--text);">{{ $company->name }}</div>
+                    <div style="font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px;">{{ $company->email }}</div>
                 </div>
-                <span class="px-2 py-1 text-xs rounded-full font-medium
-                    {{ $company->status === 'active' ? 'bg-green-100 text-green-700' : ($company->status === 'suspended' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600') }}">
+                <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
+                    {{ $company->status === 'active' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
+                       ($company->status === 'suspended' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;') }}">
                     {{ ucfirst($company->status) }}
                 </span>
             </div>
             @empty
-            <p class="px-6 py-4 text-sm text-gray-400">No companies yet.</p>
+            <div style="padding:32px; text-align:center; color:var(--muted); font-size:13px;">No companies yet.</div>
             @endforelse
         </div>
     </div>

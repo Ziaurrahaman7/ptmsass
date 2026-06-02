@@ -1,56 +1,50 @@
 <x-company-layout title="New Project">
 
-    <div class="max-w-2xl">
-        <a href="{{ route('company.projects.index') }}" class="text-sm text-gray-500 hover:text-indigo-600 mb-4 inline-block">← Back to Projects</a>
+    <div style="max-width:600px;">
+        <a href="{{ route('company.projects.index') }}" style="font-size:12px; color:var(--muted); text-decoration:none; display:inline-block; margin-bottom:16px;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Back to Projects</a>
 
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-6">Create New Project</h2>
+        <div class="ptm-card" style="padding:24px;">
+            <div style="font-size:15px; font-weight:600; color:var(--text); margin-bottom:20px;">Create New Project</div>
 
-            <form method="POST" action="{{ route('company.projects.store') }}" class="space-y-5">
+            <form method="POST" action="{{ route('company.projects.store') }}" style="display:flex; flex-direction:column; gap:16px;">
                 @csrf
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Project Name *</label>
-                    <input type="text" name="name" value="{{ old('name') }}" autofocus
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 @error('name') border-red-400 @enderror">
-                    @error('name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PROJECT NAME *</label>
+                    <input type="text" name="name" value="{{ old('name') }}" autofocus class="ptm-input"
+                           style="{{ $errors->has('name') ? 'border-color:rgba(248,113,113,0.5);' : '' }}">
+                    @error('name')<div style="font-size:11px; color:var(--danger); margin-top:4px;">{{ $message }}</div>@enderror
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" rows="3"
-                              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ old('description') }}</textarea>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DESCRIPTION</label>
+                    <textarea name="description" rows="3" class="ptm-input" style="resize:vertical;">{{ old('description') }}</textarea>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-                        <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            @foreach(['planning'=>'Planning','in_progress'=>'In Progress','on_hold'=>'On Hold','completed'=>'Completed'] as $val => $label)
-                            <option value="{{ $val }}" {{ old('status','planning') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">STATUS *</label>
+                        <select name="status" class="ptm-select">
+                            @foreach(['planning'=>'Planning','in_progress'=>'In Progress','on_hold'=>'On Hold','completed'=>'Completed'] as $val => $lbl)
+                            <option value="{{ $val }}" {{ old('status','planning') === $val ? 'selected' : '' }}>{{ $lbl }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                        <input type="date" name="start_date" value="{{ old('start_date') }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">START DATE</label>
+                        <input type="date" name="start_date" value="{{ old('start_date') }}" class="ptm-input">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                        <input type="date" name="due_date" value="{{ old('due_date') }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 @error('due_date') border-red-400 @enderror">
-                        @error('due_date')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DUE DATE</label>
+                        <input type="date" name="due_date" value="{{ old('due_date') }}" class="ptm-input"
+                               style="{{ $errors->has('due_date') ? 'border-color:rgba(248,113,113,0.5);' : '' }}">
+                        @error('due_date')<div style="font-size:11px; color:var(--danger); margin-top:4px;">{{ $message }}</div>@enderror
                     </div>
                 </div>
 
-                <div class="flex gap-3 pt-2">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-6 py-2 rounded-lg transition">
-                        Create Project
-                    </button>
-                    <a href="{{ route('company.projects.index') }}" class="text-sm text-gray-500 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
-                        Cancel
-                    </a>
+                <div style="display:flex; gap:10px; padding-top:6px;">
+                    <button type="submit" class="ptm-btn-primary">Create Project</button>
+                    <a href="{{ route('company.projects.index') }}" class="ptm-btn-ghost" style="text-decoration:none;">Cancel</a>
                 </div>
             </form>
         </div>

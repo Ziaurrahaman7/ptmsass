@@ -7,6 +7,8 @@ use App\Http\Controllers\Company\DashboardController as CompanyDashboardControll
 use App\Http\Controllers\Company\ProjectController as CompanyProjectController;
 use App\Http\Controllers\Company\TaskController as CompanyTaskController;
 use App\Http\Controllers\Company\MemberController as CompanyMemberController;
+use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
+use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
@@ -32,12 +34,20 @@ Route::prefix('company')->name('company.')->middleware(['auth', 'company_admin']
     Route::patch('members/{user}/toggle', [CompanyMemberController::class, 'toggle'])->name('members.toggle');
 });
 
+// Employee routes
+Route::prefix('employee')->name('employee.')->middleware(['auth', 'employee'])->group(function () {
+    Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/tasks', [EmployeeTaskController::class, 'index'])->name('tasks.index');
+    Route::patch('/tasks/{task}/status', [EmployeeTaskController::class, 'updateStatus'])->name('tasks.status');
+});
+
 // Authenticated user dashboard redirect
 Route::get('/dashboard', function () {
     $user = auth()->user();
     if ($user->isSuperAdmin()) return redirect()->route('superadmin.dashboard');
     if ($user->isCompanyAdmin()) return redirect()->route('company.dashboard');
-    return redirect()->route('company.dashboard');
+    if ($user->isEmployee()) return redirect()->route('employee.dashboard');
+    abort(403);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {

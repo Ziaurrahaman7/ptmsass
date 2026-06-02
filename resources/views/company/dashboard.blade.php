@@ -1,82 +1,82 @@
 <x-company-layout title="Dashboard">
 
     {{-- Stats --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;">
         @foreach([
-            ['label'=>'Total Projects','value'=>$totalProjects,'color'=>'indigo','icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
-            ['label'=>'Active Projects','value'=>$activeProjects,'color'=>'blue','icon'=>'M13 10V3L4 14h7v7l9-11h-7z'],
-            ['label'=>'Total Tasks','value'=>$totalTasks,'color'=>'violet','icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
-            ['label'=>'Overdue Tasks','value'=>$overdueTasks,'color'=>'red','icon'=>'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-        ] as $stat)
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <div class="flex items-center justify-between mb-2">
-                <p class="text-sm text-gray-500">{{ $stat['label'] }}</p>
-                <div class="w-8 h-8 bg-{{ $stat['color'] }}-50 rounded-lg flex items-center justify-center">
-                    <svg class="w-4 h-4 text-{{ $stat['color'] }}-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $stat['icon'] }}"/>
-                    </svg>
-                </div>
-            </div>
-            <p class="text-3xl font-bold text-gray-800">{{ $stat['value'] }}</p>
+            ['label'=>'Total Projects', 'value'=>$totalProjects,  'color'=>'#4ade80'],
+            ['label'=>'Active Projects','value'=>$activeProjects,  'color'=>'#22d3ee'],
+            ['label'=>'Total Tasks',    'value'=>$totalTasks,      'color'=>'#a78bfa'],
+            ['label'=>'Overdue Tasks',  'value'=>$overdueTasks,    'color'=>'#f87171'],
+        ] as $s)
+        <div class="ptm-card" style="padding:16px 18px;">
+            <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">{{ $s['label'] }}</div>
+            <div style="font-size:26px; font-weight:600; letter-spacing:-0.5px; color:{{ $s['color'] }};">{{ $s['value'] }}</div>
         </div>
         @endforeach
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
 
         {{-- Recent Projects --}}
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
-            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="font-semibold text-gray-700">Recent Projects</h2>
-                <a href="{{ route('company.projects.index') }}" class="text-sm text-indigo-600 hover:underline">View all</a>
+        <div class="ptm-card">
+            <div style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:11px; font-weight:600; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em;">Recent Projects</span>
+                <a href="{{ route('company.projects.index') }}" style="font-size:12px; color:var(--accent); text-decoration:none;">View all →</a>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div>
                 @forelse($recentProjects as $project)
-                <div class="px-5 py-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <a href="{{ route('company.projects.show', $project) }}"
-                           class="font-medium text-gray-800 hover:text-indigo-600 text-sm">{{ $project->name }}</a>
-                        <span class="text-xs px-2 py-0.5 rounded-full font-medium
-                            {{ $project->status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                               ($project->status === 'completed' ? 'bg-green-100 text-green-700' :
-                               ($project->status === 'on_hold' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600')) }}">
+                <div style="padding:12px 18px; border-bottom:1px solid var(--border);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <a href="{{ route('company.projects.show', $project) }}" style="font-size:13px; font-weight:500; color:var(--text); text-decoration:none;">{{ $project->name }}</a>
+                        <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
+                            {{ $project->status === 'in_progress' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
+                               ($project->status === 'completed' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
+                               ($project->status === 'on_hold' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
                             {{ ucfirst(str_replace('_',' ',$project->status)) }}
                         </span>
                     </div>
-                    <div class="w-full bg-gray-100 rounded-full h-1.5">
-                        <div class="bg-indigo-500 h-1.5 rounded-full" style="width: {{ $project->progressPercentage() }}%"></div>
+                    <div style="height:3px; background:var(--border); border-radius:2px;">
+                        <div style="height:100%; border-radius:2px; background:#4ade80; width:{{ $project->progressPercentage() }}%;"></div>
                     </div>
-                    <p class="text-xs text-gray-400 mt-1">{{ $project->progressPercentage() }}% complete · {{ $project->tasks_count }} tasks</p>
+                    <div style="font-size:11px; color:var(--muted); margin-top:5px; font-family:var(--mono);">{{ $project->progressPercentage() }}% · {{ $project->tasks_count }} tasks</div>
                 </div>
                 @empty
-                <p class="px-5 py-6 text-sm text-gray-400 text-center">No projects yet. <a href="{{ route('company.projects.create') }}" class="text-indigo-600 hover:underline">Create one</a></p>
+                <div style="padding:24px; text-align:center; color:var(--muted); font-size:13px;">
+                    No projects yet. <a href="{{ route('company.projects.create') }}" style="color:var(--accent); text-decoration:none;">Create one →</a>
+                </div>
                 @endforelse
             </div>
         </div>
 
         {{-- Recent Tasks --}}
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
-            <div class="px-5 py-4 border-b border-gray-100">
-                <h2 class="font-semibold text-gray-700">Recent Tasks</h2>
+        <div class="ptm-card">
+            <div style="padding:14px 18px 12px; border-bottom:1px solid var(--border);">
+                <span style="font-size:11px; font-weight:600; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em;">Recent Tasks</span>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div>
                 @forelse($recentTasks as $task)
-                <div class="px-5 py-3 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-800">{{ $task->title }}</p>
-                        <p class="text-xs text-gray-400">{{ $task->project->name }} · {{ $task->assignee?->name ?? 'Unassigned' }}</p>
+                <div style="padding:10px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                    <div style="min-width:0;">
+                        <div style="font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $task->title }}</div>
+                        <div style="font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px;">{{ $task->project->name }} · {{ $task->assignee?->name ?? 'Unassigned' }}</div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-{{ $task->priorityColor() }}-100 text-{{ $task->priorityColor() }}-700">
+                    <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                        <span class="ptm-badge" style="
+                            {{ $task->priority === 'urgent' ? 'color:#f87171; border:1px solid rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
+                               ($task->priority === 'high' ? 'color:#fb923c; border:1px solid rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
+                               ($task->priority === 'medium' ? 'color:#fbbf24; border:1px solid rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border:1px solid var(--border2); background:transparent;')) }}">
                             {{ ucfirst($task->priority) }}
                         </span>
-                        <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-{{ $task->statusColor() }}-100 text-{{ $task->statusColor() }}-700">
+                        <span class="ptm-badge" style="
+                            {{ $task->status === 'done' ? 'color:#4ade80; border:1px solid rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
+                               ($task->status === 'in_progress' ? 'color:#22d3ee; border:1px solid rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
+                               ($task->status === 'in_review' ? 'color:#a78bfa; border:1px solid rgba(167,139,250,0.3); background:rgba(167,139,250,0.08);' : 'color:var(--muted); border:1px solid var(--border2); background:transparent;')) }}">
                             {{ ucfirst(str_replace('_',' ',$task->status)) }}
                         </span>
                     </div>
                 </div>
                 @empty
-                <p class="px-5 py-6 text-sm text-gray-400 text-center">No tasks yet.</p>
+                <div style="padding:24px; text-align:center; color:var(--muted); font-size:13px;">No tasks yet.</div>
                 @endforelse
             </div>
         </div>

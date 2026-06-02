@@ -1,91 +1,77 @@
 <x-company-layout :title="$project->name">
 
-    <div class="mb-6 flex items-center justify-between">
+    {{-- Header --}}
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px;">
         <div>
-            <a href="{{ route('company.projects.index') }}" class="text-sm text-gray-500 hover:text-indigo-600">← Projects</a>
-            <h2 class="text-xl font-bold text-gray-800 mt-1">{{ $project->name }}</h2>
-            @if($project->description)
-            <p class="text-sm text-gray-500 mt-0.5">{{ $project->description }}</p>
-            @endif
+            <a href="{{ route('company.projects.index') }}" style="font-size:12px; color:var(--muted); text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Projects</a>
+            <div style="font-size:18px; font-weight:600; letter-spacing:-0.3px; color:var(--text); margin-top:4px;">{{ $project->name }}</div>
+            @if($project->description)<div style="font-size:13px; color:var(--muted); margin-top:2px;">{{ $project->description }}</div>@endif
         </div>
-        <div class="flex items-center gap-3">
-            <span class="text-sm px-3 py-1 rounded-full font-medium
-                {{ $project->status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                   ($project->status === 'completed'  ? 'bg-green-100 text-green-700' :
-                   ($project->status === 'on_hold'    ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600')) }}">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:11px; font-family:var(--mono); padding:5px 10px; border-radius:6px; border:1px solid;
+                {{ $project->status === 'in_progress' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
+                   ($project->status === 'completed' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
+                   ($project->status === 'on_hold' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
                 {{ ucfirst(str_replace('_',' ',$project->status)) }}
             </span>
-            <a href="{{ route('company.projects.edit', $project) }}"
-               class="text-sm text-gray-500 hover:text-indigo-600 px-3 py-1.5 border border-gray-200 rounded-lg hover:border-indigo-300 transition">
-                Edit Project
-            </a>
+            <a href="{{ route('company.projects.edit', $project) }}" class="ptm-btn-ghost" style="text-decoration:none; font-size:12px; padding:6px 14px;">Edit Project</a>
         </div>
     </div>
 
     {{-- Progress --}}
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-6">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700">Overall Progress</span>
-            <span class="text-sm font-bold text-indigo-600">{{ $project->progressPercentage() }}%</span>
+    <div class="ptm-card" style="padding:16px 20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <span style="font-size:12px; color:var(--muted);">Overall Progress</span>
+            <span style="font-size:13px; font-weight:600; font-family:var(--mono); color:#4ade80;">{{ $project->progressPercentage() }}%</span>
         </div>
-        <div class="w-full bg-gray-100 rounded-full h-3">
-            <div class="bg-indigo-500 h-3 rounded-full transition-all" style="width: {{ $project->progressPercentage() }}%"></div>
+        <div style="height:4px; background:var(--border); border-radius:2px;">
+            <div style="height:100%; border-radius:2px; background:#4ade80; width:{{ $project->progressPercentage() }}%; transition:width 0.3s;"></div>
         </div>
-        <div class="flex gap-6 mt-3 text-sm text-gray-500">
+        <div style="display:flex; gap:20px; margin-top:10px; font-size:11px; color:var(--muted); font-family:var(--mono);">
             <span>{{ $tasks->count() }} total</span>
             <span>{{ $tasks->where('status','in_progress')->count() }} in progress</span>
             <span>{{ $tasks->where('status','done')->count() }} done</span>
-            @if($project->due_date)<span class="{{ $project->due_date->isPast() && $project->status !== 'completed' ? 'text-red-500' : '' }}">Due {{ $project->due_date->format('d M Y') }}</span>@endif
+            @if($project->due_date)<span style="{{ $project->due_date->isPast() && $project->status !== 'completed' ? 'color:#f87171;' : '' }}">Due {{ $project->due_date->format('d M Y') }}</span>@endif
         </div>
     </div>
 
-    {{-- Kanban Board --}}
-    <div class="grid grid-cols-4 gap-4 mb-6">
-        @foreach(['todo'=>['label'=>'To Do','color'=>'gray'],'in_progress'=>['label'=>'In Progress','color'=>'blue'],'in_review'=>['label'=>'In Review','color'=>'purple'],'done'=>['label'=>'Done','color'=>'green']] as $status => $cfg)
-        <div class="bg-gray-50 rounded-xl p-3">
-            <div class="flex items-center gap-2 mb-3">
-                <div class="w-2 h-2 rounded-full bg-{{ $cfg['color'] }}-400"></div>
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ $cfg['label'] }}</span>
-                <span class="ml-auto text-xs text-gray-400 bg-white px-1.5 py-0.5 rounded-full">
-                    {{ $tasks->where('status',$status)->count() }}
-                </span>
+    {{-- Kanban --}}
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
+        @foreach(['todo'=>['label'=>'To Do','color'=>'#6b7385'],'in_progress'=>['label'=>'In Progress','color'=>'#22d3ee'],'in_review'=>['label'=>'In Review','color'=>'#a78bfa'],'done'=>['label'=>'Done','color'=>'#4ade80']] as $status => $cfg)
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px;">
+            <div style="display:flex; align-items:center; gap:7px; margin-bottom:12px;">
+                <div style="width:7px; height:7px; border-radius:50%; background:{{ $cfg['color'] }};"></div>
+                <span style="font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-family:var(--mono);">{{ $cfg['label'] }}</span>
+                <span style="margin-left:auto; font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $tasks->where('status',$status)->count() }}</span>
             </div>
-            <div class="space-y-2">
+            <div style="display:flex; flex-direction:column; gap:8px;">
                 @foreach($tasks->where('status',$status) as $task)
-                <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-100 group">
-                    <div class="flex items-start justify-between gap-1">
-                        <p class="text-sm font-medium text-gray-800 leading-tight">{{ $task->title }}</p>
-                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
-                            <button onclick="openEditTask({{ $task->id }}, '{{ addslashes($task->title) }}', '{{ addslashes($task->description) }}', '{{ $task->status }}', '{{ $task->priority }}', '{{ $task->assigned_to }}', '{{ $task->due_date?->format('Y-m-d') }}')"
-                                    class="text-gray-400 hover:text-indigo-600">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                <div class="ptm-kanban-card" style="padding:10px 12px; cursor:default;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='transparent'">
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;">
+                        <div style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4;">{{ $task->title }}</div>
+                        <div style="display:flex; gap:4px; flex-shrink:0; opacity:0;" class="task-actions" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+                            <button onclick="openEditTask({{ $task->id }},'{{ addslashes($task->title) }}','{{ addslashes($task->description) }}','{{ $task->status }}','{{ $task->priority }}','{{ $task->assigned_to }}','{{ $task->due_date?->format('Y-m-d') }}')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                             </button>
-                            <form method="POST" action="{{ route('company.tasks.destroy', $task) }}">
+                            <form method="POST" action="{{ route('company.tasks.destroy', $task) }}" style="display:inline;">
                                 @csrf @method('DELETE')
-                                <button onclick="return confirm('Delete task?')" class="text-gray-400 hover:text-red-500">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <button onclick="return confirm('Delete task?')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </form>
                         </div>
                     </div>
-                    @if($task->description)
-                    <p class="text-xs text-gray-400 mt-1 line-clamp-2">{{ $task->description }}</p>
-                    @endif
-                    <div class="flex items-center justify-between mt-2">
-                        <span class="text-xs px-1.5 py-0.5 rounded font-medium bg-{{ $task->priorityColor() }}-100 text-{{ $task->priorityColor() }}-700">
+                    @if($task->description)<div style="font-size:11px; color:var(--muted); margin-top:4px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">{{ $task->description }}</div>@endif
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+                        <span style="font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:4px; border:1px solid;
+                            {{ $task->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
+                               ($task->priority === 'high' ? 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
+                               ($task->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
                             {{ ucfirst($task->priority) }}
                         </span>
-                        <div class="flex items-center gap-1.5">
-                            @if($task->due_date)
-                            <span class="text-xs {{ $task->due_date->isPast() && $task->status !== 'done' ? 'text-red-500' : 'text-gray-400' }}">
-                                {{ $task->due_date->format('d M') }}
-                            </span>
-                            @endif
-                            @if($task->assignee)
-                            <div class="w-5 h-5 rounded-full bg-indigo-400 flex items-center justify-center text-white text-xs font-bold" title="{{ $task->assignee->name }}">
-                                {{ strtoupper(substr($task->assignee->name,0,1)) }}
-                            </div>
-                            @endif
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            @if($task->due_date)<span style="font-size:11px; font-family:var(--mono); {{ $task->due_date->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">{{ $task->due_date->format('d M') }}</span>@endif
+                            @if($task->assignee)<div style="width:20px; height:20px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $task->assignee->name }}">{{ strtoupper(substr($task->assignee->name,0,1)) }}</div>@endif
                         </div>
                     </div>
                 </div>
@@ -95,140 +81,126 @@
         @endforeach
     </div>
 
-    {{-- Add Task Button --}}
-    <button onclick="document.getElementById('addTaskModal').classList.remove('hidden')"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    <button onclick="document.getElementById('addTaskModal').style.display='flex'" class="ptm-btn-primary" style="display:flex; align-items:center; gap:7px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Task
     </button>
 
     {{-- Add Task Modal --}}
-    <div id="addTaskModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg">
-            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="font-semibold text-gray-800">Add Task</h3>
-                <button onclick="document.getElementById('addTaskModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">✕</button>
+    <div id="addTaskModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:20px;">
+        <div style="background:var(--surface); border:1px solid var(--border2); border-radius:16px; padding:0; width:100%; max-width:480px;">
+            <div style="padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:15px; font-weight:600; color:var(--text);">Add Task</span>
+                <button onclick="document.getElementById('addTaskModal').style.display='none'" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
             </div>
-            <form method="POST" action="{{ route('company.tasks.store', $project) }}" class="p-6 space-y-4">
+            <form method="POST" action="{{ route('company.tasks.store', $project) }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                    <input type="text" name="title" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TITLE *</label>
+                    <input type="text" name="title" class="ptm-input" style="width:100%;" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DESCRIPTION</label>
+                    <textarea name="description" rows="2" class="ptm-input" style="width:100%; resize:vertical;"></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="todo">To Do</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="in_review">In Review</option>
-                            <option value="done">Done</option>
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">STATUS</label>
+                        <select name="status" class="ptm-select" style="width:100%;">
+                            <option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="in_review">In Review</option><option value="done">Done</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                        <select name="priority" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="low">Low</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="high">High</option>
-                            <option value="urgent">Urgent</option>
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PRIORITY</label>
+                        <select name="priority" class="ptm-select" style="width:100%;">
+                            <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
-                        <select name="assigned_to" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO</label>
+                        <select name="assigned_to" class="ptm-select" style="width:100%;">
                             <option value="">Unassigned</option>
-                            @foreach($members as $member)
-                            <option value="{{ $member->id }}">{{ $member->name }}</option>
-                            @endforeach
+                            @foreach($members as $member)<option value="{{ $member->id }}">{{ $member->name }}</option>@endforeach
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                        <input type="date" name="due_date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DUE DATE</label>
+                        <input type="date" name="due_date" class="ptm-input" style="width:100%;">
                     </div>
                 </div>
-                <div class="flex gap-3 pt-1">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition">Add Task</button>
-                    <button type="button" onclick="document.getElementById('addTaskModal').classList.add('hidden')" class="text-sm text-gray-500 px-4 py-2 rounded-lg border border-gray-200">Cancel</button>
+                <div style="display:flex; gap:10px; padding-top:4px;">
+                    <button type="submit" class="ptm-btn-primary">Add Task</button>
+                    <button type="button" onclick="document.getElementById('addTaskModal').style.display='none'" class="ptm-btn-ghost">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
     {{-- Edit Task Modal --}}
-    <div id="editTaskModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg">
-            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="font-semibold text-gray-800">Edit Task</h3>
-                <button onclick="document.getElementById('editTaskModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">✕</button>
+    <div id="editTaskModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:20px;">
+        <div style="background:var(--surface); border:1px solid var(--border2); border-radius:16px; width:100%; max-width:480px;">
+            <div style="padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:15px; font-weight:600; color:var(--text);">Edit Task</span>
+                <button onclick="document.getElementById('editTaskModal').style.display='none'" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
             </div>
-            <form id="editTaskForm" method="POST" class="p-6 space-y-4">
+            <form id="editTaskForm" method="POST" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
                 @csrf @method('PUT')
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                    <input type="text" name="title" id="editTitle" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TITLE *</label>
+                    <input type="text" name="title" id="editTitle" class="ptm-input" style="width:100%;" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" id="editDescription" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DESCRIPTION</label>
+                    <textarea name="description" id="editDescription" rows="2" class="ptm-input" style="width:100%; resize:vertical;"></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <select name="status" id="editStatus" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="todo">To Do</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="in_review">In Review</option>
-                            <option value="done">Done</option>
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">STATUS</label>
+                        <select name="status" id="editStatus" class="ptm-select" style="width:100%;">
+                            <option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="in_review">In Review</option><option value="done">Done</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                        <select name="priority" id="editPriority" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="urgent">Urgent</option>
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PRIORITY</label>
+                        <select name="priority" id="editPriority" class="ptm-select" style="width:100%;">
+                            <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
-                        <select name="assigned_to" id="editAssignee" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO</label>
+                        <select name="assigned_to" id="editAssignee" class="ptm-select" style="width:100%;">
                             <option value="">Unassigned</option>
-                            @foreach($members as $member)
-                            <option value="{{ $member->id }}">{{ $member->name }}</option>
-                            @endforeach
+                            @foreach($members as $member)<option value="{{ $member->id }}">{{ $member->name }}</option>@endforeach
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                        <input type="date" name="due_date" id="editDueDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DUE DATE</label>
+                        <input type="date" name="due_date" id="editDueDate" class="ptm-input" style="width:100%;">
                     </div>
                 </div>
-                <div class="flex gap-3 pt-1">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition">Save Changes</button>
-                    <button type="button" onclick="document.getElementById('editTaskModal').classList.add('hidden')" class="text-sm text-gray-500 px-4 py-2 rounded-lg border border-gray-200">Cancel</button>
+                <div style="display:flex; gap:10px; padding-top:4px;">
+                    <button type="submit" class="ptm-btn-primary">Save Changes</button>
+                    <button type="button" onclick="document.getElementById('editTaskModal').style.display='none'" class="ptm-btn-ghost">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-    function openEditTask(id, title, description, status, priority, assignedTo, dueDate) {
-        document.getElementById('editTaskForm').action = '/company/tasks/' + id;
-        document.getElementById('editTitle').value = title;
-        document.getElementById('editDescription').value = description;
-        document.getElementById('editStatus').value = status;
-        document.getElementById('editPriority').value = priority;
-        document.getElementById('editAssignee').value = assignedTo || '';
-        document.getElementById('editDueDate').value = dueDate || '';
-        document.getElementById('editTaskModal').classList.remove('hidden');
+    function openEditTask(id,title,description,status,priority,assignedTo,dueDate){
+        document.getElementById('editTaskForm').action='/company/tasks/'+id;
+        document.getElementById('editTitle').value=title;
+        document.getElementById('editDescription').value=description;
+        document.getElementById('editStatus').value=status;
+        document.getElementById('editPriority').value=priority;
+        document.getElementById('editAssignee').value=assignedTo||'';
+        document.getElementById('editDueDate').value=dueDate||'';
+        document.getElementById('editTaskModal').style.display='flex';
     }
+    document.querySelectorAll('.ptm-kanban-card').forEach(card=>{
+        card.addEventListener('mouseenter',()=>{ const a=card.querySelector('.task-actions'); if(a) a.style.opacity=1; });
+        card.addEventListener('mouseleave',()=>{ const a=card.querySelector('.task-actions'); if(a) a.style.opacity=0; });
+    });
     </script>
 
 </x-company-layout>

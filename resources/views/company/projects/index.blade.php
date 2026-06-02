@@ -1,84 +1,68 @@
 <x-company-layout title="Projects">
 
-    <div class="flex items-center justify-between mb-6">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;">
         <div>
-            <h2 class="text-xl font-bold text-gray-800">All Projects</h2>
-            <p class="text-sm text-gray-500">Manage your company's projects</p>
+            <div style="font-size:16px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">All Projects</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">Manage your company's projects</div>
         </div>
-        <a href="{{ route('company.projects.create') }}"
-           class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <a href="{{ route('company.projects.create') }}" class="ptm-btn-primary" style="text-decoration:none; display:flex; align-items:center; gap:7px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             New Project
         </a>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px;">
         @forelse($projects as $project)
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition">
-            <div class="flex items-start justify-between mb-3">
-                <div class="flex-1 min-w-0">
-                    <a href="{{ route('company.projects.show', $project) }}"
-                       class="font-semibold text-gray-800 hover:text-indigo-600 block truncate">
-                        {{ $project->name }}
-                    </a>
-                    <p class="text-xs text-gray-400 mt-0.5 line-clamp-2">{{ $project->description ?? 'No description' }}</p>
+        <div class="ptm-card" style="padding:16px 18px; transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.13)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; gap:8px;">
+                <div style="min-width:0;">
+                    <a href="{{ route('company.projects.show', $project) }}" style="font-size:14px; font-weight:600; color:var(--text); text-decoration:none; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">{{ $project->name }}</a>
+                    <div style="font-size:12px; color:var(--muted); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $project->description ?? 'No description' }}</div>
                 </div>
-                <span class="ml-2 flex-shrink-0 text-xs px-2 py-1 rounded-full font-medium
-                    {{ $project->status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                       ($project->status === 'completed'  ? 'bg-green-100 text-green-700' :
-                       ($project->status === 'on_hold'    ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600')) }}">
+                <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid; white-space:nowrap; flex-shrink:0;
+                    {{ $project->status === 'in_progress' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
+                       ($project->status === 'completed' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
+                       ($project->status === 'on_hold' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
                     {{ ucfirst(str_replace('_',' ',$project->status)) }}
                 </span>
             </div>
 
-            <div class="mb-3">
-                <div class="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>Progress</span>
-                    <span>{{ $project->progressPercentage() }}%</span>
+            <div style="margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:5px;">
+                    <span>Progress</span><span>{{ $project->progressPercentage() }}%</span>
                 </div>
-                <div class="w-full bg-gray-100 rounded-full h-2">
-                    <div class="bg-indigo-500 h-2 rounded-full transition-all" style="width: {{ $project->progressPercentage() }}%"></div>
+                <div style="height:3px; background:var(--border); border-radius:2px;">
+                    <div style="height:100%; border-radius:2px; background:#4ade80; width:{{ $project->progressPercentage() }}%; transition:width 0.3s;"></div>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between text-xs text-gray-400">
-                <span>{{ $project->tasks_count }} tasks · {{ $project->done_tasks_count }} done</span>
+            <div style="font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:14px;">
+                {{ $project->tasks_count }} tasks · {{ $project->done_tasks_count }} done
                 @if($project->due_date)
-                <span class="{{ $project->due_date->isPast() && $project->status !== 'completed' ? 'text-red-500' : '' }}">
-                    Due {{ $project->due_date->format('d M') }}
-                </span>
+                · <span style="{{ $project->due_date->isPast() && $project->status !== 'completed' ? 'color:#f87171;' : '' }}">Due {{ $project->due_date->format('d M') }}</span>
                 @endif
             </div>
 
-            <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-50">
-                <a href="{{ route('company.projects.show', $project) }}"
-                   class="flex-1 text-center text-xs font-medium text-indigo-600 hover:text-indigo-800 py-1.5 rounded-lg hover:bg-indigo-50 transition">
-                    Open
-                </a>
-                <a href="{{ route('company.projects.edit', $project) }}"
-                   class="flex-1 text-center text-xs font-medium text-gray-500 hover:text-gray-700 py-1.5 rounded-lg hover:bg-gray-50 transition">
-                    Edit
-                </a>
-                <form method="POST" action="{{ route('company.projects.destroy', $project) }}"
-                      onsubmit="return confirm('Delete this project and all its tasks?')">
+            <div style="display:flex; gap:6px; padding-top:12px; border-top:1px solid var(--border);">
+                <a href="{{ route('company.projects.show', $project) }}" style="flex:1; text-align:center; font-size:12px; font-weight:500; color:var(--accent); text-decoration:none; padding:6px; border-radius:6px; background:rgba(74,222,128,0.06); border:1px solid rgba(74,222,128,0.15);">Open</a>
+                <a href="{{ route('company.projects.edit', $project) }}" style="flex:1; text-align:center; font-size:12px; font-weight:500; color:var(--muted); text-decoration:none; padding:6px; border-radius:6px; background:var(--surface2); border:1px solid var(--border);" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Edit</a>
+                <form method="POST" action="{{ route('company.projects.destroy', $project) }}" onsubmit="return confirm('Delete this project?')">
                     @csrf @method('DELETE')
-                    <button class="text-xs font-medium text-red-400 hover:text-red-600 py-1.5 px-3 rounded-lg hover:bg-red-50 transition">
-                        Delete
-                    </button>
+                    <button style="font-size:12px; font-weight:500; color:var(--danger); padding:6px 10px; border-radius:6px; background:rgba(248,113,113,0.06); border:1px solid rgba(248,113,113,0.15); cursor:pointer; font-family:var(--font);">Delete</button>
                 </form>
             </div>
         </div>
         @empty
-        <div class="col-span-3 bg-white rounded-xl border border-dashed border-gray-200 p-12 text-center">
-            <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            <p class="text-gray-400 mb-3">No projects yet</p>
-            <a href="{{ route('company.projects.create') }}" class="text-sm text-indigo-600 hover:underline">Create your first project</a>
+        <div style="grid-column:span 3; padding:60px 20px; text-align:center; color:var(--muted);">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" style="margin:0 auto 12px;display:block;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <div style="font-size:15px; color:var(--text); margin-bottom:6px;">No projects yet</div>
+            <a href="{{ route('company.projects.create') }}" style="font-size:13px; color:var(--accent); text-decoration:none;">Create your first project →</a>
         </div>
         @endforelse
     </div>
 
     @if($projects->hasPages())
-    <div class="mt-6">{{ $projects->links() }}</div>
+    <div style="margin-top:20px;">{{ $projects->links() }}</div>
     @endif
 
 </x-company-layout>

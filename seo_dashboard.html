@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO Command Center</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f12;
+    --surface: #13161b;
+    --surface2: #1a1e25;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --muted: #6b7385;
+    --accent: #4ade80;
+    --accent2: #22d3ee;
+    --warn: #fbbf24;
+    --danger: #f87171;
+    --purple: #a78bfa;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .sidebar-header { padding: 20px 18px 16px; border-bottom: 1px solid var(--border); }
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 18px; height: 18px; stroke: #0d0f12; fill: none; stroke-width: 2.5; }
+  .logo-text { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+
+  .add-client-btn {
+    width: 100%; padding: 9px 12px; background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.25);
+    color: var(--accent); border-radius: 8px; cursor: pointer; font-family: var(--font); font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px; transition: all 0.15s;
+  }
+  .add-client-btn:hover { background: rgba(74,222,128,0.18); }
+
+  .clients-list { flex: 1; overflow-y: auto; padding: 10px 10px; }
+  .clients-list::-webkit-scrollbar { width: 4px; }
+  .clients-list::-webkit-scrollbar-track { background: transparent; }
+  .clients-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .client-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 8px;
+    cursor: pointer; transition: all 0.15s; margin-bottom: 2px; position: relative;
+  }
+  .client-item:hover { background: var(--surface2); }
+  .client-item.active { background: var(--surface2); }
+  .client-item.active::before {
+    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 60%; background: var(--accent); border-radius: 0 2px 2px 0;
+  }
+  .client-avatar {
+    width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+  }
+  .client-info { flex: 1; min-width: 0; }
+  .client-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .client-meta { font-size: 11px; color: var(--muted); }
+  .client-del { opacity: 0; background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 4px; font-size: 14px; border-radius: 4px; transition: all 0.1s; }
+  .client-item:hover .client-del { opacity: 1; }
+  .client-del:hover { color: var(--danger); background: rgba(248,113,113,0.1); }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .topbar-left { display: flex; flex-direction: column; }
+  .topbar-client { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+  .topbar-phase { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .phase-badge { font-size: 11px; font-family: var(--mono); padding: 5px 10px; border-radius: 6px; border: 1px solid; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+  .content::-webkit-scrollbar { width: 6px; }
+  .content::-webkit-scrollbar-track { background: transparent; }
+  .content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* METRICS */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+  }
+  .metric-label { font-size: 11px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .metric-value { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+  .metric-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* TIMELINE */
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); margin-bottom: 16px; }
+
+  .timeline-months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .month-block {
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.15s;
+  }
+  .month-block:hover { border-color: var(--border2); }
+  .month-block.active-month { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(74,222,128,0.2); }
+  .month-header { padding: 10px 12px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  .month-status { width: 8px; height: 8px; border-radius: 50%; }
+  .month-weeks { padding: 0 12px 10px; display: flex; gap: 4px; }
+  .week-dot { flex: 1; height: 4px; border-radius: 2px; transition: all 0.2s; }
+
+  /* WEEK DETAIL */
+  .week-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .week-tab {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-family: var(--font); font-size: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .week-tab:hover { border-color: var(--border2); color: var(--text); }
+  .week-tab.active { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+  .week-tab.done-tab { border-color: rgba(74,222,128,0.3); color: var(--accent); }
+  .week-tab.current-tab { border-color: rgba(34,211,238,0.4); color: var(--accent2); }
+
+  .week-content { display: none; }
+  .week-content.visible { display: block; }
+
+  .week-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .week-title { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+  .week-goal-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .week-status-btn {
+    padding: 7px 14px; border-radius: 8px; border: 1px solid; font-family: var(--font); font-size: 12px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+
+  .tasks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .tasks-col h4 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--mono); margin-bottom: 10px; }
+  .task-item {
+    display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+    background: var(--surface2); border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .task-item:hover { border-color: var(--border); }
+  .task-item.checked { opacity: 0.55; }
+  .task-check {
+    width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--border2); flex-shrink: 0;
+    margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .task-item.checked .task-check { background: var(--accent); border-color: var(--accent); }
+  .task-check svg { width: 11px; height: 11px; stroke: #0d0f12; fill: none; stroke-width: 3; opacity: 0; }
+  .task-item.checked .task-check svg { opacity: 1; }
+  .task-text { font-size: 13px; line-height: 1.5; }
+
+  .goals-list { margin-top: 14px; }
+  .goal-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: rgba(74,222,128,0.05);
+    border: 1px solid rgba(74,222,128,0.15); border-radius: 8px; margin-bottom: 6px;
+    font-size: 13px; color: rgba(74,222,128,0.85);
+  }
+  .goal-item::before { content: '→'; color: var(--accent); font-weight: 600; }
+
+  /* KPI TRACKER */
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .kpi-card { background: var(--surface2); border-radius: 10px; padding: 14px 16px; }
+  .kpi-name { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .kpi-row { display: flex; align-items: center; gap: 8px; }
+  .kpi-input {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; color: var(--text);
+    font-family: var(--mono); font-size: 13px; padding: 5px 9px; width: 100%; transition: border 0.15s;
+  }
+  .kpi-input:focus { outline: none; border-color: var(--accent2); }
+  .kpi-target { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* MODAL */
+  .modal-bg {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 28px; width: 440px; max-width: 95vw; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .modal p { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .modal label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; font-family: var(--mono); }
+  .modal input, .modal select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+    color: var(--text); font-family: var(--font); font-size: 14px; padding: 10px 12px; margin-bottom: 14px;
+  }
+  .modal input:focus, .modal select:focus { outline: none; border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+  .btn { padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: var(--text); font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #0d0f12; }
+  .btn-primary:hover { background: #22c55e; border-color: #22c55e; }
+
+  /* Empty state */
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; color: var(--muted); text-align: center; gap: 10px; }
+  .empty svg { width: 48px; height: 48px; stroke: var(--border2); fill: none; stroke-width: 1.5; }
+  .empty h3 { font-size: 16px; color: var(--text); }
+  .empty p { font-size: 13px; }
+
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  .running-tasks { margin-top: 14px; padding: 12px 14px; background: rgba(34,211,238,0.05); border: 1px solid rgba(34,211,238,0.12); border-radius: 8px; }
+  .running-tasks h4 { font-size: 11px; color: var(--accent2); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+  .running-tag { display: inline-flex; font-size: 11px; background: rgba(34,211,238,0.08); border: 1px solid rgba(34,211,238,0.15); color: var(--accent2); border-radius: 6px; padding: 3px 9px; margin: 2px 3px 2px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <div class="logo-text">SEO Command</div>
+          <div class="logo-sub">6-Month Roadmap</div>
+        </div>
+      </div>
+      <button class="add-client-btn" onclick="openModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Client Project
+      </button>
+    </div>
+    <div class="clients-list" id="clientsList"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-client" id="topbarClient">Select a client</div>
+        <div class="topbar-phase" id="topbarPhase">No project selected</div>
+      </div>
+      <div class="topbar-right" id="topbarRight"></div>
+    </div>
+    <div class="content" id="mainContent">
+      <div class="empty">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <h3>No project selected</h3>
+        <p>Create a new client project or select one from the sidebar</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>New Client Project</h3>
+    <p>Set up a new SEO project based on the 6-Month Execution Roadmap.</p>
+    <label>Client / Company Name</label>
+    <input type="text" id="newClientName" placeholder="e.g. Acme Corp" />
+    <label>Website URL</label>
+    <input type="text" id="newClientUrl" placeholder="e.g. acmecorp.com" />
+    <label>Project Start Month</label>
+    <select id="newClientStart">
+      <option>January 2025</option><option>February 2025</option><option>March 2025</option>
+      <option>April 2025</option><option>May 2025</option><option>June 2025</option>
+      <option>July 2025</option><option>August 2025</option><option>September 2025</option>
+      <option>October 2025</option><option>November 2025</option><option>December 2025</option>
+      <option>January 2026</option><option>February 2026</option><option>March 2026</option>
+      <option selected>April 2026</option><option>May 2026</option><option>June 2026</option>
+    </select>
+    <label>Industry / Niche</label>
+    <input type="text" id="newClientNiche" placeholder="e.g. Real estate, SaaS, Healthcare" />
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createClient()">Create Project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ROADMAP DATA ──
+const ROADMAP = [
+  {
+    month: 1, title: "Foundation & Discovery",
+    goal: "System setup, ensuring data accuracy, and identifying all website loopholes.",
+    color: "#4ade80",
+    weeks: [
+      {
+        week: 1, title: "Onboarding & Access",
+        weekGoal: "Get all access credentials and assets. Receive the client's intake form.",
+        tasks: [
+          "Create Client Folder & establish Google Drive integration",
+          "Finalize Client Initiating Form & define core Business Goals",
+          "Secure all necessary Access (CMS, GA4, GSC, Social Media)",
+          "Set up Ahrefs Project & Baseline Keyword Tracking",
+          "Define Month 1 Priorities and Strategy"
+        ],
+        running: [],
+        goals: ["All access credentials and Assets secured", "Client intake form received"]
+      },
+      {
+        week: 2, title: "Tracking & KPI Setup",
+        weekGoal: "Conversion tracked perfectly. Get a Final Keyword and Prompt Database.",
+        tasks: [
+          "Configure GA4 & Google Tag Manager (GTM) for precision conversion tracking",
+          "Generate AI Prompts Database",
+          "Create Keyword Database",
+          "URL Mapping",
+          "Set up AI Tracking and Keywords to monitor brand visibility within LLMs",
+          "Configure Weekly/Monthly Reporting",
+          "Perform AI Search Preliminary Checks (Bot access & alignment)",
+          "Competitor Analysis"
+        ],
+        running: [],
+        goals: ["Conversion tracked perfectly", "Final Keyword and Prompt Database ready", "Keyword and Prompt tracking live"]
+      },
+      {
+        week: 3, title: "The Big Audit",
+        weekGoal: "Technical documentations complete. No critical errors left on site.",
+        tasks: [
+          "Audit Header/Footer, Site Structure, and Crawlability",
+          "Review Readability, Case Studies, and Review Visibility",
+          "Conduct Reputation & Online Review Analysis",
+          "Compile initial Technical Optimization Documentation",
+          "Fix all Critical Errors found on the site audit",
+          "GEO Checklist – Crawling and Indexing",
+          "Content Folder Creation",
+          "Complete website audit creation"
+        ],
+        running: [],
+        goals: ["Technical Documentation complete", "Website Audit Documentation complete", "No Critical Errors left on the site"]
+      },
+      {
+        week: 4, title: "Strategy & Research",
+        weekGoal: "Topical Map finalized. Content Folder created for next 3 months.",
+        tasks: [
+          "Finalize Topical Map",
+          "Content Folder fill-up for 3 months",
+          "GEO Checklist – Technical",
+          "GEO Checklist – Content",
+          "Month 2 Strategy and Priorities"
+        ],
+        running: [],
+        goals: ["Topical Map Finalized (Document)", "Content Folder created for the next 3 months", "Remaining GEO Checklist tasks marked"]
+      }
+    ]
+  },
+  {
+    month: 2, title: "Technical Fixes & On-Page",
+    goal: "Making the site fast, error-free, and optimized for quick ranking wins.",
+    color: "#22d3ee",
+    weeks: [
+      {
+        week: 1, title: "Technical Implementation",
+        weekGoal: "Improve site speed. Begin fixing technical SEO issues. Publish 4 content pieces.",
+        tasks: [
+          "Deploy Site Speed Optimizations & Core Web Vitals fixes",
+          "Start On-Page Optimization",
+          "Quick Wins and Low-Hanging Fruits Optimization",
+          "Initiate Site technical issues cleanup"
+        ],
+        running: ["Site Technical Issues Clean Up (95+ site health)", "Post 4 types of content each week"],
+        goals: ["Site speed and user experience improving", "First batch of low-hanging fruit pages optimized", "4 content pieces published", "Baseline for traffic, rankings, clicks established"]
+      },
+      {
+        week: 2, title: "On-Page Optimization (LHF)",
+        weekGoal: "Improve 5–10 priority pages. Fix crawlability issues. Keep site health toward 95+.",
+        tasks: [
+          "Optimize Meta tags & Content for Low Hanging Fruit (LHF) keywords",
+          "Fix Crawlability and Indexing issues from Google Search Console",
+          "Schema Markup coverage",
+          "Sitemap, Robots.txt, and llms.txt file refinement",
+          "Enhance Internal Linking & Site Structure"
+        ],
+        running: ["Site Technical Issues Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week"],
+        goals: ["5–10 priority pages improved with better meta tags", "Key crawlability and indexing issues fixed", "Internal linking improved across important pages", "Site health moving toward 95+", "4 content pieces and listicle posting started"]
+      },
+      {
+        week: 3, title: "CRO & Local SEO",
+        weekGoal: "Review key pages for better conversions. Complete GBP audit. Prepare local tracking.",
+        tasks: [
+          "Audit Page Copy, Form Positions, and CTAs for optimal conversion",
+          "Start Conversion Rate Optimization",
+          "Conduct Full GBP (Google Business Profile) Audit & Initial Optimization",
+          "Local Keyword files ready",
+          "Local KPI tracking setup"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week"],
+        goals: ["Key pages reviewed for better leads and conversions", "Forms, CTAs, and page copy improved", "GBP audit and initial optimization complete", "Local keyword and KPI tracking files ready", "4 content pieces published"]
+      },
+      {
+        week: 4, title: "Content & AI Assets",
+        weekGoal: "Improve brand consistency. Publish GBP post. Prepare Month 3 priorities.",
+        tasks: [
+          "Optimize Owned Assets (Social profiles, About page)",
+          "Execute GBP Post",
+          "Update Local KPI Sheet",
+          "Start planning Month 3 strategy and priorities"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting"],
+        goals: ["Brand consistency improved across owned assets", "At least 1 GBP post published", "Local SEO KPI tracking updated", "Month 3 priorities prepared"]
+      }
+    ]
+  },
+  {
+    month: 3, title: "Content Expansion & Engagement",
+    goal: "Increasing topical authority and feeding positive brand mentions to AI engines.",
+    color: "#a78bfa",
+    weeks: [
+      {
+        week: 1, title: "New Content Launch",
+        weekGoal: "Identify new content opportunities. Refresh first batch of old content.",
+        tasks: [
+          "New opportunity target pages based on the Topical Map (Documentation)",
+          "Start deploying new opportunities",
+          "Start refreshing old contents (Documentation)"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Old Content Refresh"],
+        goals: ["New content opportunities identified from topical map", "New target pages created or prepared", "First batch of old content refreshed", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 2, title: "Engagement Features",
+        weekGoal: "Add FAQs to 3–5 important pages. Improve underperforming content.",
+        tasks: [
+          "Add FAQ Sections to the core service and blog pages",
+          "Refresh and update underperforming existing content"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Old Content Refresh"],
+        goals: ["FAQs added to 3–5 important pages", "Underperforming content improved with updated information", "Better AI and search visibility with clearer answers", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 3, title: "Community Outreach (UGC)",
+        weekGoal: "Build visibility on Reddit, Quora, LinkedIn. Engage on 2–3 external platforms.",
+        tasks: [
+          "Initiate strategic presence on Quora and Reddit (Documentation)",
+          "Begin LinkedIn brand advocacy & engagement (Strategy Documentation)"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Old Content Refresh", "UGC Engagement (Reddit, Quora)", "LinkedIn content posting"],
+        goals: ["Visibility building on Reddit, Quora, and LinkedIn", "UGC and LinkedIn engagement strategy prepared", "Engaging on 2–3 external platforms", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 4, title: "AI & Rented Assets",
+        weekGoal: "Improve rented assets. Keep brand consistent across external platforms.",
+        tasks: [
+          "Optimize Rented Assets (profiles, listings, third-party pages)"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Quora/Reddit/LinkedIn Engagement", "Post 4 types of content each week", "GBP Posts", "Old Content Refresh"],
+        goals: ["Rented assets improved and consistent", "Brand information consistent across external platforms", "Continued engagement on Reddit, Quora, and LinkedIn", "4 content pieces and 1 GBP post published"]
+      }
+    ]
+  },
+  {
+    month: 4, title: "Authority & Link Building",
+    goal: "Increasing Domain Authority through aggressive outreach and digital PR.",
+    color: "#fbbf24",
+    weeks: [
+      {
+        week: 1, title: "Outreach Setup",
+        weekGoal: "Build authority and outreach strategy. Launch first outreach campaign.",
+        tasks: [
+          "Craft Authority Acceleration Strategy",
+          "Set up and launch targeted Outreach Campaigns",
+          "Craft Review generation strategy from 3rd party platforms"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Old Content Refresh", "UGC Engagement", "LinkedIn content posting", "Authority Accelerator"],
+        goals: ["Authority and outreach strategy built", "First outreach campaign launched", "Review generation strategy prepared", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 2, title: "Foundational Links",
+        weekGoal: "Build 5–10 niche citations. Start review generation campaign.",
+        tasks: [
+          "Build Niche Citations and Business Directories",
+          "Launch Review generation campaign"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Old Content Refresh", "Quora/Reddit/LinkedIn Engagement", "Digital PR Opportunities & Reviews"],
+        goals: ["5–10 niche citations or directory links built", "Review generation campaign started", "Local authority and brand trust improved", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 3, title: "Advanced Outreach & UGC",
+        weekGoal: "Send first batch of guest post outreach. Start managing UGC for AI search.",
+        tasks: [
+          "Execute Guest Post Outreach and HARO pitching",
+          "Initiate AI Search UGC management (Reddit, Quora, Local platforms)"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Old Content Refresh", "Quora/Reddit/LinkedIn Engagement", "Digital PR & Reviews"],
+        goals: ["First batch of guest post and PR outreach sent", "UGC mentions managed for AI search visibility", "Brand presence built on Reddit, Quora, and local platforms", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 4, title: "Digital PR & Reviews",
+        weekGoal: "Secure authoritative citations. Strengthen brand mentions across trusted platforms.",
+        tasks: [
+          "Secure Authoritative Citations for AI feeding"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Quora/Reddit/LinkedIn Engagement", "Digital PR & Reviews", "UGC Management"],
+        goals: ["New authoritative citations secured", "Brand mentions strengthened across trusted platforms", "Digital PR and review generation continuing", "4 content pieces and 1 GBP post published"]
+      }
+    ]
+  },
+  {
+    month: 5, title: "Scaling & Audience Integration",
+    goal: "Leveraging external audiences and solidifying high-tier backlinks.",
+    color: "#f87171",
+    weeks: [
+      {
+        week: 1, title: "Audience Expansion (OPAs)",
+        weekGoal: "Identify OPA opportunities. Start outreach for partnerships and collaborations.",
+        tasks: [
+          "Initiate integration with Other People's Audiences (OPAs) and Backlink strategies"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Digital PR & Reviews", "UGC Management"],
+        goals: ["OPA opportunities identified", "Partnership and collaboration outreach started", "Backlink and digital PR activities continuing", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 2, title: "High-Tier Backlinks",
+        weekGoal: "Secure 1–3 high-quality backlink opportunities. Continue authority outreach.",
+        tasks: [
+          "Acquire high-authority Backlinks"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Digital PR & Reviews", "UGC Management", "OPA Outreach"],
+        goals: ["1–3 high-quality backlink opportunities secured", "Outreach to authority websites and partners continuing", "Digital PR and review activities active", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 3, title: "Reputation Scaling",
+        weekGoal: "Monitor reviews across key platforms. Improve brand trust and online reputation.",
+        tasks: [
+          "Perform aggressive Review Monitoring & Generation"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Digital PR & Reviews", "UGC Management", "OPAs & Backlinks"],
+        goals: ["Reviews monitored across key platforms", "New review generation supported", "Brand trust and online reputation improved", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 4, title: "AI Content Flow",
+        weekGoal: "Update Local KPI Sheet. Secure remaining authoritative citations.",
+        tasks: [
+          "Update Local KPI Sheet and secure remaining Authoritative Citations"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "Digital PR & Reviews", "UGC Management", "OPAs & Backlinks"],
+        goals: ["Local SEO KPI tracking updated", "Remaining citation opportunities secured", "AI-focused content and mention-building active", "4 content pieces and 1 GBP post published"]
+      }
+    ]
+  },
+  {
+    month: 6, title: "Consolidation & Review",
+    goal: "Locking in rankings, concluding the technical sweep, and planning for the next phase.",
+    color: "#fb923c",
+    weeks: [
+      {
+        week: 1, title: "Final Authority Push",
+        weekGoal: "Finalize pending backlink and OPA opportunities. Strengthen authority before final review.",
+        tasks: [
+          "Finalize Backlink acquisition & OPA integrations"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "UGC Management", "OPAs & Backlinks"],
+        goals: ["Pending backlink and OPA opportunities finalized", "Authority strengthened before final review", "UGC and brand mention management continuing", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 2, title: "Content Consolidation",
+        weekGoal: "Review full campaign content performance. Identify top and underperforming content.",
+        tasks: [
+          "Review the entire campaign content performance"
+        ],
+        running: ["Site Tech Clean Up (95+ site health)", "Listicle Posting", "Post 4 types of content each week", "GBP Posts", "UGC Management", "OPAs & Backlinks"],
+        goals: ["Content performance reviewed from full campaign", "Top-performing and underperforming content identified", "Recommendations prepared for content updates or expansion", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 3, title: "Technical Finalization",
+        weekGoal: "Complete final technical SEO cleanup. Update all technical documentation.",
+        tasks: [
+          "Complete the 6-month Site Tech Clean-Up cycle",
+          "Update all Technical Documentation"
+        ],
+        running: ["Listicle Posting", "Post 4 types of content each week", "GBP Posts", "UGC Management", "OPAs & Backlinks"],
+        goals: ["Final technical SEO cleanup complete", "Technical documentation updated for client", "Fixed issues and remaining recommendations summarized", "4 content pieces and 1 GBP post published"]
+      },
+      {
+        week: 4, title: "Performance Analysis & Roadmap",
+        weekGoal: "Review 6-month performance against KPIs. Present final results to client.",
+        tasks: [
+          "Conduct comprehensive 6-month performance review against Month 1 KPIs",
+          "Draft Strategy Roadmap for Months 7–12",
+          "Present final results to the client"
+        ],
+        running: [],
+        goals: ["6-month performance reviewed against original KPIs", "Progress summarized in traffic, rankings, clicks, leads, content, and technical health", "What worked best and what needs improvement identified", "Clear roadmap for Months 7–12 created", "Final results and next-step recommendations presented to client"]
+      }
+    ]
+  }
+];
+
+// ── KPI TEMPLATES ──
+const KPI_TEMPLATE = [
+  { key: 'organic_traffic', label: 'Organic Traffic', target: '–' },
+  { key: 'keyword_top10', label: 'Keywords in Top 10', target: '–' },
+  { key: 'domain_rating', label: 'Domain Rating', target: '–' },
+  { key: 'backlinks', label: 'Backlinks Acquired', target: '–' },
+  { key: 'site_health', label: 'Site Health Score', target: '95+' },
+  { key: 'content_published', label: 'Content Published', target: '–' },
+  { key: 'gbp_views', label: 'GBP Views', target: '–' },
+  { key: 'conversions', label: 'Conversions', target: '–' },
+  { key: 'avg_position', label: 'Avg. Position', target: '–' },
+];
+
+// ── STATE ──
+let clients = JSON.parse(localStorage.getItem('seo_clients') || '[]');
+let activeClientId = null;
+let activeMonth = 0;
+let activeWeek = 0;
+
+const COLORS = ['#4ade80','#22d3ee','#a78bfa','#fbbf24','#f87171','#fb923c','#e879f9','#38bdf8'];
+
+function save() { localStorage.setItem('seo_clients', JSON.stringify(clients)); }
+
+function getClient() { return clients.find(c => c.id === activeClientId); }
+
+function initClient(name, url, start, niche) {
+  const weeks = [];
+  ROADMAP.forEach(m => m.weeks.forEach(w => weeks.push({ done: false, tasks: w.tasks.map(() => false) })));
+  const kpis = {};
+  KPI_TEMPLATE.forEach(k => kpis[k.key] = '');
+  return {
+    id: Date.now().toString(), name, url, start, niche,
+    color: COLORS[clients.length % COLORS.length],
+    weekStates: weeks, kpis,
+    createdAt: new Date().toISOString()
+  };
+}
+
+// ── SIDEBAR ──
+function renderSidebar() {
+  const el = document.getElementById('clientsList');
+  if (!clients.length) {
+    el.innerHTML = '<div style="padding:14px 10px;color:var(--muted);font-size:12px;text-align:center;">No clients yet.<br>Create your first project.</div>';
+    return;
+  }
+  el.innerHTML = clients.map(c => {
+    const totalWeeks = 24;
+    const done = c.weekStates.filter(w => w.done).length;
+    const pct = Math.round((done / totalWeeks) * 100);
+    return `<div class="client-item ${c.id === activeClientId ? 'active' : ''}" onclick="selectClient('${c.id}')">
+      <div class="client-avatar" style="background:${c.color}22;color:${c.color}">${c.name.slice(0,2).toUpperCase()}</div>
+      <div class="client-info">
+        <div class="client-name">${c.name}</div>
+        <div class="client-meta">${pct}% complete · ${c.start || ''}</div>
+      </div>
+      <button class="client-del" onclick="deleteClient(event,'${c.id}')" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── SELECT CLIENT ──
+function selectClient(id) {
+  activeClientId = id;
+  activeMonth = 0;
+  activeWeek = 0;
+  renderSidebar();
+  renderMain();
+}
+
+function deleteClient(e, id) {
+  e.stopPropagation();
+  if (!confirm('Delete this client project?')) return;
+  clients = clients.filter(c => c.id !== id);
+  if (activeClientId === id) { activeClientId = null; }
+  save(); renderSidebar(); renderMain();
+}
+
+// ── MAIN RENDER ──
+function renderMain() {
+  const client = getClient();
+  if (!client) {
+    document.getElementById('topbarClient').textContent = 'Select a client';
+    document.getElementById('topbarPhase').textContent = 'No project selected';
+    document.getElementById('topbarRight').innerHTML = '';
+    document.getElementById('mainContent').innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <h3>No project selected</h3><p>Create a new client project or select one from the sidebar</p></div>`;
+    return;
+  }
+
+  const month = ROADMAP[activeMonth];
+  document.getElementById('topbarClient').textContent = client.name;
+  document.getElementById('topbarPhase').textContent = `Month ${activeMonth + 1}: ${month.title} · ${client.url || ''}`;
+  document.getElementById('topbarRight').innerHTML = `
+    <span class="phase-badge" style="color:${month.color};border-color:${month.color}44;background:${month.color}11">
+      M${activeMonth + 1} / W${activeWeek + 1}
+    </span>`;
+
+  // Metrics
+  const totalWeeks = 24;
+  const doneWeeks = client.weekStates.filter(w => w.done).length;
+  const doneMonths = Math.floor(doneWeeks / 4);
+  const totalTasks = client.weekStates.reduce((a, w) => a + w.tasks.length, 0);
+  const doneTasks = client.weekStates.reduce((a, w) => a + w.tasks.filter(Boolean).length, 0);
+  const pct = Math.round((doneWeeks / totalWeeks) * 100);
+
+  let html = `<div class="metrics">
+    <div class="metric-card">
+      <div class="metric-label">Overall Progress</div>
+      <div class="metric-value" style="color:${month.color}">${pct}%</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${month.color}"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Weeks Complete</div>
+      <div class="metric-value">${doneWeeks}<span style="font-size:16px;color:var(--muted)"> / 24</span></div>
+      <div class="metric-sub">${doneMonths} full months done</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Tasks Checked</div>
+      <div class="metric-value">${doneTasks}<span style="font-size:16px;color:var(--muted)"> / ${totalTasks}</span></div>
+      <div class="metric-sub">across all weeks</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Current Phase</div>
+      <div class="metric-value" style="font-size:16px;line-height:1.3">${month.title}</div>
+      <div class="metric-sub">Month ${activeMonth + 1} of 6</div>
+    </div>
+  </div>`;
+
+  // Timeline
+  html += `<div class="section"><div class="section-title">6-Month Timeline</div><div class="timeline-months">`;
+  ROADMAP.forEach((m, mi) => {
+    const mWeeks = client.weekStates.slice(mi * 4, mi * 4 + 4);
+    const mDone = mWeeks.filter(w => w.done).length;
+    const isActive = mi === activeMonth;
+    const statusColor = mDone === 4 ? '#4ade80' : mDone > 0 ? m.color : 'var(--border2)';
+    html += `<div class="month-block ${isActive ? 'active-month' : ''}" onclick="selectMonth(${mi})" style="${isActive ? `border-color:${m.color}` : ''}">
+      <div class="month-header" style="color:${isActive ? m.color : 'var(--muted)'}">
+        M${mi + 1}
+        <div class="month-status" style="background:${statusColor}"></div>
+      </div>
+      <div style="padding:0 12px 4px;font-size:11px;color:var(--muted);line-height:1.3">${m.title}</div>
+      <div class="month-weeks">
+        ${mWeeks.map((w, wi) => `<div class="week-dot" style="background:${w.done ? m.color : isActive && wi === activeWeek ? m.color + '55' : 'var(--border)'}"></div>`).join('')}
+      </div>
+    </div>`;
+  });
+  html += '</div></div>';
+
+  // Month goal
+  html += `<div class="section" style="border-color:${month.color}33">
+    <div class="section-title">Month ${activeMonth + 1} Goal</div>
+    <div style="font-size:14px;color:var(--text);line-height:1.6">${month.goal}</div>
+  </div>`;
+
+  // Week tabs
+  html += `<div class="section"><div class="section-title">Weekly Execution</div><div class="week-tabs">`;
+  month.weeks.forEach((w, wi) => {
+    const globalIdx = activeMonth * 4 + wi;
+    const state = client.weekStates[globalIdx];
+    const isDone = state.done;
+    const isCurrent = wi === activeWeek;
+    html += `<button class="week-tab ${isCurrent ? 'active' : ''} ${isDone ? 'done-tab' : ''}" onclick="selectWeek(${wi})">
+      ${isDone ? '✓ ' : ''}Week ${wi + 1}: ${w.title}
+    </button>`;
+  });
+  html += '</div>';
+
+  // Week detail
+  month.weeks.forEach((w, wi) => {
+    const globalIdx = activeMonth * 4 + wi;
+    const state = client.weekStates[globalIdx];
+    const completedTasks = state.tasks.filter(Boolean).length;
+    const taskPct = w.tasks.length ? Math.round((completedTasks / w.tasks.length) * 100) : 0;
+    const isVisible = wi === activeWeek;
+
+    html += `<div class="week-content ${isVisible ? 'visible' : ''}" id="weekContent${wi}">
+      <div class="week-header">
+        <div>
+          <div class="week-title">Week ${wi + 1}: ${w.title}</div>
+          <div class="week-goal-label">${completedTasks}/${w.tasks.length} tasks · ${taskPct}% done</div>
+          <div class="progress-bar" style="margin-top:6px;width:200px"><div class="progress-fill" style="width:${taskPct}%;background:${month.color}"></div></div>
+        </div>
+        <button class="week-status-btn" onclick="toggleWeekDone(${wi})" style="
+          background:${state.done ? month.color + '22' : 'transparent'};
+          border-color:${state.done ? month.color : 'var(--border2)'};
+          color:${state.done ? month.color : 'var(--muted)'}">
+          ${state.done ? '✓ Week Complete' : 'Mark Complete'}
+        </button>
+      </div>
+      <div class="tasks-grid">
+        <div class="tasks-col">
+          <h4>Tasks this week</h4>
+          ${w.tasks.map((t, ti) => `
+            <div class="task-item ${state.tasks[ti] ? 'checked' : ''}" onclick="toggleTask(${wi},${ti})">
+              <div class="task-check">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="task-text">${t}</div>
+            </div>`).join('')}
+        </div>
+        <div class="tasks-col">
+          ${w.running.length ? `<h4>Ongoing / Running Tasks</h4>
+          <div class="running-tasks">
+            <h4>Always On</h4>
+            ${w.running.map(r => `<span class="running-tag">${r}</span>`).join('')}
+          </div>` : ''}
+          <div style="margin-top:${w.running.length ? '14px' : '0'}">
+            <h4>Week Goals</h4>
+            <div class="goals-list">
+              ${w.goals.map(g => `<div class="goal-item">${g}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // KPI Tracker
+  html += `<div class="section"><div class="section-title">KPI Tracker</div><div class="kpi-grid">`;
+  KPI_TEMPLATE.forEach(k => {
+    html += `<div class="kpi-card">
+      <div class="kpi-name">${k.label}</div>
+      <div class="kpi-row">
+        <input class="kpi-input" type="text" value="${client.kpis[k.key] || ''}" placeholder="Current value"
+          oninput="updateKPI('${k.key}', this.value)" />
+        <span class="kpi-target">Target: ${k.target}</span>
+      </div>
+    </div>`;
+  });
+  html += '</div></div>';
+
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ── INTERACTIONS ──
+function selectMonth(mi) { activeMonth = mi; activeWeek = 0; renderMain(); }
+function selectWeek(wi) { activeWeek = wi; renderMain(); }
+
+function toggleTask(wi, ti) {
+  const client = getClient(); if (!client) return;
+  const globalIdx = activeMonth * 4 + wi;
+  client.weekStates[globalIdx].tasks[ti] = !client.weekStates[globalIdx].tasks[ti];
+  save(); renderMain(); renderSidebar();
+}
+
+function toggleWeekDone(wi) {
+  const client = getClient(); if (!client) return;
+  const globalIdx = activeMonth * 4 + wi;
+  client.weekStates[globalIdx].done = !client.weekStates[globalIdx].done;
+  save(); renderMain(); renderSidebar();
+}
+
+function updateKPI(key, value) {
+  const client = getClient(); if (!client) return;
+  client.kpis[key] = value; save();
+}
+
+// ── MODAL ──
+function openModal() { document.getElementById('modalBg').classList.add('open'); document.getElementById('newClientName').focus(); }
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+
+function createClient() {
+  const name = document.getElementById('newClientName').value.trim();
+  if (!name) { alert('Please enter a client name.'); return; }
+  const url = document.getElementById('newClientUrl').value.trim();
+  const start = document.getElementById('newClientStart').value;
+  const niche = document.getElementById('newClientNiche').value.trim();
+  const client = initClient(name, url, start, niche);
+  clients.push(client); save(); closeModal();
+  selectClient(client.id);
+}
+
+document.getElementById('modalBg').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── INIT ──
+renderSidebar();
+renderMain();
+</script>
+</body>
+</html>

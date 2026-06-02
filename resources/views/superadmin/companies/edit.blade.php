@@ -1,96 +1,81 @@
 <x-superadmin-layout title="Edit Company">
 
-    <div class="max-w-2xl">
-        <a href="{{ route('superadmin.companies.index') }}" class="text-sm text-gray-500 hover:text-purple-600 mb-4 inline-block">
-            ← Back to Companies
-        </a>
+    <div style="max-width:600px;">
+        <a href="{{ route('superadmin.companies.index') }}" style="font-size:12px; color:var(--muted); text-decoration:none; display:inline-block; margin-bottom:16px;" onmouseover="this.style.color='#a78bfa'" onmouseout="this.style.color='var(--muted)'">← Back to Companies</a>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-6">Edit: {{ $company->name }}</h2>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:16px;">
+            <div style="font-size:15px; font-weight:600; color:var(--text); margin-bottom:20px;">Edit: {{ $company->name }}</div>
 
-            <form method="POST" action="{{ route('superadmin.companies.update', $company) }}" class="space-y-5">
+            <form method="POST" action="{{ route('superadmin.companies.update', $company) }}" style="display:flex; flex-direction:column; gap:16px;">
                 @csrf @method('PUT')
 
-                <div class="grid grid-cols-2 gap-4">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
-                        <input type="text" name="name" value="{{ old('name', $company->name) }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 @error('name') border-red-400 @enderror">
-                        @error('name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">COMPANY NAME *</label>
+                        <input type="text" name="name" value="{{ old('name', $company->name) }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
+                        @error('name')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Company Email *</label>
-                        <input type="email" name="email" value="{{ old('email', $company->email) }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 @error('email') border-red-400 @enderror">
-                        @error('email')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">COMPANY EMAIL *</label>
+                        <input type="email" name="email" value="{{ old('email', $company->email) }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
+                        @error('email')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input type="text" name="phone" value="{{ old('phone', $company->phone) }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PHONE</label>
+                        <input type="text" name="phone" value="{{ old('phone', $company->phone) }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-                        <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">STATUS *</label>
+                        <select name="status" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
                             @foreach(['active','inactive','suspended'] as $s)
-                            <option value="{{ $s }}" {{ old('status', $company->status) === $s ? 'selected' : '' }}>{{ ucfirst($s) }}</option>
+                            <option value="{{ $s }}" {{ old('status',$company->status)===$s?'selected':'' }}>{{ ucfirst($s) }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Trial Ends At</label>
-                        <input type="date" name="trial_ends_at"
-                               value="{{ old('trial_ends_at', $company->trial_ends_at?->format('Y-m-d')) }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TRIAL ENDS AT</label>
+                        <input type="date" name="trial_ends_at" value="{{ old('trial_ends_at', $company->trial_ends_at?->format('Y-m-d')) }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
                     </div>
                 </div>
 
-                <div class="flex gap-3 pt-2">
-                    <button type="submit"
-                            class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-6 py-2 rounded-lg transition">
-                        Save Changes
-                    </button>
-                    <a href="{{ route('superadmin.companies.index') }}"
-                       class="text-sm text-gray-500 hover:text-gray-700 px-4 py-2 rounded-lg border border-gray-200 transition">
-                        Cancel
-                    </a>
+                <div style="display:flex; gap:10px; padding-top:6px;">
+                    <button type="submit" style="background:rgba(167,139,250,0.12); border:1px solid rgba(167,139,250,0.3); color:#a78bfa; border-radius:8px; padding:9px 18px; font-family:var(--font); font-size:13px; font-weight:500; cursor:pointer;">Save Changes</button>
+                    <a href="{{ route('superadmin.companies.index') }}" style="background:transparent; border:1px solid var(--border2); color:var(--muted); border-radius:8px; padding:9px 18px; font-size:13px; text-decoration:none;">Cancel</a>
                 </div>
             </form>
         </div>
 
-        {{-- Company Users --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 mt-6 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100">
-                <h3 class="font-semibold text-gray-700">Users in this Company</h3>
+        {{-- Users --}}
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+            <div style="padding:14px 18px 12px; border-bottom:1px solid var(--border);">
+                <span style="font-size:11px; font-weight:600; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em;">Users in this Company</span>
             </div>
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead style="background:var(--surface2);">
                     <tr>
-                        <th class="px-6 py-3 text-left">Name</th>
-                        <th class="px-6 py-3 text-left">Email</th>
-                        <th class="px-6 py-3 text-left">Role</th>
-                        <th class="px-6 py-3 text-left">Status</th>
+                        @foreach(['Name','Email','Role','Status'] as $h)
+                        <th style="padding:10px 18px; text-align:left; font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; font-weight:500;">{{ $h }}</th>
+                        @endforeach
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody>
                     @forelse($company->users as $user)
-                    <tr>
-                        <td class="px-6 py-3 font-medium text-gray-800">{{ $user->name }}</td>
-                        <td class="px-6 py-3 text-gray-600">{{ $user->email }}</td>
-                        <td class="px-6 py-3">
-                            <span class="px-2 py-1 text-xs rounded-full
-                                {{ $user->role === 'company_admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
-                                {{ ucfirst(str_replace('_', ' ', $user->role)) }}
+                    <tr style="border-bottom:1px solid var(--border);">
+                        <td style="padding:10px 18px; font-size:13px; font-weight:500; color:var(--text);">{{ $user->name }}</td>
+                        <td style="padding:10px 18px; font-size:12px; color:var(--muted); font-family:var(--mono);">{{ $user->email }}</td>
+                        <td style="padding:10px 18px;">
+                            <span style="font-size:11px; font-family:var(--mono); padding:2px 7px; border-radius:4px; border:1px solid; {{ $user->role === 'company_admin' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.06);' : 'color:var(--muted); border-color:var(--border2); background:transparent;' }}">
+                                {{ ucfirst(str_replace('_',' ',$user->role)) }}
                             </span>
                         </td>
-                        <td class="px-6 py-3">
-                            <span class="px-2 py-1 text-xs rounded-full {{ $user->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                        <td style="padding:10px 18px;">
+                            <span style="font-size:11px; font-family:var(--mono); padding:2px 7px; border-radius:4px; border:1px solid; {{ $user->is_active ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.06);' : 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.06);' }}">
                                 {{ $user->is_active ? 'Active' : 'Inactive' }}
                             </span>
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="4" class="px-6 py-4 text-gray-400 text-center">No users.</td></tr>
+                    <tr><td colspan="4" style="padding:24px; text-align:center; color:var(--muted); font-size:13px;">No users.</td></tr>
                     @endforelse
                 </tbody>
             </table>

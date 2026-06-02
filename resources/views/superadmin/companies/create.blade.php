@@ -1,84 +1,66 @@
 <x-superadmin-layout title="New Company">
 
-    <div class="max-w-2xl">
-        <a href="{{ route('superadmin.companies.index') }}" class="text-sm text-gray-500 hover:text-purple-600 mb-4 inline-block">
-            ← Back to Companies
-        </a>
+    <div style="max-width:600px;">
+        <a href="{{ route('superadmin.companies.index') }}" style="font-size:12px; color:var(--muted); text-decoration:none; display:inline-block; margin-bottom:16px;" onmouseover="this.style.color='#a78bfa'" onmouseout="this.style.color='var(--muted)'">← Back to Companies</a>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-6">Create New Company</h2>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px;">
+            <div style="font-size:15px; font-weight:600; color:var(--text); margin-bottom:20px;">Create New Company</div>
 
-            <form method="POST" action="{{ route('superadmin.companies.store') }}" class="space-y-5">
+            <form method="POST" action="{{ route('superadmin.companies.store') }}" style="display:flex; flex-direction:column; gap:16px;">
                 @csrf
 
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Company Info</p>
+                <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.1em; padding-bottom:4px; border-bottom:1px solid var(--border);">Company Info</div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
-                        <input type="text" name="name" value="{{ old('name') }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 @error('name') border-red-400 @enderror">
-                        @error('name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">COMPANY NAME *</label>
+                        <input type="text" name="name" value="{{ old('name') }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;" @error('name') style="border-color:rgba(248,113,113,0.5);" @enderror>
+                        @error('name')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Company Email *</label>
-                        <input type="email" name="email" value="{{ old('email') }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 @error('email') border-red-400 @enderror">
-                        @error('email')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">COMPANY EMAIL *</label>
+                        <input type="email" name="email" value="{{ old('email') }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
+                        @error('email')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input type="text" name="phone" value="{{ old('phone') }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PHONE</label>
+                        <input type="text" name="phone" value="{{ old('phone') }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-                        <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="active" {{ old('status') === 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                            <option value="suspended" {{ old('status') === 'suspended' ? 'selected' : '' }}>Suspended</option>
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">STATUS *</label>
+                        <select name="status" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
+                            <option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Trial Ends At</label>
-                        <input type="date" name="trial_ends_at" value="{{ old('trial_ends_at') }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TRIAL ENDS AT</label>
+                        <input type="date" name="trial_ends_at" value="{{ old('trial_ends_at') }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
                     </div>
                 </div>
 
-                <hr class="border-gray-100">
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Company Admin Account</p>
+                <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.1em; padding-bottom:4px; border-bottom:1px solid var(--border);">Company Admin Account</div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Admin Name *</label>
-                        <input type="text" name="admin_name" value="{{ old('admin_name') }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 @error('admin_name') border-red-400 @enderror">
-                        @error('admin_name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ADMIN NAME *</label>
+                        <input type="text" name="admin_name" value="{{ old('admin_name') }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
+                        @error('admin_name')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Admin Email *</label>
-                        <input type="email" name="admin_email" value="{{ old('admin_email') }}"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 @error('admin_email') border-red-400 @enderror">
-                        @error('admin_email')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ADMIN EMAIL *</label>
+                        <input type="email" name="admin_email" value="{{ old('admin_email') }}" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
+                        @error('admin_email')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Admin Password *</label>
-                        <input type="password" name="admin_password"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 @error('admin_password') border-red-400 @enderror">
-                        @error('admin_password')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ADMIN PASSWORD *</label>
+                        <input type="password" name="admin_password" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
+                        @error('admin_password')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
                     </div>
                 </div>
 
-                <div class="flex gap-3 pt-2">
-                    <button type="submit"
-                            class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-6 py-2 rounded-lg transition">
-                        Create Company
-                    </button>
-                    <a href="{{ route('superadmin.companies.index') }}"
-                       class="text-sm text-gray-500 hover:text-gray-700 px-4 py-2 rounded-lg border border-gray-200 transition">
-                        Cancel
-                    </a>
+                <div style="display:flex; gap:10px; padding-top:6px;">
+                    <button type="submit" style="background:rgba(167,139,250,0.12); border:1px solid rgba(167,139,250,0.3); color:#a78bfa; border-radius:8px; padding:9px 18px; font-family:var(--font); font-size:13px; font-weight:500; cursor:pointer;">Create Company</button>
+                    <a href="{{ route('superadmin.companies.index') }}" style="background:transparent; border:1px solid var(--border2); color:var(--muted); border-radius:8px; padding:9px 18px; font-size:13px; text-decoration:none;">Cancel</a>
                 </div>
             </form>
         </div>

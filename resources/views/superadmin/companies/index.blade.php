@@ -1,80 +1,66 @@
 <x-superadmin-layout title="Companies">
 
-    <div class="flex items-center justify-between mb-6">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;">
         <div>
-            <h2 class="text-xl font-bold text-gray-800">All Companies</h2>
-            <p class="text-sm text-gray-500">Manage all registered companies</p>
+            <div style="font-size:16px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">All Companies</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">Manage all registered companies</div>
         </div>
-        <a href="{{ route('superadmin.companies.create') }}"
-           class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-            + New Company
+        <a href="{{ route('superadmin.companies.create') }}" style="background:rgba(167,139,250,0.12); border:1px solid rgba(167,139,250,0.3); color:#a78bfa; border-radius:8px; padding:8px 16px; font-size:13px; font-weight:500; text-decoration:none; display:flex; align-items:center; gap:7px; transition:all 0.15s;" onmouseover="this.style.background='rgba(167,139,250,0.2)'" onmouseout="this.style.background='rgba(167,139,250,0.12)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Company
         </a>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead style="background:var(--surface2);">
                 <tr>
-                    <th class="px-6 py-3 text-left">#</th>
-                    <th class="px-6 py-3 text-left">Company</th>
-                    <th class="px-6 py-3 text-left">Email</th>
-                    <th class="px-6 py-3 text-left">Users</th>
-                    <th class="px-6 py-3 text-left">Trial Ends</th>
-                    <th class="px-6 py-3 text-left">Status</th>
-                    <th class="px-6 py-3 text-left">Actions</th>
+                    @foreach(['#','Company','Email','Users','Trial Ends','Status','Actions'] as $h)
+                    <th style="padding:12px 18px; text-align:left; font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; font-weight:500;">{{ $h }}</th>
+                    @endforeach
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody>
                 @forelse($companies as $company)
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-4 text-gray-400">{{ $company->id }}</td>
-                    <td class="px-6 py-4">
-                        <p class="font-medium text-gray-800">{{ $company->name }}</p>
-                        <p class="text-xs text-gray-400">{{ $company->phone }}</p>
+                <tr style="border-bottom:1px solid var(--border); transition:background 0.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding:12px 18px; font-size:12px; color:var(--muted); font-family:var(--mono);">{{ $company->id }}</td>
+                    <td style="padding:12px 18px;">
+                        <div style="font-size:13px; font-weight:500; color:var(--text);">{{ $company->name }}</div>
+                        <div style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ $company->phone }}</div>
                     </td>
-                    <td class="px-6 py-4 text-gray-600">{{ $company->email }}</td>
-                    <td class="px-6 py-4 text-gray-600">{{ $company->users_count }}</td>
-                    <td class="px-6 py-4 text-gray-600">
-                        {{ $company->trial_ends_at ? $company->trial_ends_at->format('d M Y') : '—' }}
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded-full font-medium
-                            {{ $company->status === 'active' ? 'bg-green-100 text-green-700' : ($company->status === 'suspended' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700') }}">
+                    <td style="padding:12px 18px; font-size:13px; color:var(--muted); font-family:var(--mono);">{{ $company->email }}</td>
+                    <td style="padding:12px 18px; font-size:13px; color:var(--muted); font-family:var(--mono);">{{ $company->users_count }}</td>
+                    <td style="padding:12px 18px; font-size:12px; color:var(--muted); font-family:var(--mono);">{{ $company->trial_ends_at ? $company->trial_ends_at->format('d M Y') : '—' }}</td>
+                    <td style="padding:12px 18px;">
+                        <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
+                            {{ $company->status === 'active' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
+                               ($company->status === 'suspended' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' : 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);') }}">
                             {{ ucfirst($company->status) }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            <a href="{{ route('superadmin.companies.edit', $company) }}"
-                               class="text-blue-500 hover:text-blue-700 font-medium">Edit</a>
-
-                            <form method="POST" action="{{ route('superadmin.companies.toggle', $company) }}">
+                    <td style="padding:12px 18px;">
+                        <div style="display:flex; align-items:center; gap:14px;">
+                            <a href="{{ route('superadmin.companies.edit', $company) }}" style="font-size:12px; color:var(--accent2); text-decoration:none; font-family:var(--mono);">Edit</a>
+                            <form method="POST" action="{{ route('superadmin.companies.toggle', $company) }}" style="display:inline;">
                                 @csrf @method('PATCH')
-                                <button class="text-{{ $company->status === 'active' ? 'yellow' : 'green' }}-500 hover:underline font-medium">
+                                <button style="background:none; border:none; font-size:12px; font-family:var(--mono); cursor:pointer; {{ $company->status === 'active' ? 'color:#fbbf24;' : 'color:#4ade80;' }}">
                                     {{ $company->status === 'active' ? 'Suspend' : 'Activate' }}
                                 </button>
                             </form>
-
-                            <form method="POST" action="{{ route('superadmin.companies.destroy', $company) }}"
-                                  onsubmit="return confirm('Delete {{ $company->name }}? This cannot be undone.')">
+                            <form method="POST" action="{{ route('superadmin.companies.destroy', $company) }}" style="display:inline;" onsubmit="return confirm('Delete {{ $company->name }}?')">
                                 @csrf @method('DELETE')
-                                <button class="text-red-500 hover:text-red-700 font-medium">Delete</button>
+                                <button style="background:none; border:none; font-size:12px; font-family:var(--mono); cursor:pointer; color:var(--danger);">Delete</button>
                             </form>
                         </div>
                     </td>
                 </tr>
                 @empty
-                <tr>
-                    <td colspan="7" class="px-6 py-10 text-center text-gray-400">No companies found.</td>
-                </tr>
+                <tr><td colspan="7" style="padding:48px; text-align:center; color:var(--muted); font-size:13px;">No companies found.</td></tr>
                 @endforelse
             </tbody>
         </table>
-
         @if($companies->hasPages())
-        <div class="px-6 py-4 border-t border-gray-100">
-            {{ $companies->links() }}
-        </div>
+        <div style="padding:12px 18px; border-top:1px solid var(--border);">{{ $companies->links() }}</div>
         @endif
     </div>
 

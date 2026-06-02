@@ -1,96 +1,95 @@
 <x-company-layout title="Members">
 
-    <div class="flex items-center justify-between mb-6">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;">
         <div>
-            <h2 class="text-xl font-bold text-gray-800">Team Members</h2>
-            <p class="text-sm text-gray-500">Manage your company's members</p>
+            <div style="font-size:16px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">Team Members</div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">Manage your company's members</div>
         </div>
-        <button onclick="document.getElementById('addMemberModal').classList.remove('hidden')"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <button onclick="document.getElementById('addMemberModal').style.display='flex'" class="ptm-btn-primary" style="display:flex; align-items:center; gap:7px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Member
         </button>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+    <div class="ptm-card" style="overflow:hidden;">
+        <table class="ptm-table" style="width:100%; border-collapse:collapse;">
+            <thead>
                 <tr>
-                    <th class="px-5 py-3 text-left">Name</th>
-                    <th class="px-5 py-3 text-left">Email</th>
-                    <th class="px-5 py-3 text-left">Role</th>
-                    <th class="px-5 py-3 text-left">Status</th>
-                    <th class="px-5 py-3 text-left">Action</th>
+                    <th style="padding:12px 18px; text-align:left;">Name</th>
+                    <th style="padding:12px 18px; text-align:left;">Email</th>
+                    <th style="padding:12px 18px; text-align:left;">Role</th>
+                    <th style="padding:12px 18px; text-align:left;">Status</th>
+                    <th style="padding:12px 18px; text-align:left;">Action</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody>
                 @forelse($members as $member)
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-5 py-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-white text-xs font-bold">
-                                {{ strtoupper(substr($member->name, 0, 1)) }}
+                <tr style="border-bottom:1px solid var(--border); transition:background 0.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding:12px 18px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:30px; height:30px; border-radius:8px; background:rgba(74,222,128,0.12); color:#4ade80; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                {{ strtoupper(substr($member->name,0,1)) }}
                             </div>
-                            <span class="font-medium text-gray-800">{{ $member->name }}</span>
+                            <span style="font-size:13px; font-weight:500; color:var(--text);">{{ $member->name }}</span>
                         </div>
                     </td>
-                    <td class="px-5 py-3 text-gray-500">{{ $member->email }}</td>
-                    <td class="px-5 py-3">
-                        <span class="text-xs px-2 py-0.5 rounded-full font-medium {{ $member->role === 'company_admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600' }}">
+                    <td style="padding:12px 18px; font-size:13px; color:var(--muted); font-family:var(--mono);">{{ $member->email }}</td>
+                    <td style="padding:12px 18px;">
+                        <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
+                            {{ $member->role === 'company_admin' ? 'color:#a78bfa; border-color:rgba(167,139,250,0.3); background:rgba(167,139,250,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;' }}">
                             {{ $member->role === 'company_admin' ? 'Admin' : 'Employee' }}
                         </span>
                     </td>
-                    <td class="px-5 py-3">
-                        <span class="text-xs px-2 py-0.5 rounded-full font-medium {{ $member->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600' }}">
+                    <td style="padding:12px 18px;">
+                        <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
+                            {{ $member->is_active ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' : 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' }}">
                             {{ $member->is_active ? 'Active' : 'Inactive' }}
                         </span>
                     </td>
-                    <td class="px-5 py-3">
+                    <td style="padding:12px 18px;">
                         @if($member->id !== auth()->id())
                         <form method="POST" action="{{ route('company.members.toggle', $member) }}">
                             @csrf @method('PATCH')
-                            <button class="text-xs text-gray-500 hover:text-indigo-600 underline">
+                            <button style="background:none; border:none; font-size:12px; font-family:var(--mono); cursor:pointer; color:var(--muted); text-decoration:underline;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
                                 {{ $member->is_active ? 'Deactivate' : 'Activate' }}
                             </button>
                         </form>
                         @else
-                        <span class="text-xs text-gray-300">You</span>
+                        <span style="font-size:11px; color:var(--border2); font-family:var(--mono);">You</span>
                         @endif
                     </td>
                 </tr>
                 @empty
-                <tr>
-                    <td colspan="5" class="px-5 py-10 text-center text-gray-400">No members yet.</td>
-                </tr>
+                <tr><td colspan="5" style="padding:48px; text-align:center; color:var(--muted); font-size:13px;">No members yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
     {{-- Add Member Modal --}}
-    <div id="addMemberModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="font-semibold text-gray-800">Add Member</h3>
-                <button onclick="document.getElementById('addMemberModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">✕</button>
+    <div id="addMemberModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:20px;">
+        <div style="background:var(--surface); border:1px solid var(--border2); border-radius:16px; width:100%; max-width:420px;">
+            <div style="padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:15px; font-weight:600; color:var(--text);">Add Member</span>
+                <button onclick="document.getElementById('addMemberModal').style.display='none'" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">✕</button>
             </div>
-            <form method="POST" action="{{ route('company.members.store') }}" class="p-6 space-y-4">
+            <form method="POST" action="{{ route('company.members.store') }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                    <input type="text" name="name" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">FULL NAME *</label>
+                    <input type="text" name="name" class="ptm-input" style="width:100%;" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                    <input type="email" name="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">EMAIL *</label>
+                    <input type="email" name="email" class="ptm-input" style="width:100%;" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                    <input type="password" name="password" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PASSWORD *</label>
+                    <input type="password" name="password" class="ptm-input" style="width:100%;" required>
                 </div>
-                <div class="flex gap-3 pt-1">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition">Add Member</button>
-                    <button type="button" onclick="document.getElementById('addMemberModal').classList.add('hidden')" class="text-sm text-gray-500 px-4 py-2 rounded-lg border border-gray-200">Cancel</button>
+                <div style="display:flex; gap:10px; padding-top:4px;">
+                    <button type="submit" class="ptm-btn-primary">Add Member</button>
+                    <button type="button" onclick="document.getElementById('addMemberModal').style.display='none'" class="ptm-btn-ghost">Cancel</button>
                 </div>
             </form>
         </div>
