@@ -17,5 +17,12 @@ export default {
         },
     },
 
+    safelist: [
+        // priority & status dynamic colors
+        { pattern: /bg-(red|orange|yellow|green|blue|purple|gray|indigo|violet)-(50|100|200)/ },
+        { pattern: /text-(red|orange|yellow|green|blue|purple|gray|indigo|violet)-(400|500|600|700)/ },
+        { pattern: /border-(red|orange|yellow|green|blue|purple|gray|indigo|violet)-(200|300)/ },
+    ],
+
     plugins: [forms],
 };
