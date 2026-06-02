@@ -48,7 +48,7 @@
                     </td>
                     <td style="padding:12px 18px;">
                         @if($member->id !== auth()->id())
-                        <form method="POST" action="{{ route('company.members.toggle', $member) }}">
+                        <form method="POST" action="{{ route('company.members.toggle', [$slug, $member]) }}">
                             @csrf @method('PATCH')
                             <button style="background:none; border:none; font-size:12px; font-family:var(--mono); cursor:pointer; color:var(--muted); text-decoration:underline;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
                                 {{ $member->is_active ? 'Deactivate' : 'Activate' }}
@@ -73,7 +73,7 @@
                 <span style="font-size:15px; font-weight:600; color:var(--text);">Add Member</span>
                 <button onclick="document.getElementById('addMemberModal').style.display='none'" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">✕</button>
             </div>
-            <form method="POST" action="{{ route('company.members.store') }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+            <form method="POST" action="{{ route('company.members.store', $slug) }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
                 @csrf
                 <div>
                     <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">FULL NAME *</label>

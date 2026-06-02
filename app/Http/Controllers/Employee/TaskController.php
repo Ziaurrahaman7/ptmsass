@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Task;
+use App\Models\TaskAttachment;
+use App\Models\TaskComment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TaskController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, string $slug)
     {
         $query = Task::where('assigned_to', auth()->id())->with('project');
 
@@ -25,7 +29,7 @@ class TaskController extends Controller
         return view('employee.tasks.index', compact('tasks'));
     }
 
-    public function updateStatus(Request $request, Task $task)
+    public function updateStatus(Request $request, string $slug, Task $task)
     {
         abort_if($task->assigned_to !== auth()->id(), 403);
 
@@ -34,5 +38,92 @@ class TaskController extends Controller
         $task->update(['status' => $request->status]);
 
         return back()->with('success', 'Task status updated.');
+    }
+
+    public function show(string $slug, Task $task)
+    {
+        abort_if($task->assigned_to !== auth()->id(), 403);
+        
+        $task->load(['project', 'assignee', 'comments.user', 'attachments.uploader', 'activities.user']);
+        
+        return view('employee.tasks.show', compact('task'));
+    }
+
+    public function storeComment(Request $request, string $slug, Task $task)
+    {
+        abort_if($task->assigned_to !== auth()->id(), 403);
+        
+        $request->validate(['comment' => 'required|string|max:1000']);
+        
+        TaskComment::create([
+            'task_id' => $task->id,
+            'user_id' => auth()->id(),
+            'comment' => $request->comment,
+        ]);
+        
+        ActivityLog::create([
+            'company_id' => auth()->user()->company_id,
+            'user_id' => auth()->id(),
+            'subject_type' => Task::class,
+            'subject_id' => $task->id,
+            'action' => 'commented',
+            'description' => auth()->user()->name . ' added a comment',
+        ]);
+        
+        return back()->with('success', 'Comment added.');
+    }
+    
+    public function destroyComment(string $slug, TaskComment $comment)
+    {
+        abort_if($comment->task->assigned_to !== auth()->id(), 403);
+        abort_if($comment->user_id !== auth()->id(), 403);
+        
+        $comment->delete();
+        
+        return back()->with('success', 'Comment deleted.');
+    }
+    
+    public function storeAttachment(Request $request, string $slug, Task $task)
+    {
+        abort_if($task->assigned_to !== auth()->id(), 403);
+        
+        $request->validate(['file' => 'required|file|max:10240']);
+        
+        $file = $request->file('file');
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $filePath = $file->storeAs('task-attachments', $fileName, 'public');
+        
+        TaskAttachment::create([
+            'task_id' => $task->id,
+            'uploaded_by' => auth()->id(),
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $filePath,
+            'file_type' => $file->getClientMimeType(),
+            'file_size' => $file->getSize(),
+        ]);
+        
+        ActivityLog::create([
+            'company_id' => auth()->user()->company_id,
+            'user_id' => auth()->id(),
+            'subject_type' => Task::class,
+            'subject_id' => $task->id,
+            'action' => 'uploaded',
+            'description' => auth()->user()->name . ' uploaded a file: ' . $file->getClientOriginalName(),
+        ]);
+        
+        return back()->with('success', 'File uploaded.');
+    }
+    
+    public function destroyAttachment(string $slug, TaskAttachment $attachment)
+    {
+        abort_if($attachment->task->assigned_to !== auth()->id(), 403);
+        
+        if (Storage::disk('public')->exists($attachment->file_path)) {
+            Storage::disk('public')->delete($attachment->file_path);
+        }
+        
+        $attachment->delete();
+        
+        return back()->with('success', 'File deleted.');
     }
 }

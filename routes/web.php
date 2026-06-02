@@ -16,37 +16,49 @@ Route::get('/', fn() => redirect()->route('login'));
 // Superadmin routes
 Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'superadmin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
     Route::resource('companies', CompanyController::class)->except(['show']);
     Route::patch('companies/{company}/toggle', [CompanyController::class, 'toggleStatus'])->name('companies.toggle');
 });
 
-// Company Admin routes
-Route::prefix('company')->name('company.')->middleware(['auth', 'company_admin'])->group(function () {
+// Company Admin routes — /{slug}/admin/...
+Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_admin', 'company_slug'])->group(function () {
     Route::get('/dashboard', [CompanyDashboardController::class, 'index'])->name('dashboard');
     Route::resource('projects', CompanyProjectController::class);
+    Route::get('tasks/{task}', [CompanyTaskController::class, 'show'])->name('tasks.show');
+    Route::patch('tasks/{task}/status', [CompanyTaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+    Route::post('tasks/{task}/comments', [CompanyTaskController::class, 'storeComment'])->name('tasks.comments.store');
+    Route::delete('tasks/comments/{comment}', [CompanyTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
+    Route::post('tasks/{task}/attachments', [CompanyTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
+    Route::delete('tasks/attachments/{attachment}', [CompanyTaskController::class, 'destroyAttachment'])->name('tasks.attachments.destroy');
     Route::post('projects/{project}/tasks', [CompanyTaskController::class, 'store'])->name('tasks.store');
     Route::put('tasks/{task}', [CompanyTaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{task}', [CompanyTaskController::class, 'destroy'])->name('tasks.destroy');
     Route::get('tasks', [CompanyTaskController::class, 'index'])->name('tasks.index');
+    Route::post('tasks', [CompanyTaskController::class, 'storeFromIndex'])->name('tasks.store_index');
     Route::get('members', [CompanyMemberController::class, 'index'])->name('members.index');
     Route::post('members', [CompanyMemberController::class, 'store'])->name('members.store');
     Route::patch('members/{user}/toggle', [CompanyMemberController::class, 'toggle'])->name('members.toggle');
 });
 
-// Employee routes
-Route::prefix('employee')->name('employee.')->middleware(['auth', 'employee'])->group(function () {
+// Employee routes — /{slug}/...
+Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'company_slug'])->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
     Route::get('/tasks', [EmployeeTaskController::class, 'index'])->name('tasks.index');
+    Route::get('/tasks/{task}', [EmployeeTaskController::class, 'show'])->name('tasks.show');
     Route::patch('/tasks/{task}/status', [EmployeeTaskController::class, 'updateStatus'])->name('tasks.status');
+    Route::post('/tasks/{task}/comments', [EmployeeTaskController::class, 'storeComment'])->name('tasks.comments.store');
+    Route::delete('/tasks/comments/{comment}', [EmployeeTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
+    Route::post('/tasks/{task}/attachments', [EmployeeTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
+    Route::delete('/tasks/attachments/{attachment}', [EmployeeTaskController::class, 'destroyAttachment'])->name('tasks.attachments.destroy');
 });
 
-// Authenticated user dashboard redirect
+// Dashboard redirect
 Route::get('/dashboard', function () {
     $user = auth()->user();
+    $slug = $user->company?->slug;
     if ($user->isSuperAdmin()) return redirect()->route('superadmin.dashboard');
-    if ($user->isCompanyAdmin()) return redirect()->route('company.dashboard');
-    if ($user->isEmployee()) return redirect()->route('employee.dashboard');
+    if ($user->isCompanyAdmin()) return redirect()->route('company.dashboard', $slug);
+    if ($user->isEmployee()) return redirect()->route('employee.dashboard', $slug);
     abort(403);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

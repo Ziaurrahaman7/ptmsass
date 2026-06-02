@@ -8,7 +8,7 @@ use App\Models\Task;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(string $slug)
     {
         $company = auth()->user()->company;
 

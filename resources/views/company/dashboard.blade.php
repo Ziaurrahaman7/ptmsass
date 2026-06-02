@@ -21,13 +21,13 @@
         <div class="ptm-card">
             <div style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
                 <span style="font-size:11px; font-weight:600; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em;">Recent Projects</span>
-                <a href="{{ route('company.projects.index') }}" style="font-size:12px; color:var(--accent); text-decoration:none;">View all →</a>
+                <a href="{{ route('company.projects.index', $slug) }}" style="font-size:12px; color:var(--accent); text-decoration:none;">View all →</a>
             </div>
             <div>
                 @forelse($recentProjects as $project)
                 <div style="padding:12px 18px; border-bottom:1px solid var(--border);">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                        <a href="{{ route('company.projects.show', $project) }}" style="font-size:13px; font-weight:500; color:var(--text); text-decoration:none;">{{ $project->name }}</a>
+                        <a href="{{ route('company.projects.show', [$slug, $project]) }}" style="font-size:13px; font-weight:500; color:var(--text); text-decoration:none;">{{ $project->name }}</a>
                         <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
                             {{ $project->status === 'in_progress' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
                                ($project->status === 'completed' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
@@ -42,7 +42,7 @@
                 </div>
                 @empty
                 <div style="padding:24px; text-align:center; color:var(--muted); font-size:13px;">
-                    No projects yet. <a href="{{ route('company.projects.create') }}" style="color:var(--accent); text-decoration:none;">Create one →</a>
+                    No projects yet. <a href="{{ route('company.projects.create', $slug) }}" style="color:var(--accent); text-decoration:none;">Create one →</a>
                 </div>
                 @endforelse
             </div>

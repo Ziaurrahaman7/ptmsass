@@ -19,7 +19,7 @@
                 @endforeach
             </select>
             @if(request('status') || request('priority'))
-            <a href="{{ route('employee.tasks.index') }}" style="font-size:12px; color:var(--muted); text-decoration:none;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">✕ Clear</a>
+            <a href="{{ route('employee.tasks.index', auth()->user()->company->slug) }}" style="font-size:12px; color:var(--muted); text-decoration:none;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">✕ Clear</a>
             @endif
         </form>
     </div>
@@ -37,7 +37,7 @@
             </thead>
             <tbody>
                 @forelse($tasks as $task)
-                <tr style="border-bottom:1px solid var(--border); transition:background 0.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                <tr style="border-bottom:1px solid var(--border); transition:background 0.1s; cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'" onclick="window.location='{{ route('employee.tasks.show', [auth()->user()->company->slug, $task]) }}'">
                     <td style="padding:12px 18px;">
                         <div style="font-size:13px; font-weight:500; color:var(--text);">{{ $task->title }}</div>
                         @if($task->description)<div style="font-size:11px; color:var(--muted); margin-top:2px; font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px;">{{ $task->description }}</div>@endif
@@ -55,7 +55,7 @@
                         {{ $task->due_date?->format('d M Y') ?? '—' }}
                     </td>
                     <td style="padding:12px 18px;">
-                        <form method="POST" action="{{ route('employee.tasks.status', $task) }}">
+                        <form method="POST" action="{{ route('employee.tasks.status', [auth()->user()->company->slug, $task]) }}" onclick="event.stopPropagation();">
                             @csrf @method('PATCH')
                             <select name="status" onchange="this.form.submit()" class="ptm-select" style="font-size:12px; padding:5px 9px;">
                                 @foreach(['todo'=>'To Do','in_progress'=>'In Progress','in_review'=>'In Review','done'=>'Done'] as $val=>$lbl)

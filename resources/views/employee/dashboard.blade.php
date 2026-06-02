@@ -25,7 +25,7 @@
     <div class="ptm-card">
         <div style="padding:14px 18px 12px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
             <span style="font-size:11px; font-weight:600; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em;">Recent Tasks</span>
-            <a href="{{ route('employee.tasks.index') }}" style="font-size:12px; color:var(--accent2); text-decoration:none;">View all →</a>
+            <a href="{{ route('employee.tasks.index', auth()->user()->company->slug) }}" style="font-size:12px; color:var(--accent2); text-decoration:none;">View all →</a>
         </div>
         <div>
             @forelse($myTasks as $task)
@@ -44,7 +44,7 @@
                            ($task->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
                         {{ ucfirst($task->priority) }}
                     </span>
-                    <form method="POST" action="{{ route('employee.tasks.status', $task) }}">
+                    <form method="POST" action="{{ route('employee.tasks.status', [auth()->user()->company->slug, $task]) }}">
                         @csrf @method('PATCH')
                         <select name="status" onchange="this.form.submit()" class="ptm-select" style="font-size:12px; padding:5px 9px;">
                             @foreach(['todo'=>'To Do','in_progress'=>'In Progress','in_review'=>'In Review','done'=>'Done'] as $val=>$lbl)

@@ -1,15 +1,39 @@
 # Progress
 
 ## What Works
-- Nothing yet — project not scaffolded.
+- ✅ Authentication system (Login/Register)
+- ✅ User & Role Management (Superadmin, Company Admin, Employee)
+- ✅ Company/Workspace Management
+- ✅ Dashboard (All roles)
+- ✅ Project Management (CRUD)
+- ✅ Task Management (CRUD, Assignment, Status)
+- ✅ Database Models Created:
+  - TaskComment (for comments)
+  - ActivityLog (for activity tracking)
+  - TaskAttachment (for file uploads)
+  - Notification (for notifications)
 
 ## What's Left
-- [ ] Choose and finalize tech stack
-- [ ] Scaffold application
-- [ ] User authentication
-- [ ] Project management (CRUD)
-- [ ] Task management (CRUD)
-- [ ] Dashboard / reporting
+### Milestone 2 (In Progress)
+- [ ] Task Comments UI & Controller
+- [ ] Activity Log UI & Integration
+- [ ] File Upload UI & Controller
+- [ ] Kanban Board (Drag & Drop)
+- [ ] Basic Notifications UI
+
+### Milestone 3 (Pending)
+- [ ] Dashboard Analytics (detailed)
+- [ ] Notification System (complete with alerts)
+- [ ] Deadline Reminders (automated)
+- [ ] Reports Section:
+  - [ ] Project progress reports
+  - [ ] Task completion reports
+  - [ ] Employee activity reports
+- [ ] System Optimization
+- [ ] Security Improvements
+- [ ] Bug Fixing & Testing
+- [ ] Deployment
 
 ## Known Issues
-- None yet
+- Route slug parameter issues fixed
+- All controllers updated with slug parameter

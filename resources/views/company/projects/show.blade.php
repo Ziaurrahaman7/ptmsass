@@ -3,7 +3,7 @@
     {{-- Header --}}
     <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px;">
         <div>
-            <a href="{{ route('company.projects.index') }}" style="font-size:12px; color:var(--muted); text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Projects</a>
+            <a href="{{ route('company.projects.index', $slug) }}" style="font-size:12px; color:var(--muted); text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Projects</a>
             <div style="font-size:18px; font-weight:600; letter-spacing:-0.3px; color:var(--text); margin-top:4px;">{{ $project->name }}</div>
             @if($project->description)<div style="font-size:13px; color:var(--muted); margin-top:2px;">{{ $project->description }}</div>@endif
         </div>
@@ -14,7 +14,7 @@
                    ($project->status === 'on_hold' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
                 {{ ucfirst(str_replace('_',' ',$project->status)) }}
             </span>
-            <a href="{{ route('company.projects.edit', $project) }}" class="ptm-btn-ghost" style="text-decoration:none; font-size:12px; padding:6px 14px;">Edit Project</a>
+            <a href="{{ route('company.projects.edit', [$slug, $project]) }}" class="ptm-btn-ghost" style="text-decoration:none; font-size:12px; padding:6px 14px;">Edit Project</a>
         </div>
     </div>
 
@@ -44,16 +44,17 @@
                 <span style="font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-family:var(--mono);">{{ $cfg['label'] }}</span>
                 <span style="margin-left:auto; font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $tasks->where('status',$status)->count() }}</span>
             </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; flex-direction:column; gap:8px;" class="kanban-column" data-status="{{ $status }}">
                 @foreach($tasks->where('status',$status) as $task)
-                <div class="ptm-kanban-card" style="padding:10px 12px; cursor:default;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='transparent'">
-                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;">
-                        <div style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4;">{{ $task->title }}</div>
+                <div data-task-id="{{ $task->id }}" class="kanban-task-wrapper">
+                <div class="ptm-kanban-card" style="padding:10px 12px; cursor:grab;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='transparent'">
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;" onclick="window.location='{{ route('company.tasks.show', [auth()->user()->company->slug, $task]) }}'">
+                        <div style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4; cursor:pointer;">{{ $task->title }}</div>
                         <div style="display:flex; gap:4px; flex-shrink:0; opacity:0;" class="task-actions" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
                             <button onclick="openEditTask({{ $task->id }},'{{ addslashes($task->title) }}','{{ addslashes($task->description) }}','{{ $task->status }}','{{ $task->priority }}','{{ $task->assigned_to }}','{{ $task->due_date?->format('Y-m-d') }}')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                             </button>
-                            <form method="POST" action="{{ route('company.tasks.destroy', $task) }}" style="display:inline;">
+                            <form method="POST" action="{{ route('company.tasks.destroy', [$slug, $task]) }}" style="display:inline;"
                                 @csrf @method('DELETE')
                                 <button onclick="return confirm('Delete task?')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -75,6 +76,7 @@
                         </div>
                     </div>
                 </div>
+                </div>
                 @endforeach
             </div>
         </div>
@@ -93,7 +95,7 @@
                 <span style="font-size:15px; font-weight:600; color:var(--text);">Add Task</span>
                 <button onclick="document.getElementById('addTaskModal').style.display='none'" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
             </div>
-            <form method="POST" action="{{ route('company.tasks.store', $project) }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+            <form method="POST" action="{{ route('company.tasks.store', [$slug, $project]) }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
                 @csrf
                 <div>
                     <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TITLE *</label>
@@ -187,8 +189,53 @@
     </div>
 
     <script>
+    const slug = '{{ $slug }}';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Drag & Drop
+    document.querySelectorAll('.kanban-column').forEach(column => {
+        new Sortable(column, {
+            group: 'kanban',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            draggable: '.kanban-task-wrapper',
+            onEnd: function(evt) {
+                const taskId = evt.item.getAttribute('data-task-id');
+                const newStatus = evt.to.getAttribute('data-status');
+                
+                console.log('Task ID:', taskId, 'New Status:', newStatus);
+                
+                fetch(`/${slug}/admin/tasks/${taskId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to update task status');
+                    location.reload();
+                });
+            }
+        });
+    });
+    
     function openEditTask(id,title,description,status,priority,assignedTo,dueDate){
-        document.getElementById('editTaskForm').action='/company/tasks/'+id;
+        document.getElementById('editTaskForm').action='/'+slug+'/admin/tasks/'+id;
         document.getElementById('editTitle').value=title;
         document.getElementById('editDescription').value=description;
         document.getElementById('editStatus').value=status;

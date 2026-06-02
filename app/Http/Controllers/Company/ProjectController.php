@@ -13,7 +13,7 @@ class ProjectController extends Controller
         return auth()->user()->company_id;
     }
 
-    public function index()
+    public function index(string $slug)
     {
         $projects = Project::where('company_id', $this->companyId())
             ->withCount(['tasks', 'tasks as done_tasks_count' => fn($q) => $q->where('status', 'done')])
@@ -22,12 +22,12 @@ class ProjectController extends Controller
         return view('company.projects.index', compact('projects'));
     }
 
-    public function create()
+    public function create(string $slug)
     {
         return view('company.projects.create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, string $slug)
     {
         $data = $request->validate([
             'name'        => 'required|string|max:255',
@@ -42,11 +42,11 @@ class ProjectController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        return redirect()->route('company.projects.index')
+        return redirect()->route('company.projects.index', $slug)
             ->with('success', 'Project created successfully.');
     }
 
-    public function show(Project $project)
+    public function show(string $slug, Project $project)
     {
         $this->authorizeProject($project);
 
@@ -56,13 +56,13 @@ class ProjectController extends Controller
         return view('company.projects.show', compact('project', 'tasks', 'members'));
     }
 
-    public function edit(Project $project)
+    public function edit(string $slug, Project $project)
     {
         $this->authorizeProject($project);
         return view('company.projects.edit', compact('project'));
     }
 
-    public function update(Request $request, Project $project)
+    public function update(Request $request, string $slug, Project $project)
     {
         $this->authorizeProject($project);
 
@@ -76,16 +76,16 @@ class ProjectController extends Controller
 
         $project->update($data);
 
-        return redirect()->route('company.projects.index')
+        return redirect()->route('company.projects.index', $slug)
             ->with('success', 'Project updated successfully.');
     }
 
-    public function destroy(Project $project)
+    public function destroy(string $slug, Project $project)
     {
         $this->authorizeProject($project);
         $project->delete();
 
-        return redirect()->route('company.projects.index')
+        return redirect()->route('company.projects.index', $slug)
             ->with('success', 'Project deleted.');
     }
 

@@ -1,12 +1,12 @@
 <x-company-layout title="Edit Project">
 
     <div style="max-width:600px;">
-        <a href="{{ route('company.projects.index') }}" style="font-size:12px; color:var(--muted); text-decoration:none; display:inline-block; margin-bottom:16px;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Back to Projects</a>
+        <a href="{{ route('company.projects.index', $slug) }}" style="font-size:12px; color:var(--muted); text-decoration:none; display:inline-block; margin-bottom:16px;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Back to Projects</a>
 
         <div class="ptm-card" style="padding:24px;">
             <div style="font-size:15px; font-weight:600; color:var(--text); margin-bottom:20px;">Edit: {{ $project->name }}</div>
 
-            <form method="POST" action="{{ route('company.projects.update', $project) }}" style="display:flex; flex-direction:column; gap:16px;">
+            <form method="POST" action="{{ route('company.projects.update', [$slug, $project]) }}" style="display:flex; flex-direction:column; gap:16px;">
                 @csrf @method('PUT')
 
                 <div>
@@ -44,7 +44,7 @@
 
                 <div style="display:flex; gap:10px; padding-top:6px;">
                     <button type="submit" class="ptm-btn-primary">Save Changes</button>
-                    <a href="{{ route('company.projects.index') }}" class="ptm-btn-ghost" style="text-decoration:none;">Cancel</a>
+                    <a href="{{ route('company.projects.index', $slug) }}" class="ptm-btn-ghost" style="text-decoration:none;">Cancel</a>
                 </div>
             </form>
         </div>

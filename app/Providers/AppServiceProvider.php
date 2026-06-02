@@ -19,6 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Share $slug globally with all views
+        view()->composer('*', function ($view) {
+            if (auth()->check() && auth()->user()->company) {
+                $view->with('slug', auth()->user()->company->slug);
+            }
+        });
     }
 }

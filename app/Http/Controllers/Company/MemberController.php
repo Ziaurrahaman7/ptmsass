@@ -14,13 +14,13 @@ class MemberController extends Controller
         return auth()->user()->company;
     }
 
-    public function index()
+    public function index(string $slug)
     {
         $members = $this->company()->users()->latest()->get();
         return view('company.members.index', compact('members'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, string $slug)
     {
         $data = $request->validate([
             'name'     => 'required|string|max:255',
@@ -40,7 +40,7 @@ class MemberController extends Controller
         return back()->with('success', 'Member added successfully.');
     }
 
-    public function toggle(User $user)
+    public function toggle(string $slug, User $user)
     {
         abort_if($user->company_id !== $this->company()->id, 403);
         $user->update(['is_active' => !$user->is_active]);
