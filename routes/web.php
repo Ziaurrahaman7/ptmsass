@@ -24,17 +24,20 @@ Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'superadmi
 Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_admin', 'company_slug'])->group(function () {
     Route::get('/dashboard', [CompanyDashboardController::class, 'index'])->name('dashboard');
     Route::resource('projects', CompanyProjectController::class);
+    
+    // Tasks routes - MUST be before generic routes
+    Route::get('tasks', [CompanyTaskController::class, 'index'])->name('tasks.index');
+    Route::post('tasks', [CompanyTaskController::class, 'storeFromIndex'])->name('tasks.store_index');
     Route::get('tasks/{task}', [CompanyTaskController::class, 'show'])->name('tasks.show');
     Route::patch('tasks/{task}/status', [CompanyTaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+    Route::put('tasks/{task}', [CompanyTaskController::class, 'update'])->name('tasks.update');
+    Route::delete('tasks/{task}', [CompanyTaskController::class, 'destroy'])->name('tasks.destroy');
     Route::post('tasks/{task}/comments', [CompanyTaskController::class, 'storeComment'])->name('tasks.comments.store');
     Route::delete('tasks/comments/{comment}', [CompanyTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
     Route::post('tasks/{task}/attachments', [CompanyTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
     Route::delete('tasks/attachments/{attachment}', [CompanyTaskController::class, 'destroyAttachment'])->name('tasks.attachments.destroy');
     Route::post('projects/{project}/tasks', [CompanyTaskController::class, 'store'])->name('tasks.store');
-    Route::put('tasks/{task}', [CompanyTaskController::class, 'update'])->name('tasks.update');
-    Route::delete('tasks/{task}', [CompanyTaskController::class, 'destroy'])->name('tasks.destroy');
-    Route::get('tasks', [CompanyTaskController::class, 'index'])->name('tasks.index');
-    Route::post('tasks', [CompanyTaskController::class, 'storeFromIndex'])->name('tasks.store_index');
+    
     Route::get('members', [CompanyMemberController::class, 'index'])->name('members.index');
     Route::post('members', [CompanyMemberController::class, 'store'])->name('members.store');
     Route::patch('members/{user}/toggle', [CompanyMemberController::class, 'toggle'])->name('members.toggle');

@@ -68,7 +68,16 @@ class TaskController extends Controller
 
     public function store(Request $request, string $slug, Project $project)
     {
-        abort_if($project->company_id !== $this->companyId(), 403);
+        // Debug logging
+        \Log::info('Task Store Debug', [
+            'project_id' => $project->id,
+            'project_company_id' => $project->company_id,
+            'user_id' => auth()->id(),
+            'user_company_id' => auth()->user()->company_id,
+            'slug' => $slug,
+        ]);
+        
+        abort_if($project->company_id !== $this->companyId(), 403, 'Project company mismatch');
 
         $data = $request->validate([
             'title'       => 'required|string|max:255',

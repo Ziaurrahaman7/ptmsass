@@ -11,8 +11,16 @@ class CompanyAdminMiddleware
     {
         $user = auth()->user();
 
+        \Log::info('CompanyAdmin Middleware Debug', [
+            'user_id' => $user?->id,
+            'is_company_admin' => $user?->isCompanyAdmin(),
+            'is_active' => $user?->is_active,
+            'company_status' => $user?->company?->status,
+            'url' => $request->url(),
+        ]);
+
         if (!$user || !$user->isCompanyAdmin()) {
-            abort(403, 'Access denied.');
+            abort(403, 'Not company admin: role=' . ($user?->role ?? 'null'));
         }
 
         if (!$user->is_active) {
