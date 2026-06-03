@@ -30,7 +30,7 @@ class TaskController extends Controller
         $projects = Project::where('company_id', $this->companyId())->orderBy('name')->get();
         $members  = auth()->user()->company->users()->where('is_active', true)->get();
 
-        return view('company.tasks.index', compact('tasks', 'projects', 'members'));
+        return view('company.tasks.index', compact('tasks', 'projects', 'members', 'slug'));
     }
 
     public function show(string $slug, Task $task)
@@ -46,7 +46,7 @@ class TaskController extends Controller
     public function storeFromIndex(Request $request, string $slug)
     {
         $data = $request->validate([
-            'project_id'  => 'required|exists:projects,id',
+            'project_id'  => ['required', 'exists:projects,id'],
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'status'      => 'required|in:todo,in_progress,in_review,done',
@@ -55,15 +55,23 @@ class TaskController extends Controller
             'due_date'    => 'nullable|date',
         ]);
 
-        $project = Project::findOrFail($data['project_id']);
-        abort_if($project->company_id !== $this->companyId(), 403);
+        // Check project belongs to user's company
+        $project = Project::where('id', $data['project_id'])
+            ->where('company_id', $this->companyId())
+            ->firstOrFail();
 
-        Task::create([...$data,
-            'company_id' => $this->companyId(),
-            'created_by' => auth()->id(),
-        ]);
+        try {
+            $task = Task::create([...$data,
+                'company_id' => $this->companyId(),
+                'created_by' => auth()->id(),
+            ]);
+            \Log::info('Task created', ['task_id' => $task->id]);
+        } catch (\Exception $e) {
+            \Log::error('Task creation failed', ['error' => $e->getMessage()]);
+            return redirect()->route('company.tasks.index', $slug)->with('error', 'Failed to create task.');
+        }
 
-        return back()->with('success', 'Task created.');
+        return redirect()->route('company.tasks.index', $slug)->with('success', 'Task created.');
     }
 
     public function store(Request $request, string $slug, Project $project)

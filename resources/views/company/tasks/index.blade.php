@@ -105,6 +105,13 @@
             </div>
             <form method="POST" action="{{ route('company.tasks.store_index', $slug) }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
                 @csrf
+                @if($errors->any())
+                <div style="background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); border-radius:8px; padding:10px; color:#f87171; font-size:12px;">
+                    @foreach($errors->all() as $error)
+                    <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+                @endif
                 <div>
                     <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PROJECT *</label>
                     <select name="project_id" required style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
