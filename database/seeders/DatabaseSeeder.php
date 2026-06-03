@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
         User::create([
             'name'              => 'Super Admin',
             'email'             => 'superadmin@ptmsaas.com',
-            'password'          => 'superadmin123',
+            'password'          => '12345678',
             'role'              => 'superadmin',
             'company_id'        => null,
             'is_active'         => true,
