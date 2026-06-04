@@ -37,45 +37,45 @@
 
     {{-- Kanban --}}
     <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
-        @foreach(['todo'=>['label'=>'To Do','color'=>'#6b7385'],'in_progress'=>['label'=>'In Progress','color'=>'#22d3ee'],'in_review'=>['label'=>'In Review','color'=>'#a78bfa'],'done'=>['label'=>'Done','color'=>'#4ade80']] as $status => $cfg)
+        @foreach(['todo'=>['label'=>'To Do','color'=>'#6b7385'],'in_progress'=>['label'=>'In Progress','color'=>'#22d3ee'],'in_review'=>['label'=>'In Review','color'=>'#a78bfa'],'done'=>['label'=>'Done','color'=>'#4ade80']] as $colStatus => $cfg)
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px;">
             <div style="display:flex; align-items:center; gap:7px; margin-bottom:12px;">
                 <div style="width:7px; height:7px; border-radius:50%; background:{{ $cfg['color'] }};"></div>
                 <span style="font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-family:var(--mono);">{{ $cfg['label'] }}</span>
-                <span style="margin-left:auto; font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $tasks->where('status',$status)->count() }}</span>
+                <span style="margin-left:auto; font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $tasks->where('status',$colStatus)->count() }}</span>
             </div>
-            <div style="display:flex; flex-direction:column; gap:8px;" class="kanban-column" data-status="{{ $status }}">
-                @foreach($tasks->where('status',$status) as $task)
-                <div data-task-id="{{ $task->id }}" class="kanban-task-wrapper">
-                <div class="ptm-kanban-card" style="padding:10px 12px; cursor:grab;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='transparent'">
-                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;" onclick="window.location='{{ route('company.tasks.show', [auth()->user()->company->slug, $task]) }}'">
-                        <div style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4; cursor:pointer;">{{ $task->title }}</div>
-                        <div style="display:flex; gap:4px; flex-shrink:0; opacity:0;" class="task-actions" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
-                            <button onclick="openEditTask({{ $task->id }},'{{ addslashes($task->title) }}','{{ addslashes($task->description) }}','{{ $task->status }}','{{ $task->priority }}','{{ $task->assigned_to }}','{{ $task->due_date?->format('Y-m-d') }}')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                            </button>
-                            <form method="POST" action="{{ route('company.tasks.destroy', [$slug, $task]) }}" style="display:inline;"
-                                @csrf @method('DELETE')
-                                <button onclick="return confirm('Delete task?')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <div class="kanban-column" data-status="{{ $colStatus }}" style="display:flex; flex-direction:column; gap:8px; min-height:80px;">
+                @foreach($tasks->where('status',$colStatus) as $task)
+                <div class="kanban-task-wrapper" data-task-id="{{ $task->id }}" style="cursor:grab;">
+                    <div class="ptm-kanban-card" style="padding:10px 12px;">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;">
+                            <a href="{{ route('company.tasks.show', [auth()->user()->company->slug, $task]) }}" class="task-title-link" style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4; text-decoration:none; flex:1;">{{ $task->title }}</a>
+                            <div style="display:flex; gap:4px; flex-shrink:0;" class="task-actions">
+                                <button onclick="event.stopPropagation(); openEditTask({{ $task->id }},'{{ addslashes($task->title) }}','{{ addslashes($task->description ?? '') }}','{{ $task->status }}','{{ $task->priority }}','{{ $task->assigned_to }}','{{ $task->due_date?->format('Y-m-d') }}')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </button>
-                            </form>
+                                <form method="POST" action="{{ route('company.tasks.destroy', [$slug, $task]) }}" style="display:inline;" onsubmit="event.stopPropagation();">
+                                    @csrf @method('DELETE')
+                                    <button onclick="return confirm('Delete task?')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        @if($task->description)<div style="font-size:11px; color:var(--muted); margin-top:4px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">{{ $task->description }}</div>@endif
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+                            <span style="font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:4px; border:1px solid;
+                                {{ $task->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
+                                   ($task->priority === 'high' ? 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
+                                   ($task->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
+                                {{ ucfirst($task->priority) }}
+                            </span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                @if($task->due_date)<span style="font-size:11px; font-family:var(--mono); {{ $task->due_date->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">{{ $task->due_date->format('d M') }}</span>@endif
+                                @if($task->assignee)<div style="width:20px; height:20px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $task->assignee->name }}">{{ strtoupper(substr($task->assignee->name,0,1)) }}</div>@endif
+                            </div>
                         </div>
                     </div>
-                    @if($task->description)<div style="font-size:11px; color:var(--muted); margin-top:4px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">{{ $task->description }}</div>@endif
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
-                        <span style="font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:4px; border:1px solid;
-                            {{ $task->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
-                               ($task->priority === 'high' ? 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
-                               ($task->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
-                            {{ ucfirst($task->priority) }}
-                        </span>
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            @if($task->due_date)<span style="font-size:11px; font-family:var(--mono); {{ $task->due_date->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">{{ $task->due_date->format('d M') }}</span>@endif
-                            @if($task->assignee)<div style="width:20px; height:20px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $task->assignee->name }}">{{ strtoupper(substr($task->assignee->name,0,1)) }}</div>@endif
-                        </div>
-                    </div>
-                </div>
                 </div>
                 @endforeach
             </div>
@@ -191,22 +191,21 @@
     <script>
     const slug = '{{ $slug }}';
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    
-    // Drag & Drop
-    document.querySelectorAll('.kanban-column').forEach(column => {
-        new Sortable(column, {
+
+    document.querySelectorAll('.kanban-column').forEach(function(column) {
+        Sortable.create(column, {
             group: 'kanban',
             animation: 150,
             ghostClass: 'sortable-ghost',
-            dragClass: 'sortable-drag',
             draggable: '.kanban-task-wrapper',
+            filter: '.task-actions, a.task-title-link',
+            preventOnFilter: false,
             onEnd: function(evt) {
                 const taskId = evt.item.getAttribute('data-task-id');
                 const newStatus = evt.to.getAttribute('data-status');
-                
-                console.log('Task ID:', taskId, 'New Status:', newStatus);
-                
-                fetch(`/${slug}/admin/tasks/${taskId}/status`, {
+                const oldStatus = evt.from.getAttribute('data-status');
+                if (newStatus === oldStatus) return;
+                fetch('/' + slug + '/admin/tasks/' + taskId + '/status', {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -215,25 +214,13 @@
                     },
                     body: JSON.stringify({ status: newStatus })
                 })
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Response data:', data);
-                    if (data.success) {
-                        location.reload();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to update task status');
-                    location.reload();
-                });
+                .then(function(r) { return r.json(); })
+                .then(function(data) { if (data.success) location.reload(); })
+                .catch(function() { location.reload(); });
             }
         });
     });
-    
+
     function openEditTask(id,title,description,status,priority,assignedTo,dueDate){
         document.getElementById('editTaskForm').action='/'+slug+'/admin/tasks/'+id;
         document.getElementById('editTitle').value=title;
@@ -244,10 +231,6 @@
         document.getElementById('editDueDate').value=dueDate||'';
         document.getElementById('editTaskModal').style.display='flex';
     }
-    document.querySelectorAll('.ptm-kanban-card').forEach(card=>{
-        card.addEventListener('mouseenter',()=>{ const a=card.querySelector('.task-actions'); if(a) a.style.opacity=1; });
-        card.addEventListener('mouseleave',()=>{ const a=card.querySelector('.task-actions'); if(a) a.style.opacity=0; });
-    });
     </script>
 
 </x-company-layout>
