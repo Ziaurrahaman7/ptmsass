@@ -42,7 +42,7 @@ class TaskController extends Controller
 
     public function show(string $slug, Task $task)
     {
-        abort_if($task->assigned_to !== auth()->id(), 403);
+        abort_if($task->company_id !== auth()->user()->company_id, 403);
         
         $task->load(['project', 'assignee', 'comments.user', 'attachments.uploader', 'activities.user']);
         
@@ -51,7 +51,7 @@ class TaskController extends Controller
 
     public function storeComment(Request $request, string $slug, Task $task)
     {
-        abort_if($task->assigned_to !== auth()->id(), 403);
+        abort_if($task->company_id !== auth()->user()->company_id, 403);
         
         $request->validate(['comment' => 'required|string|max:1000']);
         
@@ -75,7 +75,7 @@ class TaskController extends Controller
     
     public function destroyComment(string $slug, TaskComment $comment)
     {
-        abort_if($comment->task->assigned_to !== auth()->id(), 403);
+        abort_if($comment->task->company_id !== auth()->user()->company_id, 403);
         abort_if($comment->user_id !== auth()->id(), 403);
         
         $comment->delete();
@@ -85,7 +85,7 @@ class TaskController extends Controller
     
     public function storeAttachment(Request $request, string $slug, Task $task)
     {
-        abort_if($task->assigned_to !== auth()->id(), 403);
+        abort_if($task->company_id !== auth()->user()->company_id, 403);
         
         $request->validate(['file' => 'required|file|max:10240']);
         
@@ -116,7 +116,7 @@ class TaskController extends Controller
     
     public function destroyAttachment(string $slug, TaskAttachment $attachment)
     {
-        abort_if($attachment->task->assigned_to !== auth()->id(), 403);
+        abort_if($attachment->task->company_id !== auth()->user()->company_id, 403);
         
         if (Storage::disk('public')->exists($attachment->file_path)) {
             Storage::disk('public')->delete($attachment->file_path);

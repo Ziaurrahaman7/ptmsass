@@ -13,6 +13,26 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
 
+// Temporary cache clear route
+Route::get('/clear-cache-temp', function() {
+    try {
+        \Artisan::call('optimize:clear');
+        \Artisan::call('config:clear');
+        \Artisan::call('route:clear');
+        \Artisan::call('view:clear');
+        \Artisan::call('cache:clear');
+        
+        // Recreate caches
+        \Artisan::call('config:cache');
+        \Artisan::call('route:cache');
+        \Artisan::call('view:cache');
+        
+        return 'Cache cleared and refreshed successfully! Now remove this route from web.php for security.';
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+});
+
 // Superadmin routes
 Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'superadmin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
