@@ -12,14 +12,25 @@
   - ActivityLog (for activity tracking)
   - TaskAttachment (for file uploads)
   - Notification (for notifications)
+- ✅ Task Comments UI & Controller
+- ✅ Activity Log UI & Integration
+- ✅ File Upload UI & Controller
+- ✅ Kanban Board (Drag & Drop)
+- ✅ Notifications System:
+  - Notification bell with badge count
+  - Real-time dropdown (fetches every 30s)
+  - Notification index page
+  - Mark as read functionality
+  - Auto-notify on task assign/comment/status change
+  - Works for both Company Admin & Employee
 
 ## What's Left
-### Milestone 2 (In Progress)
-- [ ] Task Comments UI & Controller
-- [ ] Activity Log UI & Integration
-- [ ] File Upload UI & Controller
-- [ ] Kanban Board (Drag & Drop)
-- [ ] Basic Notifications UI
+### Milestone 2 (Completed ✅)
+- ✅ Task Comments UI & Controller
+- ✅ Activity Log UI & Integration
+- ✅ File Upload UI & Controller
+- ✅ Kanban Board (Drag & Drop)
+- ✅ Notifications UI (Dynamic)
 
 ### Milestone 3 (Pending)
 - [ ] Dashboard Analytics (detailed)

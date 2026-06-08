@@ -180,7 +180,30 @@
             <div>
                 <div style="font-size:15px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">{{ $title ?? 'Dashboard' }}</div>
             </div>
-            <div style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ now()->format('D, d M Y') }}</div>
+            <div style="display:flex; align-items:center; gap:16px;">
+                {{-- Notification Bell --}}
+                <div style="position:relative;">
+                    <button id="notificationBell" onclick="toggleNotifications()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:6px; position:relative; transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        <span id="notificationCount" style="position:absolute; top:2px; right:2px; background:#f87171; color:#fff; border-radius:8px; font-size:9px; font-family:var(--mono); font-weight:600; padding:1px 4px; min-width:14px; text-align:center; display:none;">0</span>
+                    </button>
+                    
+                    {{-- Notification Dropdown --}}
+                    <div id="notificationDropdown" style="display:none; position:absolute; top:calc(100% + 8px); right:0; width:360px; max-height:480px; background:var(--surface); border:1px solid var(--border2); border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.3); z-index:1000; overflow:hidden;">
+                        <div style="padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                            <span style="font-size:13px; font-weight:600; color:var(--text);">Notifications</span>
+                            <button onclick="markAllAsRead()" style="background:none; border:none; color:var(--muted); font-size:11px; cursor:pointer; font-family:var(--mono);" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">Mark all read</button>
+                        </div>
+                        <div id="notificationList" style="max-height:400px; overflow-y:auto;">
+                            <div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:13px;">Loading...</div>
+                        </div>
+                        <div style="padding:10px 16px; border-top:1px solid var(--border); text-align:center;">
+                            <a href="{{ route('company.notifications.index', $slug) }}" style="font-size:12px; color:var(--accent2); text-decoration:none; font-weight:500;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--accent2)'">View all notifications</a>
+                        </div>
+                    </div>
+                </div>
+                <div style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ now()->format('D, d M Y') }}</div>
+            </div>
         </header>
 
         <main style="flex:1; overflow-y:auto; padding:24px;">
@@ -200,6 +223,110 @@
         </main>
     </div>
 </div>
+
+<script>
+const slug = '{{ $slug }}';
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+// Fetch unread notifications
+function fetchNotifications() {
+    fetch('/' + slug + '/admin/notifications/unread', {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const countBadge = document.getElementById('notificationCount');
+        const notificationList = document.getElementById('notificationList');
+        
+        if (data.count > 0) {
+            countBadge.textContent = data.count;
+            countBadge.style.display = 'block';
+        } else {
+            countBadge.style.display = 'none';
+        }
+        
+        if (data.notifications.length === 0) {
+            notificationList.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:13px;">No new notifications</div>';
+        } else {
+            notificationList.innerHTML = data.notifications.map(n => `
+                <div onclick="markAsReadAndNavigate(${n.id}, '${n.link}')" style="padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; ${n.is_read ? '' : 'background:rgba(74,222,128,0.03);'}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${n.is_read ? 'transparent' : 'rgba(74,222,128,0.03)'}'}">
+                    <div style="display:flex; align-items:flex-start; gap:10px;">
+                        <div style="width:6px; height:6px; border-radius:50%; background:${n.is_read ? 'transparent' : 'var(--accent)'}; margin-top:6px; flex-shrink:0;"></div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-size:12px; font-weight:500; color:var(--text); margin-bottom:2px;">${n.title}</div>
+                            <div style="font-size:12px; color:var(--muted); line-height:1.4;">${n.message}</div>
+                            <div style="font-size:10px; color:var(--muted); font-family:var(--mono); margin-top:4px;">${timeAgo(n.created_at)}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    });
+}
+
+// Toggle notification dropdown
+function toggleNotifications() {
+    const dropdown = document.getElementById('notificationDropdown');
+    if (dropdown.style.display === 'none') {
+        dropdown.style.display = 'block';
+        fetchNotifications();
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+// Mark as read and navigate
+function markAsReadAndNavigate(notificationId, link) {
+    fetch('/' + slug + '/admin/notifications/' + notificationId + '/read', {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        }
+    }).then(() => {
+        if (link) window.location.href = link;
+    });
+}
+
+// Mark all as read
+function markAllAsRead() {
+    fetch('/' + slug + '/admin/notifications/mark-all-read', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        }
+    }).then(() => {
+        fetchNotifications();
+    });
+}
+
+// Time ago helper
+function timeAgo(dateString) {
+    const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes + 'm ago';
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours + 'h ago';
+    const days = Math.floor(hours / 24);
+    return days + 'd ago';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('notificationDropdown');
+    const bell = document.getElementById('notificationBell');
+    if (!dropdown.contains(e.target) && !bell.contains(e.target)) {
+        dropdown.style.display = 'none';
+    }
+});
+
+// Fetch notifications every 30 seconds
+fetchNotifications();
+setInterval(fetchNotifications, 30000);
+</script>
 
 </body>
 </html>

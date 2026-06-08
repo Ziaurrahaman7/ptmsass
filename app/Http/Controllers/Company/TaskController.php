@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Notification;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskAttachment;
@@ -66,6 +67,27 @@ class TaskController extends Controller
                 'created_by' => auth()->id(),
             ]);
             \Log::info('Task created', ['task_id' => $task->id]);
+            
+            // Log activity
+            ActivityLog::create([
+                'company_id' => $this->companyId(),
+                'user_id' => auth()->id(),
+                'subject_type' => Task::class,
+                'subject_id' => $task->id,
+                'action' => 'created',
+                'description' => auth()->user()->name . ' created this task',
+            ]);
+            
+            // Notify assignee
+            if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
+                Notification::create([
+                    'user_id' => $task->assigned_to,
+                    'type' => 'task_assigned',
+                    'title' => 'New Task Assigned',
+                    'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
+                    'link' => route('employee.tasks.show', [$slug, $task]),
+                ]);
+            }
         } catch (\Exception $e) {
             \Log::error('Task creation failed', ['error' => $e->getMessage()]);
             return redirect()->route('company.tasks.index', $slug)->with('error', 'Failed to create task.');
@@ -111,6 +133,17 @@ class TaskController extends Controller
             'action' => 'created',
             'description' => auth()->user()->name . ' created this task',
         ]);
+        
+        // Notify assignee
+        if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
+            Notification::create([
+                'user_id' => $task->assigned_to,
+                'type' => 'task_assigned',
+                'title' => 'New Task Assigned',
+                'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
+                'link' => route('employee.tasks.show', [$slug, $task]),
+            ]);
+        }
 
         return back()->with('success', 'Task created.');
     }
@@ -129,6 +162,8 @@ class TaskController extends Controller
         ]);
         
         $changes = [];
+        $oldAssignee = $task->assigned_to;
+        
         if ($task->status !== $data['status']) {
             $changes[] = 'status from ' . $task->status . ' to ' . $data['status'];
         }
@@ -149,6 +184,17 @@ class TaskController extends Controller
                 'subject_id' => $task->id,
                 'action' => 'updated',
                 'description' => auth()->user()->name . ' updated ' . implode(', ', $changes),
+            ]);
+        }
+        
+        // Notify if reassigned
+        if ($oldAssignee !== $task->assigned_to && $task->assigned_to && $task->assigned_to !== auth()->id()) {
+            Notification::create([
+                'user_id' => $task->assigned_to,
+                'type' => 'task_assigned',
+                'title' => 'Task Reassigned',
+                'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
+                'link' => route('employee.tasks.show', [$slug, $task]),
             ]);
         }
 
@@ -205,6 +251,17 @@ class TaskController extends Controller
             'action' => 'commented',
             'description' => auth()->user()->name . ' added a comment',
         ]);
+        
+        // Notify task assignee
+        if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
+            Notification::create([
+                'user_id' => $task->assigned_to,
+                'type' => 'task_comment',
+                'title' => 'New Comment',
+                'message' => auth()->user()->name . ' commented on: ' . $task->title,
+                'link' => route('employee.tasks.show', [$slug, $task]),
+            ]);
+        }
         
         return back()->with('success', 'Comment added.');
     }

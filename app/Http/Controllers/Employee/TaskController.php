@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Notification;
 use App\Models\Task;
 use App\Models\TaskAttachment;
 use App\Models\TaskComment;
@@ -34,8 +35,21 @@ class TaskController extends Controller
         abort_if($task->assigned_to !== auth()->id(), 403);
 
         $request->validate(['status' => 'required|in:todo,in_progress,in_review,done']);
-
+        
+        $oldStatus = $task->status;
         $task->update(['status' => $request->status]);
+        
+        // Notify company admin about status change
+        $companyAdmins = $task->project->company->users()->where('role', 'company_admin')->get();
+        foreach ($companyAdmins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'task_status_changed',
+                'title' => 'Task Status Updated',
+                'message' => auth()->user()->name . ' moved "' . $task->title . '" from ' . $oldStatus . ' to ' . $request->status,
+                'link' => route('company.tasks.show', [$slug, $task]),
+            ]);
+        }
 
         return back()->with('success', 'Task status updated.');
     }
@@ -69,6 +83,18 @@ class TaskController extends Controller
             'action' => 'commented',
             'description' => auth()->user()->name . ' added a comment',
         ]);
+        
+        // Notify company admin
+        $companyAdmins = $task->project->company->users()->where('role', 'company_admin')->get();
+        foreach ($companyAdmins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'task_comment',
+                'title' => 'New Comment',
+                'message' => auth()->user()->name . ' commented on: ' . $task->title,
+                'link' => route('company.tasks.show', [$slug, $task]),
+            ]);
+        }
         
         return back()->with('success', 'Comment added.');
     }

@@ -29,6 +29,11 @@ class User extends Authenticatable
         return $this->belongsTo(Company::class);
     }
 
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === 'superadmin';
