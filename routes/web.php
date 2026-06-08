@@ -15,6 +15,48 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
 
+// Temporary debug route - DELETE AFTER USE
+Route::get('/debug-auth', function() {
+    if (!auth()->check()) {
+        return 'Not logged in';
+    }
+    
+    $user = auth()->user();
+    $company = $user->company;
+    
+    $project2 = \App\Models\Project::find(2);
+    $userProjects = \App\Models\Project::where('company_id', $user->company_id)->get();
+    
+    return [
+        'user_info' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'role' => $user->role,
+            'company_id' => $user->company_id,
+            'company_slug' => $company?->slug,
+            'company_name' => $company?->name,
+        ],
+        'project_2_info' => $project2 ? [
+            'id' => $project2->id,
+            'name' => $project2->name,
+            'company_id' => $project2->company_id,
+            'company_name' => $project2->company?->name,
+            'belongs_to_you' => $project2->company_id === $user->company_id ? 'YES' : 'NO',
+        ] : 'Project #2 not found',
+        'your_projects' => $userProjects->map(fn($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'status' => $p->status,
+        ]),
+        'all_projects' => \App\Models\Project::with('company')->get()->map(fn($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'company' => $p->company?->name,
+            'company_id' => $p->company_id,
+        ]),
+    ];
+})->middleware('auth');
+
 // Temporary cache clear route
 Route::get('/clear-cache-temp', function() {
     try {

@@ -13,6 +13,8 @@ class Project extends Model
     protected $casts = [
         'start_date' => 'date',
         'due_date'   => 'date',
+        'company_id' => 'integer',
+        'created_by' => 'integer',
     ];
 
     public function company()

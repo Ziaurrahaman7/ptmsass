@@ -13,6 +13,10 @@ class Task extends Model
 
     protected $casts = [
         'due_date' => 'date',
+        'project_id' => 'integer',
+        'company_id' => 'integer',
+        'created_by' => 'integer',
+        'assigned_to' => 'integer',
     ];
 
     public function project()
