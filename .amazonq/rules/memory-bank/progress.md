@@ -32,9 +32,8 @@
 - ✅ Kanban Board (Drag & Drop)
 - ✅ Notifications UI (Dynamic)
 
-### Milestone 3 (Pending)
-- [ ] Dashboard Analytics (detailed)
-- [ ] Notification System (complete with alerts)
+### Milestone 3 (In Progress)
+- 🔄 Dashboard Analytics (detailed) - In Progress
 - [ ] Deadline Reminders (automated)
 - [ ] Reports Section:
   - [ ] Project progress reports

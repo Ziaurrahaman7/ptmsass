@@ -34,6 +34,11 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class);
     }
 
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === 'superadmin';
