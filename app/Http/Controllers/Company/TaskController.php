@@ -56,41 +56,32 @@ class TaskController extends Controller
             'due_date'    => 'nullable|date',
         ]);
 
-        // Check project belongs to user's company
         $project = Project::where('id', $data['project_id'])
             ->where('company_id', $this->companyId())
             ->firstOrFail();
 
-        try {
-            $task = Task::create([...$data,
-                'company_id' => $this->companyId(),
-                'created_by' => auth()->id(),
+        $task = Task::create([...$data,
+            'company_id' => $this->companyId(),
+            'created_by' => auth()->id(),
+        ]);
+        
+        ActivityLog::create([
+            'company_id' => $this->companyId(),
+            'user_id' => auth()->id(),
+            'subject_type' => Task::class,
+            'subject_id' => $task->id,
+            'action' => 'created',
+            'description' => auth()->user()->name . ' created this task',
+        ]);
+        
+        if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
+            Notification::create([
+                'user_id' => $task->assigned_to,
+                'type' => 'task_assigned',
+                'title' => 'New Task Assigned',
+                'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
+                'link' => route('employee.tasks.show', [$slug, $task]),
             ]);
-            \Log::info('Task created', ['task_id' => $task->id]);
-            
-            // Log activity
-            ActivityLog::create([
-                'company_id' => $this->companyId(),
-                'user_id' => auth()->id(),
-                'subject_type' => Task::class,
-                'subject_id' => $task->id,
-                'action' => 'created',
-                'description' => auth()->user()->name . ' created this task',
-            ]);
-            
-            // Notify assignee
-            if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
-                Notification::create([
-                    'user_id' => $task->assigned_to,
-                    'type' => 'task_assigned',
-                    'title' => 'New Task Assigned',
-                    'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
-                    'link' => route('employee.tasks.show', [$slug, $task]),
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::error('Task creation failed', ['error' => $e->getMessage()]);
-            return redirect()->route('company.tasks.index', $slug)->with('error', 'Failed to create task.');
         }
 
         return redirect()->route('company.tasks.index', $slug)->with('success', 'Task created.');
@@ -98,16 +89,7 @@ class TaskController extends Controller
 
     public function store(Request $request, string $slug, Project $project)
     {
-        // Debug logging
-        \Log::info('Task Store Debug', [
-            'project_id' => $project->id,
-            'project_company_id' => $project->company_id,
-            'user_id' => auth()->id(),
-            'user_company_id' => auth()->user()->company_id,
-            'slug' => $slug,
-        ]);
-        
-        abort_if($project->company_id !== $this->companyId(), 403, 'Project company mismatch');
+        abort_if($project->company_id !== $this->companyId(), 403);
 
         $data = $request->validate([
             'title'       => 'required|string|max:255',

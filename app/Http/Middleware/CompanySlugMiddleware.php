@@ -12,17 +12,8 @@ class CompanySlugMiddleware
         $slug    = $request->route('slug');
         $company = auth()->user()?->company;
 
-        // Debug logging
-        \Log::info('CompanySlug Middleware Debug', [
-            'url_slug' => $slug,
-            'user_id' => auth()->id(),
-            'user_company_id' => auth()->user()?->company_id,
-            'company_slug' => $company?->slug ?? 'NULL',
-            'user_role' => auth()->user()?->role,
-        ]);
-
         if (!$company || $company->slug !== $slug) {
-            abort(403, 'Slug mismatch: URL=' . $slug . ', Company=' . ($company?->slug ?? 'NULL'));
+            abort(403);
         }
 
         return $next($request);

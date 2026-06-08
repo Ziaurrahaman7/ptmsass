@@ -91,17 +91,6 @@ class ProjectController extends Controller
 
     private function authorizeProject(Project $project): void
     {
-        if ($project->company_id !== $this->companyId()) {
-            \Log::error('Project Authorization Failed', [
-                'project_id' => $project->id,
-                'project_company_id' => $project->company_id,
-                'user_company_id' => $this->companyId(),
-                'user_id' => auth()->id(),
-                'project_name' => $project->name,
-                'project_company_name' => $project->company?->name,
-                'user_company_name' => auth()->user()->company?->name,
-            ]);
-            abort(403, 'This project belongs to ' . ($project->company?->name ?? 'another company') . ' (ID: ' . $project->company_id . '). Your company ID is: ' . $this->companyId());
-        }
+        abort_if($project->company_id !== $this->companyId(), 403);
     }
 }
