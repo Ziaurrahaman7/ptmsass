@@ -47,9 +47,20 @@
                             {{ ucfirst($task->priority) }}
                         </span>
                     </div>
-                    <div>
+                    <div style="grid-column:span 2;">
                         <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Assigned To</div>
-                        <div style="font-size:13px; color:var(--text);">{{ $task->assignee?->name ?? 'Unassigned' }}</div>
+                        @if($task->assignees->count() > 0)
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                            @foreach($task->assignees as $assignee)
+                            <div style="display:flex; align-items:center; gap:6px; padding:4px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:6px;">
+                                <div style="width:20px; height:20px; border-radius:5px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;">{{ strtoupper(substr($assignee->name,0,1)) }}</div>
+                                <span style="font-size:12px; color:var(--text);">{{ $assignee->name }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+                        @else
+                        <div style="font-size:13px; color:var(--muted);">Unassigned</div>
+                        @endif
                     </div>
                     <div>
                         <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Due Date</div>
@@ -57,6 +68,69 @@
                     </div>
                 </div>
             </div>
+
+            @if($task->subtasks->count() > 0)
+            {{-- Subtasks Section (View Only) --}}
+            <div class="ptm-card" style="margin-bottom:16px;">
+                <div style="padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:11px; font-weight:600; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em;">Subtasks</span>
+                        <span style="font-size:12px; color:var(--muted); font-family:var(--mono);">{{ $task->subtasks->count() }}</span>
+                    </div>
+                </div>
+                <div style="padding:14px;">
+                    @php
+                        $completedSubtasks = $task->subtasks->where('status', 'done')->count();
+                        $totalSubtasks = $task->subtasks->count();
+                        $progressPercent = $totalSubtasks > 0 ? round(($completedSubtasks / $totalSubtasks) * 100) : 0;
+                    @endphp
+                    <div style="margin-bottom:16px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                            <span style="font-size:11px; color:var(--muted);">Progress</span>
+                            <span style="font-size:12px; font-weight:600; font-family:var(--mono); color:#4ade80;">{{ $completedSubtasks }}/{{ $totalSubtasks }}</span>
+                        </div>
+                        <div style="height:4px; background:var(--border); border-radius:2px;">
+                            <div style="height:100%; border-radius:2px; background:#4ade80; width:{{ $progressPercent }}%; transition:width 0.3s;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        @foreach($task->subtasks as $subtask)
+                        <a href="{{ route('employee.tasks.show', [auth()->user()->company->slug, $subtask]) }}" style="text-decoration:none;">
+                            <div style="padding:12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; gap:10px; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+                                <div style="width:18px; height:18px; border-radius:4px; border:2px solid {{ $subtask->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $subtask->status === 'done' ? '#4ade80' : 'transparent' }}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    @if($subtask->status === 'done')
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                    @endif
+                                </div>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:13px; font-weight:500; color:var(--text); {{ $subtask->status === 'done' ? 'text-decoration:line-through; opacity:0.6;' : '' }}">{{ $subtask->title }}</div>
+                                    <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                                        <span style="font-size:10px; font-family:var(--mono); padding:2px 6px; border-radius:4px; border:1px solid;
+                                            {{ $subtask->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
+                                               ($subtask->priority === 'high' ? 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
+                                               ($subtask->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
+                                            {{ ucfirst($subtask->priority) }}
+                                        </span>
+                                        @if($subtask->assignees->count() > 0)
+                                        <div style="display:flex; align-items:center; gap:3px;">
+                                            @foreach($subtask->assignees->take(3) as $assignee)
+                                            <div style="width:18px; height:18px; border-radius:4px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:9px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $assignee->name }}">{{ strtoupper(substr($assignee->name,0,1)) }}</div>
+                                            @endforeach
+                                            @if($subtask->assignees->count() > 3)
+                                            <span style="font-size:10px; color:var(--muted);">+{{ $subtask->assignees->count() - 3 }}</span>
+                                            @endif
+                                        </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            @endif
 
             {{-- Comments Section --}}
             <div class="ptm-card">

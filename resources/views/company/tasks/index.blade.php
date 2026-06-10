@@ -57,7 +57,20 @@
                     <td style="padding:12px 18px;">
                         <a href="{{ route('company.projects.show', [$slug, $task->project]) }}" style="font-size:13px; color:var(--accent); text-decoration:none;">{{ $task->project->name }}</a>
                     </td>
-                    <td style="padding:12px 18px; font-size:12px; color:var(--muted); font-family:var(--mono);">{{ $task->assignee?->name ?? '—' }}</td>
+                    <td style="padding:12px 18px;">
+                        @if($task->assignees->count() > 0)
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            @foreach($task->assignees->take(3) as $assignee)
+                            <div style="width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $assignee->name }}">{{ strtoupper(substr($assignee->name,0,1)) }}</div>
+                            @endforeach
+                            @if($task->assignees->count() > 3)
+                            <span style="font-size:11px; color:var(--muted); font-family:var(--mono);">+{{ $task->assignees->count() - 3 }}</span>
+                            @endif
+                        </div>
+                        @else
+                        <span style="font-size:12px; color:var(--muted); font-family:var(--mono);">—</span>
+                        @endif
+                    </td>
                     <td style="padding:12px 18px;">
                         <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
                             {{ $task->priority==='urgent'?'color:#f87171;border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.08);':($task->priority==='high'?'color:#fb923c;border-color:rgba(251,146,60,0.3);background:rgba(251,146,60,0.08);':($task->priority==='medium'?'color:#fbbf24;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);':'color:var(--muted);border-color:var(--border2);background:transparent;')) }}">
@@ -143,17 +156,71 @@
                         </select>
                     </div>
                     <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO</label>
-                        <select name="assigned_to" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
-                            <option value="">Unassigned</option>
-                            @foreach($members as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach
-                        </select>
-                    </div>
-                    <div>
                         <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DUE DATE</label>
                         <input type="date" name="due_date" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:9px 12px;">
                     </div>
                 </div>
+                <div>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO (Multiple)</label>
+                    <div class="custom-multiselect" style="position:relative;">
+                        <div class="multiselect-trigger" onclick="toggleMultiselect(this)" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:42px;">
+                            <div class="selected-users" style="display:flex; flex-wrap:wrap; gap:4px; flex:1;">
+                                <span style="font-size:13px; color:var(--muted);">Select assignees...</span>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="multiselect-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; margin-top:4px; background:var(--surface); border:1px solid var(--border2); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:240px; overflow-y:auto;">
+                            <div style="padding:8px;">
+                                @foreach($members as $m)
+                                <label class="multiselect-option" data-user-id="{{ $m->id }}" data-user-name="{{ $m->name }}" data-user-initial="{{ strtoupper(substr($m->name,0,1)) }}" style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:background 0.15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                                    <input type="checkbox" name="assignees[]" value="{{ $m->id }}" style="width:16px; height:16px; cursor:pointer;" onchange="updateSelectedUsers(this)">
+                                    <div style="width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center;">{{ strtoupper(substr($m->name,0,1)) }}</div>
+                                    <span style="font-size:13px; color:var(--text); flex:1;">{{ $m->name }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                function toggleMultiselect(trigger) {
+                    const dropdown = trigger.nextElementSibling;
+                    const isVisible = dropdown.style.display === 'block';
+                    document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
+                    dropdown.style.display = isVisible ? 'none' : 'block';
+                    trigger.querySelector('svg').style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+                }
+
+                function updateSelectedUsers(checkbox) {
+                    const container = checkbox.closest('.custom-multiselect');
+                    const selectedDiv = container.querySelector('.selected-users');
+                    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
+                    
+                    selectedDiv.innerHTML = '';
+                    
+                    if (checkedBoxes.length === 0) {
+                        selectedDiv.innerHTML = '<span style="font-size:13px; color:var(--muted);">Select assignees...</span>';
+                    } else {
+                        checkedBoxes.forEach(cb => {
+                            const option = cb.closest('.multiselect-option');
+                            const initial = option.dataset.userInitial;
+                            const name = option.dataset.userName;
+                            const badge = document.createElement('div');
+                            badge.style.cssText = 'display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.3); border-radius:6px; font-size:12px; color:var(--text);';
+                            badge.innerHTML = `<div style="width:18px; height:18px; border-radius:4px; background:rgba(74,222,128,0.3); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;">${initial}</div><span>${name}</span>`;
+                            selectedDiv.appendChild(badge);
+                        });
+                    }
+                }
+
+                document.addEventListener('click', function(e) {
+                    if (!e.target.closest('.custom-multiselect')) {
+                        document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
+                        document.querySelectorAll('.multiselect-trigger svg').forEach(svg => svg.style.transform = 'rotate(0deg)');
+                    }
+                });
+                </script>
                 <div style="display:flex; gap:10px; padding-top:4px;">
                     <button type="submit" class="ptm-btn-primary">Create Task</button>
                     <button type="button" onclick="document.getElementById('createTaskModal').style.display='none'" class="ptm-btn-ghost">Cancel</button>

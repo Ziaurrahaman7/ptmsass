@@ -30,6 +30,7 @@
                 <tr>
                     <th style="padding:12px 18px; text-align:left;">Task</th>
                     <th style="padding:12px 18px; text-align:left;">Project</th>
+                    <th style="padding:12px 18px; text-align:left;">Assignees</th>
                     <th style="padding:12px 18px; text-align:left;">Priority</th>
                     <th style="padding:12px 18px; text-align:left;">Due Date</th>
                     <th style="padding:12px 18px; text-align:left;">Status</th>
@@ -43,6 +44,20 @@
                         @if($task->description)<div style="font-size:11px; color:var(--muted); margin-top:2px; font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px;">{{ $task->description }}</div>@endif
                     </td>
                     <td style="padding:12px 18px; font-size:13px; color:var(--muted); font-family:var(--mono);">{{ $task->project->name }}</td>
+                    <td style="padding:12px 18px;">
+                        @if($task->assignees->count() > 0)
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            @foreach($task->assignees->take(3) as $assignee)
+                            <div style="width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $assignee->name }}">{{ strtoupper(substr($assignee->name,0,1)) }}</div>
+                            @endforeach
+                            @if($task->assignees->count() > 3)
+                            <span style="font-size:11px; color:var(--muted); font-family:var(--mono);">+{{ $task->assignees->count() - 3 }}</span>
+                            @endif
+                        </div>
+                        @else
+                        <span style="font-size:12px; color:var(--muted); font-family:var(--mono);">—</span>
+                        @endif
+                    </td>
                     <td style="padding:12px 18px;">
                         <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
                             {{ $task->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
@@ -66,7 +81,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" style="padding:48px; text-align:center; color:var(--muted); font-size:13px;">No tasks found.</td></tr>
+                <tr><td colspan="6" style="padding:48px; text-align:center; color:var(--muted); font-size:13px;">No tasks found.</td></tr>
                 @endforelse
             </tbody>
         </table>

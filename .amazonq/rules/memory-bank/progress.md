@@ -31,6 +31,8 @@
 - ✅ File Upload UI & Controller
 - ✅ Kanban Board (Drag & Drop)
 - ✅ Notifications UI (Dynamic)
+- ✅ Multi-assign Tasks (Multiple Users)
+- ✅ Subtasks (Nested Tasks)
 
 ### Milestone 3 (In Progress)
 - 🔄 Dashboard Analytics (detailed) - In Progress

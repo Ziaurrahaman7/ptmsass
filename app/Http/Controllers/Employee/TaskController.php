@@ -15,7 +15,17 @@ class TaskController extends Controller
 {
     public function index(Request $request, string $slug)
     {
-        $query = Task::where('assigned_to', auth()->id())->with('project');
+        $userId = auth()->id();
+        
+        // Get tasks where user is assigned (either in assigned_to OR in assignees pivot table)
+        $query = Task::where(function($q) use ($userId) {
+            $q->where('assigned_to', $userId)
+              ->orWhereHas('assignees', function($q) use ($userId) {
+                  $q->where('user_id', $userId);
+              });
+        })
+        ->whereNull('parent_task_id') // Only show parent tasks, not subtasks
+        ->with(['project', 'assignees']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -32,7 +42,11 @@ class TaskController extends Controller
 
     public function updateStatus(Request $request, string $slug, Task $task)
     {
-        abort_if($task->assigned_to !== auth()->id(), 403);
+        // Check if user is assigned (either assigned_to or in assignees)
+        $isAssigned = $task->assigned_to === auth()->id() || 
+                      $task->assignees->contains('id', auth()->id());
+        
+        abort_if(!$isAssigned, 403);
 
         $request->validate(['status' => 'required|in:todo,in_progress,in_review,done']);
         
@@ -58,7 +72,7 @@ class TaskController extends Controller
     {
         abort_if($task->company_id !== auth()->user()->company_id, 403);
         
-        $task->load(['project', 'assignee', 'comments.user', 'attachments.uploader', 'activities.user']);
+        $task->load(['project', 'assignee', 'assignees', 'comments.user', 'attachments.uploader', 'activities.user', 'subtasks.assignees']);
         
         return view('employee.tasks.show', compact('task'));
     }

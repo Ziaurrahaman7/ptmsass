@@ -51,7 +51,7 @@
                         <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;">
                             <a href="{{ route('company.tasks.show', [auth()->user()->company->slug, $task]) }}" class="task-title-link" style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4; text-decoration:none; flex:1;">{{ $task->title }}</a>
                             <div style="display:flex; gap:4px; flex-shrink:0;" class="task-actions">
-                                <button onclick="event.stopPropagation(); openEditTask({{ $task->id }},'{{ addslashes($task->title) }}','{{ addslashes($task->description ?? '') }}','{{ $task->status }}','{{ $task->priority }}','{{ $task->assigned_to }}','{{ $task->due_date?->format('Y-m-d') }}')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
+                                <button onclick="event.stopPropagation(); openEditTask({{ $task->id }},'{{ addslashes($task->title) }}','{{ addslashes($task->description ?? '') }}','{{ $task->status }}','{{ $task->priority }}','{{ $task->assignees->pluck("id")->implode(",") }}','{{ $task->due_date?->format('Y-m-d') }}')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </button>
                                 <form method="POST" action="{{ route('company.tasks.destroy', [$slug, $task]) }}" style="display:inline;" onsubmit="event.stopPropagation();">
@@ -72,7 +72,16 @@
                             </span>
                             <div style="display:flex; align-items:center; gap:6px;">
                                 @if($task->due_date)<span style="font-size:11px; font-family:var(--mono); {{ $task->due_date->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">{{ $task->due_date->format('d M') }}</span>@endif
-                                @if($task->assignee)<div style="width:20px; height:20px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $task->assignee->name }}">{{ strtoupper(substr($task->assignee->name,0,1)) }}</div>@endif
+                                @if($task->assignees->count() > 0)
+                                <div style="display:flex; align-items:center; gap:2px;">
+                                    @foreach($task->assignees->take(2) as $assignee)
+                                    <div style="width:20px; height:20px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $assignee->name }}">{{ strtoupper(substr($assignee->name,0,1)) }}</div>
+                                    @endforeach
+                                    @if($task->assignees->count() > 2)
+                                    <div style="width:20px; height:20px; border-radius:6px; background:var(--surface); border:1px solid var(--border2); font-size:9px; color:var(--muted); display:flex; align-items:center; justify-content:center;" title="+{{ $task->assignees->count() - 2 }} more">+{{ $task->assignees->count() - 2 }}</div>
+                                    @endif
+                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -119,15 +128,30 @@
                         </select>
                     </div>
                     <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO</label>
-                        <select name="assigned_to" class="ptm-select" style="width:100%;">
-                            <option value="">Unassigned</option>
-                            @foreach($members as $member)<option value="{{ $member->id }}">{{ $member->name }}</option>@endforeach
-                        </select>
-                    </div>
-                    <div>
                         <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DUE DATE</label>
                         <input type="date" name="due_date" class="ptm-input" style="width:100%;">
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO (Multiple)</label>
+                    <div class="custom-multiselect" style="position:relative;">
+                        <div class="multiselect-trigger" onclick="toggleMultiselectAdd(this)" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:42px;">
+                            <div class="selected-users" style="display:flex; flex-wrap:wrap; gap:4px; flex:1;">
+                                <span style="font-size:13px; color:var(--muted);">Select assignees...</span>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="multiselect-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; margin-top:4px; background:var(--surface); border:1px solid var(--border2); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:240px; overflow-y:auto;">
+                            <div style="padding:8px;">
+                                @foreach($members as $member)
+                                <label class="multiselect-option" data-user-id="{{ $member->id }}" data-user-name="{{ $member->name }}" data-user-initial="{{ strtoupper(substr($member->name,0,1)) }}" style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:background 0.15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                                    <input type="checkbox" name="assignees[]" value="{{ $member->id }}" style="width:16px; height:16px; cursor:pointer;" onchange="updateSelectedUsersAdd(this)">
+                                    <div style="width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center;">{{ strtoupper(substr($member->name,0,1)) }}</div>
+                                    <span style="font-size:13px; color:var(--text); flex:1;">{{ $member->name }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div style="display:flex; gap:10px; padding-top:4px;">
@@ -169,15 +193,30 @@
                         </select>
                     </div>
                     <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO</label>
-                        <select name="assigned_to" id="editAssignee" class="ptm-select" style="width:100%;">
-                            <option value="">Unassigned</option>
-                            @foreach($members as $member)<option value="{{ $member->id }}">{{ $member->name }}</option>@endforeach
-                        </select>
-                    </div>
-                    <div>
                         <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DUE DATE</label>
                         <input type="date" name="due_date" id="editDueDate" class="ptm-input" style="width:100%;">
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO (Multiple)</label>
+                    <div class="custom-multiselect" id="editMultiselect" style="position:relative;">
+                        <div class="multiselect-trigger" onclick="toggleMultiselectEdit(this)" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:42px;">
+                            <div class="selected-users" style="display:flex; flex-wrap:wrap; gap:4px; flex:1;">
+                                <span style="font-size:13px; color:var(--muted);">Select assignees...</span>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="multiselect-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; margin-top:4px; background:var(--surface); border:1px solid var(--border2); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:240px; overflow-y:auto;">
+                            <div style="padding:8px;">
+                                @foreach($members as $member)
+                                <label class="multiselect-option" data-user-id="{{ $member->id }}" data-user-name="{{ $member->name }}" data-user-initial="{{ strtoupper(substr($member->name,0,1)) }}" style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:background 0.15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                                    <input type="checkbox" name="assignees[]" value="{{ $member->id }}" class="edit-assignee-checkbox" data-user-id="{{ $member->id }}" style="width:16px; height:16px; cursor:pointer;" onchange="updateSelectedUsersEdit(this)">
+                                    <div style="width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center;">{{ strtoupper(substr($member->name,0,1)) }}</div>
+                                    <span style="font-size:13px; color:var(--text); flex:1;">{{ $member->name }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div style="display:flex; gap:10px; padding-top:4px;">
@@ -191,6 +230,73 @@
     <script>
     const slug = '{{ $slug }}';
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    function toggleMultiselectAdd(trigger) {
+        const dropdown = trigger.nextElementSibling;
+        const isVisible = dropdown.style.display === 'block';
+        document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
+        dropdown.style.display = isVisible ? 'none' : 'block';
+        trigger.querySelector('svg').style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+
+    function updateSelectedUsersAdd(checkbox) {
+        const container = checkbox.closest('.custom-multiselect');
+        const selectedDiv = container.querySelector('.selected-users');
+        const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
+        
+        selectedDiv.innerHTML = '';
+        
+        if (checkedBoxes.length === 0) {
+            selectedDiv.innerHTML = '<span style="font-size:13px; color:var(--muted);">Select assignees...</span>';
+        } else {
+            checkedBoxes.forEach(cb => {
+                const option = cb.closest('.multiselect-option');
+                const initial = option.dataset.userInitial;
+                const name = option.dataset.userName;
+                const badge = document.createElement('div');
+                badge.style.cssText = 'display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.3); border-radius:6px; font-size:12px; color:var(--text);';
+                badge.innerHTML = `<div style="width:18px; height:18px; border-radius:4px; background:rgba(74,222,128,0.3); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;">${initial}</div><span>${name}</span>`;
+                selectedDiv.appendChild(badge);
+            });
+        }
+    }
+
+    function toggleMultiselectEdit(trigger) {
+        const dropdown = trigger.nextElementSibling;
+        const isVisible = dropdown.style.display === 'block';
+        document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
+        dropdown.style.display = isVisible ? 'none' : 'block';
+        trigger.querySelector('svg').style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+
+    function updateSelectedUsersEdit(checkbox) {
+        const container = checkbox.closest('.custom-multiselect');
+        const selectedDiv = container.querySelector('.selected-users');
+        const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
+        
+        selectedDiv.innerHTML = '';
+        
+        if (checkedBoxes.length === 0) {
+            selectedDiv.innerHTML = '<span style="font-size:13px; color:var(--muted);">Select assignees...</span>';
+        } else {
+            checkedBoxes.forEach(cb => {
+                const option = cb.closest('.multiselect-option');
+                const initial = option.dataset.userInitial;
+                const name = option.dataset.userName;
+                const badge = document.createElement('div');
+                badge.style.cssText = 'display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.3); border-radius:6px; font-size:12px; color:var(--text);';
+                badge.innerHTML = `<div style="width:18px; height:18px; border-radius:4px; background:rgba(74,222,128,0.3); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;">${initial}</div><span>${name}</span>`;
+                selectedDiv.appendChild(badge);
+            });
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.custom-multiselect')) {
+            document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
+            document.querySelectorAll('.multiselect-trigger svg').forEach(svg => svg.style.transform = 'rotate(0deg)');
+        }
+    });
 
     document.querySelectorAll('.kanban-column').forEach(function(column) {
         Sortable.create(column, {
@@ -227,8 +333,28 @@
         document.getElementById('editDescription').value=description;
         document.getElementById('editStatus').value=status;
         document.getElementById('editPriority').value=priority;
-        document.getElementById('editAssignee').value=assignedTo||'';
         document.getElementById('editDueDate').value=dueDate||'';
+        
+        // Clear all checkboxes first
+        document.querySelectorAll('.edit-assignee-checkbox').forEach(cb => cb.checked = false);
+        
+        // Check the assignees (comma-separated string)
+        if(assignedTo) {
+            const ids = assignedTo.split(',');
+            ids.forEach(id => {
+                const checkbox = document.querySelector(`.edit-assignee-checkbox[data-user-id="${id.trim()}"]`);
+                if(checkbox) {
+                    checkbox.checked = true;
+                    updateSelectedUsersEdit(checkbox);
+                }
+            });
+        } else {
+            // Reset selected users display
+            const container = document.getElementById('editMultiselect');
+            const selectedDiv = container.querySelector('.selected-users');
+            selectedDiv.innerHTML = '<span style="font-size:13px; color:var(--muted);">Select assignees...</span>';
+        }
+        
         document.getElementById('editTaskModal').style.display='flex';
     }
     </script>

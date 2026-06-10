@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Task extends Model
 {
     protected $fillable = [
-        'project_id', 'company_id', 'created_by', 'assigned_to',
+        'parent_task_id', 'project_id', 'company_id', 'created_by', 'assigned_to',
         'title', 'description', 'status', 'priority', 'due_date',
     ];
 
     protected $casts = [
         'due_date' => 'date',
+        'parent_task_id' => 'integer',
         'project_id' => 'integer',
         'company_id' => 'integer',
         'created_by' => 'integer',
@@ -33,6 +34,11 @@ class Task extends Model
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
+    
+    public function assignees()
+    {
+        return $this->belongsToMany(User::class, 'task_assignees');
+    }
 
     public function creator()
     {
@@ -52,6 +58,16 @@ class Task extends Model
     public function activities()
     {
         return $this->morphMany(ActivityLog::class, 'subject');
+    }
+    
+    public function parentTask()
+    {
+        return $this->belongsTo(Task::class, 'parent_task_id');
+    }
+    
+    public function subtasks()
+    {
+        return $this->hasMany(Task::class, 'parent_task_id');
     }
 
     public function priorityColor(): string

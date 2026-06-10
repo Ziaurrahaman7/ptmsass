@@ -21,7 +21,9 @@ class TaskController extends Controller
 
     public function index(Request $request, string $slug)
     {
-        $query = Task::where('company_id', $this->companyId())->with(['project', 'assignee']);
+        $query = Task::where('company_id', $this->companyId())
+            ->whereNull('parent_task_id')
+            ->with(['project', 'assignee', 'assignees']);
 
         if ($request->filled('status'))   $query->where('status', $request->status);
         if ($request->filled('priority')) $query->where('priority', $request->priority);
@@ -38,21 +40,24 @@ class TaskController extends Controller
     {
         abort_if($task->company_id !== $this->companyId(), 403);
         
-        $task->load(['project', 'assignee', 'comments.user', 'attachments.uploader', 'activities.user']);
+        $task->load(['project', 'assignee', 'assignees', 'comments.user', 'attachments.uploader', 'activities.user', 'subtasks.assignees']);
         $members = auth()->user()->company->users()->where('is_active', true)->get();
         
-        return view('company.tasks.show', compact('task', 'members'));
+        return view('company.tasks.show', compact('task', 'members', 'slug'));
     }
 
     public function storeFromIndex(Request $request, string $slug)
     {
         $data = $request->validate([
+            'parent_task_id' => 'nullable|exists:tasks,id',
             'project_id'  => ['required', 'exists:projects,id'],
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'status'      => 'required|in:todo,in_progress,in_review,done',
             'priority'    => 'required|in:low,medium,high,urgent',
             'assigned_to' => 'nullable|exists:users,id',
+            'assignees'   => 'nullable|array',
+            'assignees.*' => 'exists:users,id',
             'due_date'    => 'nullable|date',
         ]);
 
@@ -60,10 +65,22 @@ class TaskController extends Controller
             ->where('company_id', $this->companyId())
             ->firstOrFail();
 
-        $task = Task::create([...$data,
+        $task = Task::create([
+            'parent_task_id' => $data['parent_task_id'] ?? null,
+            'project_id' => $data['project_id'],
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'status' => $data['status'],
+            'priority' => $data['priority'],
+            'assigned_to' => $data['assigned_to'] ?? null,
+            'due_date' => $data['due_date'] ?? null,
             'company_id' => $this->companyId(),
             'created_by' => auth()->id(),
         ]);
+        
+        if (!empty($data['assignees'])) {
+            $task->assignees()->attach($data['assignees']);
+        }
         
         ActivityLog::create([
             'company_id' => $this->companyId(),
@@ -74,14 +91,22 @@ class TaskController extends Controller
             'description' => auth()->user()->name . ' created this task',
         ]);
         
-        if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
-            Notification::create([
-                'user_id' => $task->assigned_to,
-                'type' => 'task_assigned',
-                'title' => 'New Task Assigned',
-                'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
-                'link' => route('employee.tasks.show', [$slug, $task]),
-            ]);
+        $assigneeIds = !empty($data['assignees']) ? $data['assignees'] : [];
+        if ($task->assigned_to) {
+            $assigneeIds[] = $task->assigned_to;
+        }
+        $assigneeIds = array_unique($assigneeIds);
+        
+        foreach ($assigneeIds as $userId) {
+            if ($userId !== auth()->id()) {
+                Notification::create([
+                    'user_id' => $userId,
+                    'type' => 'task_assigned',
+                    'title' => 'New Task Assigned',
+                    'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
+                    'link' => route('employee.tasks.show', [$slug, $task]),
+                ]);
+            }
         }
 
         return redirect()->route('company.tasks.index', $slug)->with('success', 'Task created.');
@@ -92,21 +117,34 @@ class TaskController extends Controller
         abort_if($project->company_id !== $this->companyId(), 403);
 
         $data = $request->validate([
+            'parent_task_id' => 'nullable|exists:tasks,id',
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'status'      => 'required|in:todo,in_progress,in_review,done',
             'priority'    => 'required|in:low,medium,high,urgent',
             'assigned_to' => 'nullable|exists:users,id',
+            'assignees'   => 'nullable|array',
+            'assignees.*' => 'exists:users,id',
             'due_date'    => 'nullable|date',
         ]);
 
-        $task = Task::create([...$data,
+        $task = Task::create([
+            'parent_task_id' => $data['parent_task_id'] ?? null,
             'project_id' => $project->id,
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'status' => $data['status'],
+            'priority' => $data['priority'],
+            'assigned_to' => $data['assigned_to'] ?? null,
+            'due_date' => $data['due_date'] ?? null,
             'company_id' => $this->companyId(),
             'created_by' => auth()->id(),
         ]);
         
-        // Log activity
+        if (!empty($data['assignees'])) {
+            $task->assignees()->attach($data['assignees']);
+        }
+        
         ActivityLog::create([
             'company_id' => $this->companyId(),
             'user_id' => auth()->id(),
@@ -116,15 +154,22 @@ class TaskController extends Controller
             'description' => auth()->user()->name . ' created this task',
         ]);
         
-        // Notify assignee
-        if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
-            Notification::create([
-                'user_id' => $task->assigned_to,
-                'type' => 'task_assigned',
-                'title' => 'New Task Assigned',
-                'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
-                'link' => route('employee.tasks.show', [$slug, $task]),
-            ]);
+        $assigneeIds = !empty($data['assignees']) ? $data['assignees'] : [];
+        if ($task->assigned_to) {
+            $assigneeIds[] = $task->assigned_to;
+        }
+        $assigneeIds = array_unique($assigneeIds);
+        
+        foreach ($assigneeIds as $userId) {
+            if ($userId !== auth()->id()) {
+                Notification::create([
+                    'user_id' => $userId,
+                    'type' => 'task_assigned',
+                    'title' => 'New Task Assigned',
+                    'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
+                    'link' => route('employee.tasks.show', [$slug, $task]),
+                ]);
+            }
         }
 
         return back()->with('success', 'Task created.');
@@ -140,11 +185,18 @@ class TaskController extends Controller
             'status'      => 'required|in:todo,in_progress,in_review,done',
             'priority'    => 'required|in:low,medium,high,urgent',
             'assigned_to' => 'nullable|exists:users,id',
+            'assignees'   => 'nullable|array',
+            'assignees.*' => 'exists:users,id',
             'due_date'    => 'nullable|date',
         ]);
         
         $changes = [];
         $oldAssignee = $task->assigned_to;
+        $oldPriority = $task->priority;
+        $oldDueDate = $task->due_date?->format('Y-m-d');
+        $newDueDate = isset($data['due_date']) ? date('Y-m-d', strtotime($data['due_date'])) : null;
+        $oldAssigneeIds = $task->assignees->pluck('id')->toArray();
+        $newAssigneeIds = $data['assignees'] ?? [];
         
         if ($task->status !== $data['status']) {
             $changes[] = 'status from ' . $task->status . ' to ' . $data['status'];
@@ -155,8 +207,27 @@ class TaskController extends Controller
         if ($task->assigned_to !== $data['assigned_to']) {
             $changes[] = 'assignee';
         }
+        if ($oldDueDate !== $newDueDate) {
+            $changes[] = 'due date';
+        }
+        if ($oldAssigneeIds != $newAssigneeIds) {
+            $changes[] = 'assignees';
+        }
 
-        $task->update($data);
+        $task->update([
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'status' => $data['status'],
+            'priority' => $data['priority'],
+            'assigned_to' => $data['assigned_to'] ?? null,
+            'due_date' => $data['due_date'] ?? null,
+        ]);
+        
+        if (!empty($data['assignees'])) {
+            $task->assignees()->sync($data['assignees']);
+        } else {
+            $task->assignees()->detach();
+        }
         
         if (!empty($changes)) {
             ActivityLog::create([
@@ -169,7 +240,12 @@ class TaskController extends Controller
             ]);
         }
         
-        // Notify if reassigned
+        $allNewAssignees = $newAssigneeIds;
+        if ($task->assigned_to) {
+            $allNewAssignees[] = $task->assigned_to;
+        }
+        $allNewAssignees = array_unique($allNewAssignees);
+        
         if ($oldAssignee !== $task->assigned_to && $task->assigned_to && $task->assigned_to !== auth()->id()) {
             Notification::create([
                 'user_id' => $task->assigned_to,
@@ -178,6 +254,48 @@ class TaskController extends Controller
                 'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
                 'link' => route('employee.tasks.show', [$slug, $task]),
             ]);
+        }
+        
+        $addedAssignees = array_diff($newAssigneeIds, $oldAssigneeIds);
+        foreach ($addedAssignees as $userId) {
+            if ($userId !== auth()->id()) {
+                Notification::create([
+                    'user_id' => $userId,
+                    'type' => 'task_assigned',
+                    'title' => 'Task Assigned',
+                    'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
+                    'link' => route('employee.tasks.show', [$slug, $task]),
+                ]);
+            }
+        }
+        
+        if ($oldPriority !== $task->priority) {
+            foreach ($allNewAssignees as $userId) {
+                if ($userId !== auth()->id()) {
+                    Notification::create([
+                        'user_id' => $userId,
+                        'type' => 'task_updated',
+                        'title' => 'Task Priority Changed',
+                        'message' => auth()->user()->name . ' changed priority of "' . $task->title . '" from ' . $oldPriority . ' to ' . $task->priority,
+                        'link' => route('employee.tasks.show', [$slug, $task]),
+                    ]);
+                }
+            }
+        }
+        
+        if ($oldDueDate !== $newDueDate) {
+            $dueDateMsg = $newDueDate ? 'to ' . date('d M Y', strtotime($newDueDate)) : 'removed';
+            foreach ($allNewAssignees as $userId) {
+                if ($userId !== auth()->id()) {
+                    Notification::create([
+                        'user_id' => $userId,
+                        'type' => 'task_updated',
+                        'title' => 'Task Due Date Changed',
+                        'message' => auth()->user()->name . ' changed due date of "' . $task->title . '" ' . $dueDateMsg,
+                        'link' => route('employee.tasks.show', [$slug, $task]),
+                    ]);
+                }
+            }
         }
 
         return back()->with('success', 'Task updated.');
