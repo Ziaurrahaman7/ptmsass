@@ -5,10 +5,12 @@ use App\Http\Controllers\Superadmin\CompanyController;
 use App\Http\Controllers\Superadmin\DashboardController;
 use App\Http\Controllers\Company\DashboardController as CompanyDashboardController;
 use App\Http\Controllers\Company\ProjectController as CompanyProjectController;
+use App\Http\Controllers\Company\SectionController as CompanySectionController;
 use App\Http\Controllers\Company\TaskController as CompanyTaskController;
 use App\Http\Controllers\Company\MemberController as CompanyMemberController;
 use App\Http\Controllers\Company\NotificationController as CompanyNotificationController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
+use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +32,12 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     // Tasks POST routes FIRST
     Route::post('tasks', [CompanyTaskController::class, 'storeFromIndex'])->name('tasks.store_index');
     Route::post('projects/{project}/tasks', [CompanyTaskController::class, 'store'])->name('tasks.store');
+    Route::post('projects/{project}/tasks/quick', [CompanyTaskController::class, 'quickStore'])->name('tasks.quick_store');
+
+    // Sections
+    Route::post('projects/{project}/sections', [CompanySectionController::class, 'store'])->name('sections.store');
+    Route::patch('sections/{section}', [CompanySectionController::class, 'update'])->name('sections.update');
+    Route::delete('sections/{section}', [CompanySectionController::class, 'destroy'])->name('sections.destroy');
     Route::post('tasks/{task}/comments', [CompanyTaskController::class, 'storeComment'])->name('tasks.comments.store');
     Route::post('tasks/{task}/attachments', [CompanyTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
     
@@ -40,6 +48,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::get('tasks', [CompanyTaskController::class, 'index'])->name('tasks.index');
     Route::get('tasks/{task}', [CompanyTaskController::class, 'show'])->name('tasks.show');
     Route::patch('tasks/{task}/status', [CompanyTaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+    Route::patch('tasks/{task}/inline', [CompanyTaskController::class, 'inlineUpdate'])->name('tasks.inline');
     Route::put('tasks/{task}', [CompanyTaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{task}', [CompanyTaskController::class, 'destroy'])->name('tasks.destroy');
     Route::delete('tasks/comments/{comment}', [CompanyTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
@@ -59,6 +68,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
 // Employee routes — /{slug}/...
 Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'company_slug'])->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/projects/{project}', [EmployeeProjectController::class, 'show'])->name('projects.show');
     Route::get('/tasks', [EmployeeTaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks/{task}', [EmployeeTaskController::class, 'show'])->name('tasks.show');
     Route::patch('/tasks/{task}/status', [EmployeeTaskController::class, 'updateStatus'])->name('tasks.status');

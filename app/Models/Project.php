@@ -32,6 +32,11 @@ class Project extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function sections()
+    {
+        return $this->hasMany(Section::class)->orderBy('position')->orderBy('id');
+    }
+
     public function progressPercentage(): int
     {
         $total = $this->tasks()->count();

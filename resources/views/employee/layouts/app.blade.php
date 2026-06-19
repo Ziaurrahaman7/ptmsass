@@ -70,8 +70,24 @@
             </div>
         </div>
 
-        @php $slug = auth()->user()->company->slug; @endphp
-        <nav style="flex:1; padding:10px 8px; display:flex; flex-direction:column; gap:2px;">
+        @php
+            $slug = auth()->user()->company->slug;
+            // Projects where the current employee has at least one assigned task
+            $sidebarUserId = auth()->id();
+            $sidebarProjectIds = \App\Models\Task::where(function ($q) use ($sidebarUserId) {
+                    $q->where('assigned_to', $sidebarUserId)
+                      ->orWhereHas('assignees', fn($q) => $q->where('user_id', $sidebarUserId));
+                })
+                ->whereNotNull('project_id')
+                ->distinct()
+                ->pluck('project_id');
+            $sidebarProjects = \App\Models\Project::whereIn('id', $sidebarProjectIds)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+            $activeProject = request()->route('project');
+            $activeProjectId = is_object($activeProject) ? $activeProject->id : (int) $activeProject;
+        @endphp
+        <nav style="flex:1; padding:10px 8px; display:flex; flex-direction:column; gap:2px; overflow-y:auto;">
             <a href="{{ route('employee.dashboard', $slug) }}" class="ptm-nav-link {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
@@ -80,6 +96,21 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                 My Tasks
             </a>
+
+            {{-- Projects --}}
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
+                <span class="ptm-section-title">Projects</span>
+                <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:0 7px; border-radius:10px; font-family:var(--mono);">{{ $sidebarProjects->count() }}</span>
+            </div>
+            @forelse($sidebarProjects as $sidebarProject)
+                <a href="{{ route('employee.projects.show', [$slug, $sidebarProject->id]) }}"
+                   class="ptm-nav-link {{ $activeProjectId === $sidebarProject->id ? 'active' : '' }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $sidebarProject->name }}</span>
+                </a>
+            @empty
+                <div style="padding:6px 12px; font-size:11px; color:var(--muted); font-family:var(--mono);">No projects yet</div>
+            @endforelse
         </nav>
 
         <div style="padding:12px 12px 14px; border-top:1px solid var(--border);">

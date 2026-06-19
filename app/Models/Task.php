@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Task extends Model
 {
     protected $fillable = [
-        'parent_task_id', 'project_id', 'company_id', 'created_by', 'assigned_to',
+        'parent_task_id', 'project_id', 'section_id', 'company_id', 'created_by', 'assigned_to',
         'title', 'description', 'status', 'priority', 'due_date',
     ];
 
@@ -15,6 +15,7 @@ class Task extends Model
         'due_date' => 'date',
         'parent_task_id' => 'integer',
         'project_id' => 'integer',
+        'section_id' => 'integer',
         'company_id' => 'integer',
         'created_by' => 'integer',
         'assigned_to' => 'integer',
@@ -23,6 +24,11 @@ class Task extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function section()
+    {
+        return $this->belongsTo(Section::class);
     }
 
     public function company()

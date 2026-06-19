@@ -14,6 +14,23 @@ use Illuminate\Support\Facades\Storage;
 
 class TaskController extends Controller
 {
+    /**
+     * Return the section id only if it belongs to the given project (and company); else null.
+     */
+    private function validSectionId($sectionId, int $projectId): ?int
+    {
+        if (empty($sectionId)) {
+            return null;
+        }
+
+        $belongs = \App\Models\Section::where('id', $sectionId)
+            ->where('project_id', $projectId)
+            ->where('company_id', $this->companyId())
+            ->exists();
+
+        return $belongs ? (int) $sectionId : null;
+    }
+
     private function companyId(): int
     {
         return auth()->user()->company_id;
@@ -51,6 +68,7 @@ class TaskController extends Controller
         $data = $request->validate([
             'parent_task_id' => 'nullable|exists:tasks,id',
             'project_id'  => ['required', 'exists:projects,id'],
+            'section_id'  => 'nullable|exists:sections,id',
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'status'      => 'required|in:todo,in_progress,in_review,done',
@@ -68,6 +86,7 @@ class TaskController extends Controller
         $task = Task::create([
             'parent_task_id' => $data['parent_task_id'] ?? null,
             'project_id' => $data['project_id'],
+            'section_id' => $this->validSectionId($data['section_id'] ?? null, $project->id),
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'status' => $data['status'],
@@ -77,11 +96,11 @@ class TaskController extends Controller
             'company_id' => $this->companyId(),
             'created_by' => auth()->id(),
         ]);
-        
+
         if (!empty($data['assignees'])) {
             $task->assignees()->attach($data['assignees']);
         }
-        
+
         ActivityLog::create([
             'company_id' => $this->companyId(),
             'user_id' => auth()->id(),
@@ -90,13 +109,13 @@ class TaskController extends Controller
             'action' => 'created',
             'description' => auth()->user()->name . ' created this task',
         ]);
-        
+
         $assigneeIds = !empty($data['assignees']) ? $data['assignees'] : [];
         if ($task->assigned_to) {
             $assigneeIds[] = $task->assigned_to;
         }
         $assigneeIds = array_unique($assigneeIds);
-        
+
         foreach ($assigneeIds as $userId) {
             if ($userId !== auth()->id()) {
                 Notification::create([
@@ -118,6 +137,7 @@ class TaskController extends Controller
 
         $data = $request->validate([
             'parent_task_id' => 'nullable|exists:tasks,id',
+            'section_id'  => 'nullable|exists:sections,id',
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'status'      => 'required|in:todo,in_progress,in_review,done',
@@ -131,6 +151,7 @@ class TaskController extends Controller
         $task = Task::create([
             'parent_task_id' => $data['parent_task_id'] ?? null,
             'project_id' => $project->id,
+            'section_id' => $this->validSectionId($data['section_id'] ?? null, $project->id),
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'status' => $data['status'],
@@ -182,6 +203,7 @@ class TaskController extends Controller
         $data = $request->validate([
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
+            'section_id'  => 'nullable|exists:sections,id',
             'status'      => 'required|in:todo,in_progress,in_review,done',
             'priority'    => 'required|in:low,medium,high,urgent',
             'assigned_to' => 'nullable|exists:users,id',
@@ -189,7 +211,7 @@ class TaskController extends Controller
             'assignees.*' => 'exists:users,id',
             'due_date'    => 'nullable|date',
         ]);
-        
+
         $changes = [];
         $oldAssignee = $task->assigned_to;
         $oldPriority = $task->priority;
@@ -217,6 +239,7 @@ class TaskController extends Controller
         $task->update([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
+            'section_id' => $this->validSectionId($data['section_id'] ?? null, $task->project_id),
             'status' => $data['status'],
             'priority' => $data['priority'],
             'assigned_to' => $data['assigned_to'] ?? null,
@@ -306,7 +329,93 @@ class TaskController extends Controller
         abort_if($task->company_id !== $this->companyId(), 403);
         $task->delete();
 
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Task deleted.');
+    }
+
+    /**
+     * Quick inline task creation (List view "Add task" row).
+     */
+    public function quickStore(Request $request, string $slug, Project $project)
+    {
+        abort_if($project->company_id !== $this->companyId(), 403);
+
+        $data = $request->validate([
+            'title'      => 'required|string|max:255',
+            'section_id' => 'nullable|exists:sections,id',
+        ]);
+
+        Task::create([
+            'project_id' => $project->id,
+            'section_id' => $this->validSectionId($data['section_id'] ?? null, $project->id),
+            'title'      => $data['title'],
+            'status'     => 'todo',
+            'priority'   => 'medium',
+            'company_id' => $this->companyId(),
+            'created_by' => auth()->id(),
+        ]);
+
+        return back()->with('success', 'Task added.');
+    }
+
+    /**
+     * Inline single/partial field update from the List view (AJAX). Only updates the
+     * fields actually present in the request.
+     */
+    public function inlineUpdate(Request $request, string $slug, Task $task)
+    {
+        abort_if($task->company_id !== $this->companyId(), 403);
+
+        $data = $request->validate([
+            'title'       => 'sometimes|required|string|max:255',
+            'status'      => 'sometimes|required|in:todo,in_progress,in_review,done',
+            'priority'    => 'sometimes|required|in:low,medium,high,urgent',
+            'due_date'    => 'sometimes|nullable|date',
+            'section_id'  => 'sometimes|nullable|exists:sections,id',
+            'assignees'   => 'sometimes|array',
+            'assignees.*' => 'exists:users,id',
+        ]);
+
+        $update = [];
+        foreach (['title', 'status', 'priority', 'due_date'] as $field) {
+            if ($request->has($field)) {
+                $update[$field] = $data[$field] ?? null;
+            }
+        }
+        if ($request->has('section_id')) {
+            $update['section_id'] = $this->validSectionId($data['section_id'] ?? null, $task->project_id);
+        }
+        if (!empty($update)) {
+            $task->update($update);
+        }
+
+        if ($request->has('assignees')) {
+            $task->assignees()->sync($data['assignees'] ?? []);
+        }
+
+        $task->load('assignees');
+
+        return response()->json([
+            'success' => true,
+            'task' => [
+                'id'         => $task->id,
+                'title'      => $task->title,
+                'status'     => $task->status,
+                'priority'   => $task->priority,
+                'due_date'   => $task->due_date?->format('Y-m-d'),
+                'due_label'  => $task->due_date?->format('d M Y'),
+                'overdue'    => $task->due_date && $task->due_date->isPast() && $task->status !== 'done',
+                'section_id' => $task->section_id,
+                'assignees'  => $task->assignees->map(fn($u) => [
+                    'id'      => $u->id,
+                    'name'    => $u->name,
+                    'initial' => strtoupper(substr($u->name, 0, 1)),
+                ])->values(),
+            ],
+        ]);
     }
 
     public function updateStatus(Request $request, string $slug, Task $task)

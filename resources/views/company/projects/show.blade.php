@@ -1,362 +1,436 @@
 <x-company-layout :title="$project->name">
 
-    {{-- Header --}}
-    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px;">
-        <div>
-            <a href="{{ route('company.projects.index', $slug) }}" style="font-size:12px; color:var(--muted); text-decoration:none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Projects</a>
-            <div style="font-size:18px; font-weight:600; letter-spacing:-0.3px; color:var(--text); margin-top:4px;">{{ $project->name }}</div>
-            @if($project->description)<div style="font-size:13px; color:var(--muted); margin-top:2px;">{{ $project->description }}</div>@endif
-        </div>
-        <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:11px; font-family:var(--mono); padding:5px 10px; border-radius:6px; border:1px solid;
-                {{ $project->status === 'in_progress' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
-                   ($project->status === 'completed' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
-                   ($project->status === 'on_hold' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
-                {{ ucfirst(str_replace('_',' ',$project->status)) }}
-            </span>
-            <a href="{{ route('company.projects.edit', [$slug, $project]) }}" class="ptm-btn-ghost" style="text-decoration:none; font-size:12px; padding:6px 14px;">Edit Project</a>
-        </div>
-    </div>
+    @php
+        $priorityStyles = [
+            'urgent' => 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);',
+            'high'   => 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);',
+            'medium' => 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);',
+            'low'    => 'color:var(--muted); border-color:var(--border2); background:transparent;',
+        ];
+        $statusMeta = [
+            'todo'        => ['label' => 'To Do',       'color' => '#6b7385'],
+            'in_progress' => ['label' => 'In Progress', 'color' => '#22d3ee'],
+            'in_review'   => ['label' => 'In Review',   'color' => '#a78bfa'],
+            'done'        => ['label' => 'Done',        'color' => '#4ade80'],
+        ];
+        // Ordered groups: each section, then a "(No section)" bucket.
+        $groups = [];
+        foreach ($sections as $section) {
+            $groups[] = ['id' => $section->id, 'name' => $section->name, 'tasks' => $tasks->where('section_id', $section->id)];
+        }
+        $noSection = $tasks->whereNull('section_id');
+        $groups[] = ['id' => null, 'name' => '(No section)', 'tasks' => $noSection];
+        $colGrid = 'grid-template-columns:minmax(0,1fr) 150px 175px 150px 130px 40px;';
+    @endphp
 
-    {{-- Progress --}}
-    <div class="ptm-card" style="padding:16px 20px; margin-bottom:20px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-            <span style="font-size:12px; color:var(--muted);">Overall Progress</span>
-            <span style="font-size:13px; font-weight:600; font-family:var(--mono); color:#4ade80;">{{ $project->progressPercentage() }}%</span>
-        </div>
-        <div style="height:4px; background:var(--border); border-radius:2px;">
-            <div style="height:100%; border-radius:2px; background:#4ade80; width:{{ $project->progressPercentage() }}%; transition:width 0.3s;"></div>
-        </div>
-        <div style="display:flex; gap:20px; margin-top:10px; font-size:11px; color:var(--muted); font-family:var(--mono);">
-            <span>{{ $tasks->count() }} total</span>
-            <span>{{ $tasks->where('status','in_progress')->count() }} in progress</span>
-            <span>{{ $tasks->where('status','done')->count() }} done</span>
-            @if($project->due_date)<span style="{{ $project->due_date->isPast() && $project->status !== 'completed' ? 'color:#f87171;' : '' }}">Due {{ $project->due_date->format('d M Y') }}</span>@endif
-        </div>
-    </div>
+    <style>
+        .al-cell { padding:9px 14px; border-right:1px solid var(--border); display:flex; align-items:center; min-width:0; }
+        .al-row:hover { background:var(--surface2); }
+        .al-name-input { background:transparent; border:1px solid transparent; border-radius:6px; color:var(--text); font-size:13px; font-weight:500; padding:5px 8px; width:100%; font-family:var(--font); }
+        .al-name-input:hover { background:rgba(255,255,255,0.04); }
+        .al-name-input:focus { outline:none; background:var(--surface2); border-color:var(--accent2); }
+        .al-pill { font-size:12px; font-family:var(--font); border:1px solid transparent; border-radius:6px; padding:5px 10px; cursor:pointer; width:100%; -webkit-appearance:none; appearance:none; }
+        .al-pill:focus { outline:none; border-color:var(--accent2); }
+        .al-date { background:transparent; border:1px solid transparent; border-radius:6px; color:var(--muted); font-size:12px; font-family:var(--mono); padding:5px 6px; width:100%; cursor:pointer; }
+        .al-date:hover { background:rgba(255,255,255,0.04); }
+        .al-date:focus { outline:none; background:var(--surface2); border-color:var(--accent2); }
+        .al-date::-webkit-calendar-picker-indicator { filter:invert(0.6); cursor:pointer; }
+        .al-tab { font-size:13px; font-weight:500; color:var(--muted); padding:10px 4px; cursor:pointer; border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none; font-family:var(--font); }
+        .al-tab:hover { color:var(--text); }
+        .al-tab.active { color:var(--text); border-bottom-color:var(--accent); }
+        .al-tool { display:flex; align-items:center; gap:6px; background:none; border:none; color:var(--muted); font-size:12px; font-family:var(--font); cursor:pointer; padding:6px 8px; border-radius:6px; }
+        .al-tool:hover { color:var(--text); background:var(--surface2); }
+        .al-avatar { width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .al-addrow input { background:transparent; border:none; color:var(--text); font-size:13px; padding:7px 8px; width:100%; font-family:var(--font); }
+        .al-addrow input:focus { outline:none; }
+    </style>
 
-    {{-- Kanban --}}
-    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
-        @foreach(['todo'=>['label'=>'To Do','color'=>'#6b7385'],'in_progress'=>['label'=>'In Progress','color'=>'#22d3ee'],'in_review'=>['label'=>'In Review','color'=>'#a78bfa'],'done'=>['label'=>'Done','color'=>'#4ade80']] as $colStatus => $cfg)
-        <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px;">
-            <div style="display:flex; align-items:center; gap:7px; margin-bottom:12px;">
-                <div style="width:7px; height:7px; border-radius:50%; background:{{ $cfg['color'] }};"></div>
-                <span style="font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-family:var(--mono);">{{ $cfg['label'] }}</span>
-                <span style="margin-left:auto; font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $tasks->where('status',$colStatus)->count() }}</span>
+    <div x-data="{ tab: 'list' }">
+
+        {{-- Header --}}
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:11px;">
+                <div style="width:32px; height:32px; border-radius:8px; background:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="2.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:17px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">{{ $project->name }}</div>
+                    @if($project->description)<div style="font-size:12px; color:var(--muted); margin-top:1px;">{{ $project->description }}</div>@endif
+                </div>
             </div>
-            <div class="kanban-column" data-status="{{ $colStatus }}" style="display:flex; flex-direction:column; gap:8px; min-height:80px;">
-                @foreach($tasks->where('status',$colStatus) as $task)
-                <div class="kanban-task-wrapper" data-task-id="{{ $task->id }}" style="cursor:grab;">
-                    <div class="ptm-kanban-card" style="padding:10px 12px;">
-                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;">
-                            <a href="{{ route('company.tasks.show', [auth()->user()->company->slug, $task]) }}" class="task-title-link" style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4; text-decoration:none; flex:1;">{{ $task->title }}</a>
-                            <div style="display:flex; gap:4px; flex-shrink:0;" class="task-actions">
-                                <button onclick="event.stopPropagation(); openEditTask({{ $task->id }},'{{ addslashes($task->title) }}','{{ addslashes($task->description ?? '') }}','{{ $task->status }}','{{ $task->priority }}','{{ $task->assignees->pluck("id")->implode(",") }}','{{ $task->due_date?->format('Y-m-d') }}')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:11px; font-family:var(--mono); padding:5px 10px; border-radius:6px; border:1px solid;
+                    {{ $project->status === 'in_progress' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
+                       ($project->status === 'completed' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
+                       ($project->status === 'on_hold' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
+                    {{ ucfirst(str_replace('_',' ',$project->status)) }}
+                </span>
+                <a href="{{ route('company.projects.edit', [$slug, $project]) }}" class="ptm-btn-ghost" style="text-decoration:none; font-size:12px; padding:6px 14px;">Edit Project</a>
+            </div>
+        </div>
+
+        {{-- Tabs --}}
+        <div style="display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px;">
+            <button class="al-tab" :class="{ 'active': tab==='overview' }" @click="tab='overview'">Overview</button>
+            <button class="al-tab" :class="{ 'active': tab==='list' }" @click="tab='list'">List</button>
+            <button class="al-tab" :class="{ 'active': tab==='board' }" @click="tab='board'">Board</button>
+            <button class="al-tab" :class="{ 'active': tab==='dashboard' }" @click="tab='dashboard'">Dashboard</button>
+        </div>
+
+        {{-- ============================ LIST TAB ============================ --}}
+        <div x-show="tab==='list'">
+
+            {{-- Toolbar --}}
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button onclick="focusFirstAdd()" class="ptm-btn-primary" style="display:flex; align-items:center; gap:7px; font-size:13px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add task
+                    </button>
+                    <form method="POST" action="{{ route('company.sections.store', [$slug, $project]) }}" style="display:flex; align-items:center; gap:6px;">
+                        @csrf
+                        <input type="text" name="name" placeholder="Add section..." required class="ptm-input" style="font-size:12px; padding:7px 11px; width:170px;">
+                        <button type="submit" class="ptm-btn-ghost" style="display:flex; align-items:center; gap:6px; font-size:12px; white-space:nowrap;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add section
+                        </button>
+                    </form>
+                </div>
+                <div style="display:flex; align-items:center; gap:2px;">
+                    <div style="position:relative; display:flex; align-items:center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="position:absolute; left:9px; pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" oninput="filterTasks(this.value)" placeholder="Search tasks..." class="ptm-input" style="font-size:12px; padding:6px 10px 6px 28px; width:180px;">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Table --}}
+            <div class="ptm-card" style="overflow:visible;">
+                {{-- Column header --}}
+                <div style="display:grid; {{ $colGrid }} background:var(--surface2); border-bottom:1px solid var(--border); border-radius:12px 12px 0 0;">
+                    <div class="al-cell ptm-section-title">Name</div>
+                    <div class="al-cell ptm-section-title">Due date</div>
+                    <div class="al-cell ptm-section-title">Assignee</div>
+                    <div class="al-cell ptm-section-title">Status</div>
+                    <div class="al-cell ptm-section-title">Priority</div>
+                    <div class="al-cell" style="border-right:none; justify-content:center;">
+                        <span style="color:var(--muted); font-size:14px;">+</span>
+                    </div>
+                </div>
+
+                @foreach($groups as $group)
+                <div x-data="{ open: true }" data-section-block>
+                    {{-- Section header --}}
+                    <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--surface);">
+                        <svg @click="open=!open" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="open ? '' : 'transform:rotate(-90deg)'" style="color:var(--muted); transition:transform 0.15s; cursor:pointer; flex-shrink:0;"><path d="M19 9l-7 7-7-7"/></svg>
+
+                        @if($group['id'])
+                            <span id="secname-{{ $group['id'] }}" style="font-size:13px; font-weight:600; color:var(--text); cursor:pointer;" ondblclick="toggleSecRename({{ $group['id'] }})">{{ $group['name'] }}</span>
+                            <form method="POST" action="{{ route('company.sections.update', [$slug, $group['id']]) }}" id="secform-{{ $group['id'] }}" style="display:none; gap:6px; align-items:center;">
+                                @csrf @method('PATCH')
+                                <input type="text" name="name" value="{{ $group['name'] }}" class="ptm-input" style="font-size:12px; padding:4px 8px; width:200px;" required>
+                                <button type="submit" class="ptm-btn-primary" style="padding:4px 10px; font-size:11px;">Save</button>
+                                <button type="button" onclick="toggleSecRename({{ $group['id'] }})" class="ptm-btn-ghost" style="padding:4px 9px; font-size:11px;">✕</button>
+                            </form>
+                        @else
+                            <span style="font-size:13px; font-weight:600; color:var(--muted);">{{ $group['name'] }}</span>
+                        @endif
+
+                        <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $group['tasks']->count() }}</span>
+
+                        @if($group['id'])
+                        <div style="margin-left:auto; display:flex; align-items:center; gap:2px;">
+                            <button type="button" onclick="toggleSecRename({{ $group['id'] }})" title="Rename section" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                            </button>
+                            <form method="POST" action="{{ route('company.sections.destroy', [$slug, $group['id']]) }}" onsubmit="return confirm('Delete section “{{ addslashes($group['name']) }}”? Its tasks move to (No section).')" style="display:inline;">
+                                @csrf @method('DELETE')
+                                <button type="submit" title="Delete section" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
-                                <form method="POST" action="{{ route('company.tasks.destroy', [$slug, $task]) }}" style="display:inline;" onsubmit="event.stopPropagation();">
-                                    @csrf @method('DELETE')
-                                    <button onclick="return confirm('Delete task?')" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    </button>
-                                </form>
-                            </div>
+                            </form>
                         </div>
-                        @if($task->description)<div style="font-size:11px; color:var(--muted); margin-top:4px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">{{ $task->description }}</div>@endif
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
-                            <span style="font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:4px; border:1px solid;
-                                {{ $task->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
-                                   ($task->priority === 'high' ? 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
-                                   ($task->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
-                                {{ ucfirst($task->priority) }}
-                            </span>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                @if($task->due_date)<span style="font-size:11px; font-family:var(--mono); {{ $task->due_date->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">{{ $task->due_date->format('d M') }}</span>@endif
-                                @if($task->assignees->count() > 0)
-                                <div style="display:flex; align-items:center; gap:2px;">
-                                    @foreach($task->assignees->take(2) as $assignee)
-                                    <div style="width:20px; height:20px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;" title="{{ $assignee->name }}">{{ strtoupper(substr($assignee->name,0,1)) }}</div>
-                                    @endforeach
-                                    @if($task->assignees->count() > 2)
-                                    <div style="width:20px; height:20px; border-radius:6px; background:var(--surface); border:1px solid var(--border2); font-size:9px; color:var(--muted); display:flex; align-items:center; justify-content:center;" title="+{{ $task->assignees->count() - 2 }} more">+{{ $task->assignees->count() - 2 }}</div>
-                                    @endif
+                        @endif
+                    </div>
+
+                    {{-- Task rows --}}
+                    <div x-show="open">
+                        @foreach($group['tasks'] as $task)
+                            @php $sm = $statusMeta[$task->status] ?? $statusMeta['todo']; @endphp
+                            <div class="al-row" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
+                                {{-- Name --}}
+                                <div class="al-cell" style="gap:9px;">
+                                    <div id="done-{{ $task->id }}" onclick="cycleDone({{ $task->id }}, '{{ $task->status }}')" title="Toggle done" style="width:15px; height:15px; border-radius:50%; border:1.5px solid {{ $task->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $task->status === 'done' ? '#4ade80' : 'transparent' }}; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                                        @if($task->status === 'done')<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
+                                    </div>
+                                    <input class="al-name-input" value="{{ $task->title }}" onchange="patchField({{ $task->id }}, 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
+                                    <a href="{{ route('company.tasks.show', [$slug, $task]) }}" title="Open task details" style="flex-shrink:0; color:var(--muted); display:flex; padding:3px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+                                    </a>
                                 </div>
-                                @endif
+
+                                {{-- Due date --}}
+                                <div class="al-cell">
+                                    <input type="date" id="due-{{ $task->id }}" class="al-date" value="{{ $task->due_date?->format('Y-m-d') }}"
+                                        style="{{ $task->due_date?->isPast() && $task->status !== 'done' ? 'color:#f87171;' : '' }}"
+                                        onchange="patchField({{ $task->id }}, 'due_date', this.value).then(d => recolorDue({{ $task->id }}, d))">
+                                </div>
+
+                                {{-- Assignee --}}
+                                <div class="al-cell" x-data="{ open:false }" style="position:relative; overflow:visible;">
+                                    <div @click="open=!open" id="asg-{{ $task->id }}" style="display:flex; align-items:center; gap:4px; cursor:pointer; min-height:24px; flex-wrap:wrap;">
+                                        @forelse($task->assignees->take(3) as $a)
+                                            <div class="al-avatar" title="{{ $a->name }}">{{ strtoupper(substr($a->name,0,1)) }}</div>
+                                        @empty
+                                            <span style="font-size:12px; color:var(--muted);">—</span>
+                                        @endforelse
+                                        @if($task->assignees->count() > 3)<span style="font-size:11px; color:var(--muted); font-family:var(--mono);">+{{ $task->assignees->count()-3 }}</span>@endif
+                                    </div>
+                                    <div class="asg-dropdown" x-show="open" @click.outside="open=false" x-cloak style="position:absolute; top:calc(100% + 4px); left:0; width:220px; background:var(--surface); border:1px solid var(--border2); border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.35); z-index:50; max-height:240px; overflow-y:auto; padding:6px;">
+                                        @foreach($members as $member)
+                                        <label style="display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:6px; cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                                            <input type="checkbox" value="{{ $member->id }}" {{ $task->assignees->contains('id',$member->id) ? 'checked' : '' }} onchange="onAssigneeChange(this, {{ $task->id }})" style="width:15px; height:15px; cursor:pointer;">
+                                            <div class="al-avatar">{{ strtoupper(substr($member->name,0,1)) }}</div>
+                                            <span style="font-size:13px; color:var(--text);">{{ $member->name }}</span>
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                {{-- Status --}}
+                                <div class="al-cell">
+                                    <select class="al-pill al-status" onchange="applyStatus(this); patchField({{ $task->id }}, 'status', this.value).then(()=>updateDone({{ $task->id }}, this.value))">
+                                        @foreach(['todo'=>'To Do','in_progress'=>'In Progress','in_review'=>'In Review','done'=>'Done'] as $val=>$lbl)
+                                        <option value="{{ $val }}" {{ $task->status===$val?'selected':'' }}>{{ $lbl }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Priority --}}
+                                <div class="al-cell">
+                                    <select class="al-pill al-pri" onchange="applyPri(this); patchField({{ $task->id }}, 'priority', this.value)">
+                                        @foreach(['low'=>'Low','medium'=>'Medium','high'=>'High','urgent'=>'Urgent'] as $val=>$lbl)
+                                        <option value="{{ $val }}" {{ $task->priority===$val?'selected':'' }}>{{ $lbl }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Delete --}}
+                                <div class="al-cell" style="border-right:none; justify-content:center;">
+                                    <button onclick="deleteTask({{ $task->id }})" title="Delete task" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        @endforeach
+
+                        {{-- Add task row --}}
+                        <form method="POST" action="{{ route('company.tasks.quick_store', [$slug, $project]) }}" class="al-addrow" style="display:flex; align-items:center; gap:6px; padding:4px 14px; border-bottom:1px solid var(--border);">
+                            @csrf
+                            <input type="hidden" name="section_id" value="{{ $group['id'] }}">
+                            <span style="color:var(--muted); font-size:14px; flex-shrink:0;">+</span>
+                            <input type="text" name="title" placeholder="Add task..." required>
+                        </form>
                     </div>
                 </div>
                 @endforeach
             </div>
         </div>
-        @endforeach
-    </div>
 
-    <button onclick="document.getElementById('addTaskModal').style.display='flex'" class="ptm-btn-primary" style="display:flex; align-items:center; gap:7px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Task
-    </button>
-
-    {{-- Add Task Modal --}}
-    <div id="addTaskModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:20px;">
-        <div style="background:var(--surface); border:1px solid var(--border2); border-radius:16px; padding:0; width:100%; max-width:480px;">
-            <div style="padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
-                <span style="font-size:15px; font-weight:600; color:var(--text);">Add Task</span>
-                <button onclick="document.getElementById('addTaskModal').style.display='none'" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        {{-- ============================ BOARD TAB ============================ --}}
+        <div x-show="tab==='board'" x-cloak>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+                @foreach($statusMeta as $colStatus => $cfg)
+                <div class="ptm-kanban-col" style="padding:12px;">
+                    <div style="display:flex; align-items:center; gap:7px; margin-bottom:12px;">
+                        <div style="width:7px; height:7px; border-radius:50%; background:{{ $cfg['color'] }};"></div>
+                        <span style="font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-family:var(--mono);">{{ $cfg['label'] }}</span>
+                        <span style="margin-left:auto; font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $tasks->where('status',$colStatus)->count() }}</span>
+                    </div>
+                    <div class="kanban-column" data-status="{{ $colStatus }}" style="display:flex; flex-direction:column; gap:8px; min-height:80px;">
+                        @foreach($tasks->where('status',$colStatus) as $task)
+                        <div class="kanban-task-wrapper" data-task-id="{{ $task->id }}" style="cursor:grab;">
+                            <div class="ptm-kanban-card" style="padding:10px 12px;">
+                                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;">
+                                    <a href="{{ route('company.tasks.show', [$slug, $task]) }}" class="task-title-link" style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4; text-decoration:none; flex:1;">{{ $task->title }}</a>
+                                    <button onclick="event.stopPropagation(); deleteTask({{ $task->id }})" class="task-actions" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px; flex-shrink:0;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                                @if($task->section)<div style="font-size:10px; font-family:var(--mono); color:var(--muted); margin-top:5px;">▸ {{ $task->section->name }}</div>@endif
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+                                    <span class="ptm-badge" style="border:1px solid; {{ $priorityStyles[$task->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($task->priority) }}</span>
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        @if($task->due_date)<span style="font-size:11px; font-family:var(--mono); {{ $task->due_date->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">{{ $task->due_date->format('d M') }}</span>@endif
+                                        @foreach($task->assignees->take(2) as $a)<div class="al-avatar" style="width:20px; height:20px; font-size:9px;" title="{{ $a->name }}">{{ strtoupper(substr($a->name,0,1)) }}</div>@endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endforeach
             </div>
-            <form method="POST" action="{{ route('company.tasks.store', [$slug, $project]) }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
-                @csrf
-                <div>
-                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TITLE *</label>
-                    <input type="text" name="title" class="ptm-input" style="width:100%;" required>
-                </div>
-                <div>
-                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DESCRIPTION</label>
-                    <textarea name="description" rows="2" class="ptm-input" style="width:100%; resize:vertical;"></textarea>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">STATUS</label>
-                        <select name="status" class="ptm-select" style="width:100%;">
-                            <option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="in_review">In Review</option><option value="done">Done</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PRIORITY</label>
-                        <select name="priority" class="ptm-select" style="width:100%;">
-                            <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DUE DATE</label>
-                        <input type="date" name="due_date" class="ptm-input" style="width:100%;">
-                    </div>
-                </div>
-                <div>
-                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO (Multiple)</label>
-                    <div class="custom-multiselect" style="position:relative;">
-                        <div class="multiselect-trigger" onclick="toggleMultiselectAdd(this)" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:42px;">
-                            <div class="selected-users" style="display:flex; flex-wrap:wrap; gap:4px; flex:1;">
-                                <span style="font-size:13px; color:var(--muted);">Select assignees...</span>
-                            </div>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
-                        </div>
-                        <div class="multiselect-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; margin-top:4px; background:var(--surface); border:1px solid var(--border2); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:240px; overflow-y:auto;">
-                            <div style="padding:8px;">
-                                @foreach($members as $member)
-                                <label class="multiselect-option" data-user-id="{{ $member->id }}" data-user-name="{{ $member->name }}" data-user-initial="{{ strtoupper(substr($member->name,0,1)) }}" style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:background 0.15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-                                    <input type="checkbox" name="assignees[]" value="{{ $member->id }}" style="width:16px; height:16px; cursor:pointer;" onchange="updateSelectedUsersAdd(this)">
-                                    <div style="width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center;">{{ strtoupper(substr($member->name,0,1)) }}</div>
-                                    <span style="font-size:13px; color:var(--text); flex:1;">{{ $member->name }}</span>
-                                </label>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div style="display:flex; gap:10px; padding-top:4px;">
-                    <button type="submit" class="ptm-btn-primary">Add Task</button>
-                    <button type="button" onclick="document.getElementById('addTaskModal').style.display='none'" class="ptm-btn-ghost">Cancel</button>
-                </div>
-            </form>
         </div>
-    </div>
 
-    {{-- Edit Task Modal --}}
-    <div id="editTaskModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center; padding:20px;">
-        <div style="background:var(--surface); border:1px solid var(--border2); border-radius:16px; width:100%; max-width:480px;">
-            <div style="padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
-                <span style="font-size:15px; font-weight:600; color:var(--text);">Edit Task</span>
-                <button onclick="document.getElementById('editTaskModal').style.display='none'" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        {{-- ============================ OVERVIEW TAB ============================ --}}
+        <div x-show="tab==='overview'" x-cloak>
+            <div class="ptm-card" style="padding:18px 22px; max-width:640px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <span style="font-size:13px; font-weight:600; color:var(--text);">Overall Progress</span>
+                    <span style="font-size:14px; font-weight:600; font-family:var(--mono); color:#4ade80;">{{ $project->progressPercentage() }}%</span>
+                </div>
+                <div class="ptm-progress-track"><div class="ptm-progress-fill" style="width:{{ $project->progressPercentage() }}%;"></div></div>
+                <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:18px;">
+                    <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">TOTAL TASKS</div><div style="font-size:20px; font-weight:600; color:var(--text);">{{ $tasks->count() }}</div></div>
+                    <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">SECTIONS</div><div style="font-size:20px; font-weight:600; color:var(--text);">{{ $sections->count() }}</div></div>
+                    <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">IN PROGRESS</div><div style="font-size:20px; font-weight:600; color:#22d3ee;">{{ $tasks->where('status','in_progress')->count() }}</div></div>
+                    <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">DONE</div><div style="font-size:20px; font-weight:600; color:#4ade80;">{{ $tasks->where('status','done')->count() }}</div></div>
+                </div>
+                @if($project->description)<div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--border); font-size:13px; color:var(--muted); line-height:1.6;">{{ $project->description }}</div>@endif
+                @if($project->due_date)<div style="margin-top:12px; font-size:12px; font-family:var(--mono); {{ $project->due_date->isPast() && $project->status !== 'completed' ? 'color:#f87171;' : 'color:var(--muted);' }}">Due {{ $project->due_date->format('d M Y') }}</div>@endif
             </div>
-            <form id="editTaskForm" method="POST" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
-                @csrf @method('PUT')
-                <div>
-                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TITLE *</label>
-                    <input type="text" name="title" id="editTitle" class="ptm-input" style="width:100%;" required>
-                </div>
-                <div>
-                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DESCRIPTION</label>
-                    <textarea name="description" id="editDescription" rows="2" class="ptm-input" style="width:100%; resize:vertical;"></textarea>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">STATUS</label>
-                        <select name="status" id="editStatus" class="ptm-select" style="width:100%;">
-                            <option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="in_review">In Review</option><option value="done">Done</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PRIORITY</label>
-                        <select name="priority" id="editPriority" class="ptm-select" style="width:100%;">
-                            <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DUE DATE</label>
-                        <input type="date" name="due_date" id="editDueDate" class="ptm-input" style="width:100%;">
-                    </div>
-                </div>
-                <div>
-                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ASSIGN TO (Multiple)</label>
-                    <div class="custom-multiselect" id="editMultiselect" style="position:relative;">
-                        <div class="multiselect-trigger" onclick="toggleMultiselectEdit(this)" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:42px;">
-                            <div class="selected-users" style="display:flex; flex-wrap:wrap; gap:4px; flex:1;">
-                                <span style="font-size:13px; color:var(--muted);">Select assignees...</span>
-                            </div>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
-                        </div>
-                        <div class="multiselect-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; margin-top:4px; background:var(--surface); border:1px solid var(--border2); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; max-height:240px; overflow-y:auto;">
-                            <div style="padding:8px;">
-                                @foreach($members as $member)
-                                <label class="multiselect-option" data-user-id="{{ $member->id }}" data-user-name="{{ $member->name }}" data-user-initial="{{ strtoupper(substr($member->name,0,1)) }}" style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:background 0.15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-                                    <input type="checkbox" name="assignees[]" value="{{ $member->id }}" class="edit-assignee-checkbox" data-user-id="{{ $member->id }}" style="width:16px; height:16px; cursor:pointer;" onchange="updateSelectedUsersEdit(this)">
-                                    <div style="width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center;">{{ strtoupper(substr($member->name,0,1)) }}</div>
-                                    <span style="font-size:13px; color:var(--text); flex:1;">{{ $member->name }}</span>
-                                </label>
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div style="display:flex; gap:10px; padding-top:4px;">
-                    <button type="submit" class="ptm-btn-primary">Save Changes</button>
-                    <button type="button" onclick="document.getElementById('editTaskModal').style.display='none'" class="ptm-btn-ghost">Cancel</button>
-                </div>
-            </form>
         </div>
+
+        {{-- ============================ DASHBOARD TAB ============================ --}}
+        <div x-show="tab==='dashboard'" x-cloak>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+                @foreach($statusMeta as $st => $cfg)
+                <div class="ptm-card" style="padding:16px 18px;">
+                    <div style="display:flex; align-items:center; gap:7px; margin-bottom:10px;">
+                        <div style="width:7px; height:7px; border-radius:50%; background:{{ $cfg['color'] }};"></div>
+                        <span style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase;">{{ $cfg['label'] }}</span>
+                    </div>
+                    <div style="font-size:28px; font-weight:600; color:var(--text);">{{ $tasks->where('status',$st)->count() }}</div>
+                </div>
+                @endforeach
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px;">
+                @foreach(['urgent'=>'#f87171','high'=>'#fb923c','medium'=>'#fbbf24','low'=>'#6b7385'] as $pr=>$clr)
+                <div class="ptm-card" style="padding:16px 18px;">
+                    <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; margin-bottom:10px;">{{ ucfirst($pr) }} priority</div>
+                    <div style="font-size:28px; font-weight:600; color:{{ $clr }};">{{ $tasks->where('priority',$pr)->count() }}</div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+
     </div>
 
     <script>
     const slug = '{{ $slug }}';
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    function toggleMultiselectAdd(trigger) {
-        const dropdown = trigger.nextElementSibling;
-        const isVisible = dropdown.style.display === 'block';
-        document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
-        dropdown.style.display = isVisible ? 'none' : 'block';
-        trigger.querySelector('svg').style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+    /* ---- field styling ---- */
+    function statusStyle(v){
+        const m={todo:['#6b7385','rgba(107,115,133,0.14)'],in_progress:['#22d3ee','rgba(34,211,238,0.14)'],in_review:['#a78bfa','rgba(167,139,250,0.14)'],done:['#4ade80','rgba(74,222,128,0.14)']};
+        return m[v]||m.todo;
+    }
+    function applyStatus(sel){ const [c,b]=statusStyle(sel.value); sel.style.color=c; sel.style.background=b; }
+    function priStyle(v){
+        const m={urgent:['#f87171','rgba(248,113,113,0.12)'],high:['#fb923c','rgba(251,146,60,0.12)'],medium:['#fbbf24','rgba(251,191,36,0.12)'],low:['#9aa3b2','transparent']};
+        return m[v]||m.low;
+    }
+    function applyPri(sel){ const [c,b]=priStyle(sel.value); sel.style.color=c; sel.style.background=b; }
+
+    document.querySelectorAll('.al-status').forEach(applyStatus);
+    document.querySelectorAll('.al-pri').forEach(applyPri);
+
+    /* ---- inline PATCH ---- */
+    function patchField(id, field, value){
+        const body={}; body[field] = value;
+        return fetch(`/${slug}/admin/tasks/${id}/inline`, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
+            body: JSON.stringify(body)
+        }).then(r=>r.json());
     }
 
-    function updateSelectedUsersAdd(checkbox) {
-        const container = checkbox.closest('.custom-multiselect');
-        const selectedDiv = container.querySelector('.selected-users');
-        const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
-        
-        selectedDiv.innerHTML = '';
-        
-        if (checkedBoxes.length === 0) {
-            selectedDiv.innerHTML = '<span style="font-size:13px; color:var(--muted);">Select assignees...</span>';
-        } else {
-            checkedBoxes.forEach(cb => {
-                const option = cb.closest('.multiselect-option');
-                const initial = option.dataset.userInitial;
-                const name = option.dataset.userName;
-                const badge = document.createElement('div');
-                badge.style.cssText = 'display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.3); border-radius:6px; font-size:12px; color:var(--text);';
-                badge.innerHTML = `<div style="width:18px; height:18px; border-radius:4px; background:rgba(74,222,128,0.3); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;">${initial}</div><span>${name}</span>`;
-                selectedDiv.appendChild(badge);
-            });
-        }
+    function recolorDue(id, d){
+        const el=document.getElementById('due-'+id);
+        if(!el) return;
+        el.style.color = (d && d.task && d.task.overdue) ? '#f87171' : '';
     }
 
-    function toggleMultiselectEdit(trigger) {
-        const dropdown = trigger.nextElementSibling;
-        const isVisible = dropdown.style.display === 'block';
-        document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
-        dropdown.style.display = isVisible ? 'none' : 'block';
-        trigger.querySelector('svg').style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+    function updateDone(id, status){
+        const c=document.getElementById('done-'+id);
+        if(!c) return;
+        if(status==='done'){ c.style.background='#4ade80'; c.style.borderColor='#4ade80'; c.innerHTML='<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>'; }
+        else { c.style.background='transparent'; c.style.borderColor='var(--border2)'; c.innerHTML=''; }
     }
 
-    function updateSelectedUsersEdit(checkbox) {
-        const container = checkbox.closest('.custom-multiselect');
-        const selectedDiv = container.querySelector('.selected-users');
-        const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
-        
-        selectedDiv.innerHTML = '';
-        
-        if (checkedBoxes.length === 0) {
-            selectedDiv.innerHTML = '<span style="font-size:13px; color:var(--muted);">Select assignees...</span>';
-        } else {
-            checkedBoxes.forEach(cb => {
-                const option = cb.closest('.multiselect-option');
-                const initial = option.dataset.userInitial;
-                const name = option.dataset.userName;
-                const badge = document.createElement('div');
-                badge.style.cssText = 'display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.3); border-radius:6px; font-size:12px; color:var(--text);';
-                badge.innerHTML = `<div style="width:18px; height:18px; border-radius:4px; background:rgba(74,222,128,0.3); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center;">${initial}</div><span>${name}</span>`;
-                selectedDiv.appendChild(badge);
-            });
-        }
+    function cycleDone(id, current){
+        const next = current==='done' ? 'todo' : 'done';
+        const sel = document.querySelector(`#row-${id} .al-status`);
+        if(sel){ sel.value=next; applyStatus(sel); }
+        patchField(id,'status',next).then(()=>{ updateDone(id,next); document.getElementById('done-'+id).setAttribute('onclick', `cycleDone(${id}, '${next}')`); });
     }
 
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.custom-multiselect')) {
-            document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
-            document.querySelectorAll('.multiselect-trigger svg').forEach(svg => svg.style.transform = 'rotate(0deg)');
-        }
-    });
+    function onAssigneeChange(cb, id){
+        const dd = cb.closest('.asg-dropdown');
+        const ids = [...dd.querySelectorAll('input:checked')].map(c=>parseInt(c.value));
+        patchField(id, 'assignees', ids).then(d=>renderAssignees(id, d.task.assignees));
+    }
+    function renderAssignees(id, arr){
+        const cell=document.getElementById('asg-'+id);
+        if(!cell) return;
+        if(!arr.length){ cell.innerHTML='<span style="font-size:12px; color:var(--muted);">—</span>'; return; }
+        let html = arr.slice(0,3).map(a=>`<div class="al-avatar" title="${a.name}">${a.initial}</div>`).join('');
+        if(arr.length>3) html += `<span style="font-size:11px; color:var(--muted); font-family:var(--mono);">+${arr.length-3}</span>`;
+        cell.innerHTML = html;
+    }
 
-    document.querySelectorAll('.kanban-column').forEach(function(column) {
-        Sortable.create(column, {
-            group: 'kanban',
-            animation: 150,
-            ghostClass: 'sortable-ghost',
-            draggable: '.kanban-task-wrapper',
-            filter: '.task-actions, a.task-title-link',
-            preventOnFilter: false,
-            onEnd: function(evt) {
-                const taskId = evt.item.getAttribute('data-task-id');
-                const newStatus = evt.to.getAttribute('data-status');
-                const oldStatus = evt.from.getAttribute('data-status');
-                if (newStatus === oldStatus) return;
-                fetch('/' + slug + '/admin/tasks/' + taskId + '/status', {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ status: newStatus })
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(data) { if (data.success) location.reload(); })
-                .catch(function() { location.reload(); });
-            }
+    function deleteTask(id){
+        if(!confirm('Delete this task?')) return;
+        fetch(`/${slug}/admin/tasks/${id}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'} })
+            .then(r=>r.json()).then(()=>{ document.getElementById('row-'+id)?.remove(); document.querySelector(`.kanban-task-wrapper[data-task-id="${id}"]`)?.remove(); });
+    }
+
+    /* ---- section rename toggle ---- */
+    function toggleSecRename(id){
+        const form=document.getElementById('secform-'+id);
+        const name=document.getElementById('secname-'+id);
+        const showing = form.style.display==='flex';
+        form.style.display = showing ? 'none' : 'flex';
+        name.style.display = showing ? 'inline' : 'none';
+        if(!showing){ form.querySelector('input[name=name]').focus(); }
+    }
+
+    /* ---- toolbar ---- */
+    function focusFirstAdd(){
+        const input=document.querySelector('.al-addrow input[name=title]');
+        if(input){ input.focus(); input.scrollIntoView({block:'center', behavior:'smooth'}); }
+    }
+    function filterTasks(q){
+        q=q.trim().toLowerCase();
+        document.querySelectorAll('.al-row').forEach(row=>{
+            row.style.display = (!q || row.dataset.title.includes(q)) ? '' : 'none';
         });
-    });
+    }
 
-    function openEditTask(id,title,description,status,priority,assignedTo,dueDate){
-        document.getElementById('editTaskForm').action='/'+slug+'/admin/tasks/'+id;
-        document.getElementById('editTitle').value=title;
-        document.getElementById('editDescription').value=description;
-        document.getElementById('editStatus').value=status;
-        document.getElementById('editPriority').value=priority;
-        document.getElementById('editDueDate').value=dueDate||'';
-        
-        // Clear all checkboxes first
-        document.querySelectorAll('.edit-assignee-checkbox').forEach(cb => cb.checked = false);
-        
-        // Check the assignees (comma-separated string)
-        if(assignedTo) {
-            const ids = assignedTo.split(',');
-            ids.forEach(id => {
-                const checkbox = document.querySelector(`.edit-assignee-checkbox[data-user-id="${id.trim()}"]`);
-                if(checkbox) {
-                    checkbox.checked = true;
-                    updateSelectedUsersEdit(checkbox);
+    /* ---- board drag ---- */
+    if (window.Sortable) {
+        document.querySelectorAll('.kanban-column').forEach(function(column){
+            Sortable.create(column, {
+                group:'kanban', animation:150, ghostClass:'sortable-ghost', draggable:'.kanban-task-wrapper',
+                filter:'.task-actions, a.task-title-link', preventOnFilter:false,
+                onEnd:function(evt){
+                    const taskId=evt.item.getAttribute('data-task-id');
+                    const newStatus=evt.to.getAttribute('data-status');
+                    const oldStatus=evt.from.getAttribute('data-status');
+                    if(newStatus===oldStatus) return;
+                    fetch('/'+slug+'/admin/tasks/'+taskId+'/status',{
+                        method:'PATCH',
+                        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
+                        body:JSON.stringify({status:newStatus})
+                    }).then(r=>r.json()).then(d=>{ if(d.success) location.reload(); }).catch(()=>location.reload());
                 }
             });
-        } else {
-            // Reset selected users display
-            const container = document.getElementById('editMultiselect');
-            const selectedDiv = container.querySelector('.selected-users');
-            selectedDiv.innerHTML = '<span style="font-size:13px; color:var(--muted);">Select assignees...</span>';
-        }
-        
-        document.getElementById('editTaskModal').style.display='flex';
+        });
     }
     </script>
+
+    <style>[x-cloak]{display:none!important;}</style>
 
 </x-company-layout>

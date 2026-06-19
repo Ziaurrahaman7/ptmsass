@@ -137,7 +137,14 @@
             </div>
         </div>
 
-        @php $slug = auth()->user()->company->slug; @endphp
+        @php
+            $slug = auth()->user()->company->slug;
+            $sidebarProjects = \App\Models\Project::where('company_id', auth()->user()->company_id)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+            $activeProject = request()->route('project');
+            $activeProjectId = is_object($activeProject) ? $activeProject->id : (int) $activeProject;
+        @endphp
         <nav style="flex:1; padding:10px 8px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
             <a href="{{ route('company.dashboard', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.dashboard') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -155,6 +162,23 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Members
             </a>
+
+            {{-- Projects list --}}
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
+                <span class="ptm-section-title">Projects</span>
+                <a href="{{ route('company.projects.create', $slug) }}" style="display:flex; color:var(--muted); text-decoration:none;" title="New project" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </a>
+            </div>
+            @forelse($sidebarProjects as $sidebarProject)
+                <a href="{{ route('company.projects.show', [$slug, $sidebarProject->id]) }}"
+                   class="ptm-nav-link {{ $activeProjectId === $sidebarProject->id ? 'active' : '' }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $sidebarProject->name }}</span>
+                </a>
+            @empty
+                <div style="padding:6px 12px; font-size:11px; color:var(--muted); font-family:var(--mono);">No projects yet</div>
+            @endforelse
         </nav>
 
         <div style="padding:12px 12px 14px; border-top:1px solid var(--border);">
