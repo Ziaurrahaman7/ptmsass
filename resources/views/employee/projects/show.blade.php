@@ -62,6 +62,144 @@
             </span>
         </div>
 
+        {{-- Progress / 6-month timeline / weekly execution (seo_dashboard style) --}}
+        @php
+            $timelineTasks = $tasks->map(fn($t) => [
+                'id' => $t->id, 'title' => $t->title,
+                'due' => $t->due_date?->format('Y-m-d'), 'status' => $t->status,
+                'mine' => ($t->assigned_to === $myId || $t->assignees->contains('id', $myId)),
+            ])->values();
+            $timelineStart = ($project->start_date ?? $project->created_at)->format('Y-m-d');
+        @endphp
+
+        <style>
+            .tl-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
+            .tl-mcard { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+            .tl-mlabel { font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
+            .tl-mvalue { font-size:24px; font-weight:600; letter-spacing:-0.5px; }
+            .tl-msub { font-size:12px; color:var(--muted); margin-top:4px; }
+            .tl-pbar { height:3px; background:var(--border); border-radius:2px; margin-top:8px; }
+            .tl-pfill { height:100%; border-radius:2px; transition:width 0.3s; }
+            .tl-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
+            .tl-stitle { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-family:var(--mono); margin-bottom:14px; }
+            .tl-months { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+            .tl-mblock { border:1px solid var(--border); border-radius:10px; overflow:hidden; cursor:pointer; transition:all 0.15s; }
+            .tl-mblock:hover { border-color:var(--border2); }
+            .tl-mblock.active { box-shadow:0 0 0 1px rgba(74,222,128,0.2); }
+            .tl-mhead { padding:9px 11px; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:space-between; }
+            .tl-mstatus { width:8px; height:8px; border-radius:50%; }
+            .tl-mweeks { padding:0 11px 9px; display:flex; gap:4px; }
+            .tl-wdot { flex:1; height:4px; border-radius:2px; }
+            .tl-tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+            .tl-tab { padding:6px 13px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:var(--font); font-size:12px; cursor:pointer; transition:all 0.15s; }
+            .tl-tab:hover { border-color:var(--border2); color:var(--text); }
+            .tl-tab.active { background:var(--surface2); border-color:var(--border2); color:var(--text); }
+            .tl-tab.done { border-color:rgba(74,222,128,0.3); color:var(--accent); }
+            .tl-task { display:flex; align-items:center; gap:10px; padding:9px 12px; background:var(--surface2); border-radius:8px; margin-bottom:6px; border:1px solid transparent; transition:all 0.15s; }
+            .tl-task.mine { cursor:pointer; }
+            .tl-task.mine:hover { border-color:var(--border); }
+            .tl-check { width:18px; height:18px; border-radius:5px; border:1.5px solid var(--border2); flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+            .tl-task.done .tl-check { background:var(--accent); border-color:var(--accent); }
+        </style>
+
+        <div id="timelineRoot"></div>
+
+        <script>
+        (function(){
+            const TASKS = @json($timelineTasks);
+            const START = '{{ $timelineStart }}';
+            const PAL = ['#4ade80','#22d3ee','#a78bfa','#fbbf24','#f87171','#fb923c'];
+            const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const pad = n => String(n).padStart(2,'0');
+            const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+            const sd = new Date(parseInt(START.slice(0,4)), parseInt(START.slice(5,7))-1, 1);
+            const months = [];
+            for(let i=0;i<6;i++){ const d=new Date(sd.getFullYear(), sd.getMonth()+i, 1); months.push({ y:d.getFullYear(), m:d.getMonth()+1, key:d.getFullYear()+'-'+pad(d.getMonth()+1), label:MN[d.getMonth()]+' '+d.getFullYear(), color:PAL[i] }); }
+
+            const weekRanges = (y,m)=>{ const dim=new Date(y,m,0).getDate(); return [[1,7],[8,14],[15,21],[22,dim]]; };
+            const tasksInMonth = mo => TASKS.filter(t=>t.due && t.due.slice(0,7)===mo.key);
+            const tasksInWeek = (mo,r)=> tasksInMonth(mo).filter(t=>{ const d=parseInt(t.due.slice(8,10)); return d>=r[0]&&d<=r[1]; });
+            const weekDone = wt => wt.length>0 && wt.every(t=>t.status==='done');
+
+            const now = new Date();
+            const curKey = now.getFullYear()+'-'+pad(now.getMonth()+1);
+            let activeMonth = months.findIndex(mo=>mo.key===curKey); if(activeMonth<0) activeMonth=0;
+            let activeWeek = 0;
+
+            function setStatus(id, ns){
+                fetch(`/${slug}/tasks/${id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:JSON.stringify({status:ns}) });
+            }
+            window.tlSelectMonth = i => { activeMonth=i; activeWeek=0; render(); };
+            window.tlSelectWeek = i => { activeWeek=i; render(); };
+            window.tlToggleTask = id => {
+                const t=TASKS.find(x=>x.id===id); if(!t || !t.mine) return;
+                const ns = t.status==='done' ? 'todo' : 'done'; t.status=ns; setStatus(id, ns); render();
+            };
+            window.tlToggleWeek = () => {
+                const mo=months[activeMonth]; const wt=tasksInWeek(mo, weekRanges(mo.y,mo.m)[activeWeek]).filter(t=>t.mine); if(!wt.length) return;
+                const ns = wt.every(t=>t.status==='done') ? 'todo' : 'done';
+                wt.forEach(t=>{ t.status=ns; setStatus(t.id, ns); });
+                render();
+            };
+
+            function render(){
+                const total=TASKS.length, done=TASKS.filter(t=>t.status==='done').length;
+                const pct = total? Math.round(done/total*100):0;
+                let doneWeeks=0; months.forEach(mo=>weekRanges(mo.y,mo.m).forEach(r=>{ if(weekDone(tasksInWeek(mo,r))) doneWeeks++; }));
+                const am=months[activeMonth]; const amTasks=tasksInMonth(am);
+
+                let h='';
+                h+=`<div class="tl-metrics">
+                    <div class="tl-mcard"><div class="tl-mlabel">Overall Progress</div><div class="tl-mvalue" style="color:${am.color}">${pct}%</div><div class="tl-pbar"><div class="tl-pfill" style="width:${pct}%;background:${am.color}"></div></div></div>
+                    <div class="tl-mcard"><div class="tl-mlabel">Tasks Done</div><div class="tl-mvalue">${done}<span style="font-size:15px;color:var(--muted)"> / ${total}</span></div><div class="tl-msub">across all months</div></div>
+                    <div class="tl-mcard"><div class="tl-mlabel">Weeks Complete</div><div class="tl-mvalue">${doneWeeks}<span style="font-size:15px;color:var(--muted)"> / 24</span></div><div class="tl-msub">fully-done weeks</div></div>
+                    <div class="tl-mcard"><div class="tl-mlabel">Selected Month</div><div class="tl-mvalue" style="font-size:16px;line-height:1.3">${am.label}</div><div class="tl-msub">Month ${activeMonth+1} of 6 · ${amTasks.length} tasks</div></div>
+                </div>`;
+
+                h+=`<div class="tl-section"><div class="tl-stitle">6-Month Timeline</div><div class="tl-months">`;
+                months.forEach((mo,mi)=>{
+                    const ranges=weekRanges(mo.y,mo.m); const mt=tasksInMonth(mo);
+                    const allDone=mt.length>0 && mt.every(t=>t.status==='done'); const someDone=mt.some(t=>t.status==='done');
+                    const statusColor = allDone? '#4ade80' : someDone? mo.color : 'var(--border2)';
+                    const active = mi===activeMonth;
+                    h+=`<div class="tl-mblock ${active?'active':''}" onclick="tlSelectMonth(${mi})" style="${active?`border-color:${mo.color}`:''}">
+                        <div class="tl-mhead" style="color:${active?mo.color:'var(--muted)'}">M${mi+1}<div class="tl-mstatus" style="background:${statusColor}"></div></div>
+                        <div style="padding:0 11px 4px;font-size:11px;color:var(--muted);line-height:1.3">${mo.label}</div>
+                        <div class="tl-mweeks">${ranges.map((r,wi)=>{ const wt=tasksInWeek(mo,r); const c=weekDone(wt)?mo.color:(active&&wi===activeWeek?mo.color+'55':(wt.length?'var(--border2)':'var(--border)')); return `<div class="tl-wdot" style="background:${c}"></div>`; }).join('')}</div>
+                    </div>`;
+                });
+                h+=`</div></div>`;
+
+                h+=`<div class="tl-section"><div class="tl-stitle">Weekly Execution — ${am.label}</div><div class="tl-tabs">`;
+                const ranges=weekRanges(am.y,am.m);
+                ranges.forEach((r,wi)=>{ const wt=tasksInWeek(am,r); const isDone=weekDone(wt); h+=`<button class="tl-tab ${wi===activeWeek?'active':''} ${isDone?'done':''}" onclick="tlSelectWeek(${wi})">${isDone?'✓ ':''}Week ${wi+1} · ${r[0]}–${r[1]} ${MN[am.m-1]} <span style="opacity:0.55">(${wt.length})</span></button>`; });
+                h+=`</div>`;
+
+                const wr=ranges[activeWeek]; const wt=tasksInWeek(am,wr);
+                const wdoneCount=wt.filter(t=>t.status==='done').length; const wpct=wt.length?Math.round(wdoneCount/wt.length*100):0;
+                const mineInWeek=wt.filter(t=>t.mine).length;
+                h+=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
+                    <div><div style="font-size:15px;font-weight:600;">Week ${activeWeek+1}</div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:3px;">${wdoneCount}/${wt.length} tasks · ${wpct}% done</div>
+                    <div class="tl-pbar" style="width:200px;margin-top:6px;"><div class="tl-pfill" style="width:${wpct}%;background:${am.color}"></div></div></div>
+                    ${mineInWeek? `<button onclick="tlToggleWeek()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--font);white-space:nowrap;">Toggle my tasks</button>`:''}
+                </div>`;
+
+                if(!wt.length){ h+=`<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:6px 0;">No tasks scheduled for this week.</div>`; }
+                else { h+=`<div>`; wt.forEach(t=>{ h+=`<div class="tl-task ${t.status==='done'?'done':''} ${t.mine?'mine':''}" ${t.mine?`onclick="tlToggleTask(${t.id})"`:'title="Not assigned to you"'}>
+                    <div class="tl-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3" style="opacity:${t.status==='done'?1:0}"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div style="font-size:13px;line-height:1.5;flex:1;${t.status==='done'?'text-decoration:line-through;color:var(--muted);':''}">${esc(t.title)}</div>
+                    ${t.mine?'':'<span style="font-size:10px;color:var(--muted);font-family:var(--mono);">read-only</span>'}
+                </div>`; }); h+=`</div>`; }
+                h+=`</div>`;
+
+                document.getElementById('timelineRoot').innerHTML=h;
+            }
+            render();
+        })();
+        </script>
+
         {{-- Tabs --}}
         <div style="display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px;">
             <button class="al-tab" :class="{ 'active': tab==='overview' }" @click="tab='overview'">Overview</button>

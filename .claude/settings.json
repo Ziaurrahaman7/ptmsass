@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(php artisan view:clear 2>&1; php artisan view:cache 2>&1; Write-Output \"EXIT: $LASTEXITCODE\")"
+    ]
+  }
+}
