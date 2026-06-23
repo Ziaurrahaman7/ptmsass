@@ -81,6 +81,22 @@ class ProjectController extends Controller
             ->with('success', 'Project updated successfully.');
     }
 
+    public function updateGoal(Request $request, string $slug, Project $project)
+    {
+        $this->authorizeProject($project);
+
+        $data = $request->validate([
+            'month' => 'required|integer|min:1|max:6',
+            'goal'  => 'nullable|string|max:1000',
+        ]);
+
+        $goals = $project->month_goals ?? [];
+        $goals[$data['month']] = $data['goal'];
+        $project->update(['month_goals' => $goals]);
+
+        return response()->json(['success' => true]);
+    }
+
     public function destroy(string $slug, Project $project)
     {
         $this->authorizeProject($project);

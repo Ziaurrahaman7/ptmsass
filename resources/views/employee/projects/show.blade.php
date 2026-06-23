@@ -107,6 +107,7 @@
         <script>
         (function(){
             const TASKS = @json($timelineTasks);
+            const GOALS = @json($project->month_goals ?: (object)[]);
             const START = '{{ $timelineStart }}';
             const PAL = ['#4ade80','#22d3ee','#a78bfa','#fbbf24','#f87171','#fb923c'];
             const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -170,6 +171,12 @@
                     </div>`;
                 });
                 h+=`</div></div>`;
+
+                const goalVal = GOALS[activeMonth+1] || '';
+                h+=`<div class="tl-section" style="border-color:${am.color}33;">
+                    <div class="tl-stitle">Month ${activeMonth+1} Goal</div>
+                    <div style="font-size:14px;color:${goalVal?'var(--text)':'var(--muted)'};line-height:1.6;white-space:pre-wrap;">${goalVal? esc(goalVal) : 'No goal set for this month.'}</div>
+                </div>`;
 
                 h+=`<div class="tl-section"><div class="tl-stitle">Weekly Execution — ${am.label}</div><div class="tl-tabs">`;
                 const ranges=weekRanges(am.y,am.m);

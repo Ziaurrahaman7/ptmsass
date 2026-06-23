@@ -43,6 +43,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('tasks/{task}/subtasks', [CompanyTaskController::class, 'storeSubtask'])->name('tasks.subtasks.store');
     
     // Projects resource
+    Route::patch('projects/{project}/goal', [CompanyProjectController::class, 'updateGoal'])->name('projects.goal');
     Route::resource('projects', CompanyProjectController::class);
     
     // Tasks GET/PUT/PATCH/DELETE routes

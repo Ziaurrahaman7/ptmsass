@@ -112,6 +112,8 @@
         <script>
         (function(){
             const TASKS = @json($timelineTasks);
+            const GOALS = @json($project->month_goals ?: (object)[]);
+            const PROJECT_ID = {{ $project->id }};
             const START = '{{ $timelineStart }}';
             const PAL = ['#4ade80','#22d3ee','#a78bfa','#fbbf24','#f87171','#fb923c'];
             const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -138,6 +140,10 @@
             }
             window.tlSelectMonth = i => { activeMonth=i; activeWeek=0; render(); };
             window.tlSelectWeek = i => { activeWeek=i; render(); };
+            window.tlSaveGoal = (month, val) => {
+                GOALS[month] = val;
+                fetch(`/${slug}/admin/projects/${PROJECT_ID}/goal`, { method:'PATCH', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:JSON.stringify({month, goal:val}) });
+            };
             window.tlToggleTask = id => {
                 const t=TASKS.find(x=>x.id===id); if(!t) return;
                 const ns = t.status==='done' ? 'todo' : 'done'; t.status=ns;
@@ -178,6 +184,12 @@
                     </div>`;
                 });
                 h+=`</div></div>`;
+
+                const goalVal = GOALS[activeMonth+1] || '';
+                h+=`<div class="tl-section" style="border-color:${am.color}33;">
+                    <div class="tl-stitle">Month ${activeMonth+1} Goal</div>
+                    <textarea onchange="tlSaveGoal(${activeMonth+1}, this.value)" placeholder="Set the goal for ${am.label}..." style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;font-family:var(--font);padding:11px 13px;resize:vertical;line-height:1.6;min-height:62px;">${esc(goalVal)}</textarea>
+                </div>`;
 
                 h+=`<div class="tl-section"><div class="tl-stitle">Weekly Execution — ${am.label}</div><div class="tl-tabs">`;
                 const ranges=weekRanges(am.y,am.m);

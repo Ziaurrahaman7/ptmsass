@@ -7,14 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class Project extends Model
 {
     protected $fillable = [
-        'company_id', 'created_by', 'name', 'description', 'status', 'start_date', 'due_date',
+        'company_id', 'created_by', 'name', 'description', 'status', 'start_date', 'due_date', 'month_goals',
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'due_date'   => 'date',
-        'company_id' => 'integer',
-        'created_by' => 'integer',
+        'start_date'  => 'date',
+        'due_date'    => 'date',
+        'month_goals' => 'array',
+        'company_id'  => 'integer',
+        'created_by'  => 'integer',
     ];
 
     public function company()
