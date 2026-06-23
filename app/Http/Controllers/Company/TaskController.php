@@ -371,6 +371,7 @@ class TaskController extends Controller
 
         $data = $request->validate([
             'title'       => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|nullable|string',
             'status'      => 'sometimes|required|in:todo,in_progress,in_review,done',
             'priority'    => 'sometimes|required|in:low,medium,high,urgent',
             'due_date'    => 'sometimes|nullable|date',
@@ -380,7 +381,7 @@ class TaskController extends Controller
         ]);
 
         $update = [];
-        foreach (['title', 'status', 'priority', 'due_date'] as $field) {
+        foreach (['title', 'description', 'status', 'priority', 'due_date'] as $field) {
             if ($request->has($field)) {
                 $update[$field] = $data[$field] ?? null;
             }
@@ -471,17 +472,25 @@ class TaskController extends Controller
                 'link' => route('employee.tasks.show', [$slug, $task]),
             ]);
         }
-        
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Comment added.');
     }
-    
+
     public function destroyComment(string $slug, TaskComment $comment)
     {
         abort_if($comment->task->company_id !== $this->companyId(), 403);
         abort_if($comment->user_id !== auth()->id(), 403);
-        
+
         $comment->delete();
-        
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Comment deleted.');
     }
     
@@ -515,21 +524,75 @@ class TaskController extends Controller
             'action' => 'uploaded',
             'description' => auth()->user()->name . ' uploaded a file: ' . $file->getClientOriginalName(),
         ]);
-        
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'File uploaded.');
     }
-    
+
     public function destroyAttachment(string $slug, TaskAttachment $attachment)
     {
         abort_if($attachment->task->company_id !== $this->companyId(), 403);
-        
+
         // Delete file from storage
         if (Storage::disk('public')->exists($attachment->file_path)) {
             Storage::disk('public')->delete($attachment->file_path);
         }
-        
+
         $attachment->delete();
-        
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'File deleted.');
+    }
+
+    /**
+     * Render the task detail panel (HTML fragment) used by the slide-in drawer.
+     */
+    public function panel(string $slug, Task $task)
+    {
+        abort_if($task->company_id !== $this->companyId(), 403);
+
+        $task->load([
+            'project', 'section', 'assignees', 'comments.user',
+            'attachments.uploader', 'subtasks.assignees',
+        ]);
+        $members  = auth()->user()->company->users()->where('is_active', true)->get();
+        $sections = $task->project->sections()->get();
+
+        return view('company.tasks._panel', compact('task', 'members', 'sections', 'slug'));
+    }
+
+    /**
+     * Add a subtask to a task (from the detail panel).
+     */
+    public function storeSubtask(Request $request, string $slug, Task $task)
+    {
+        abort_if($task->company_id !== $this->companyId(), 403);
+
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+
+        Task::create([
+            'parent_task_id' => $task->id,
+            'project_id'     => $task->project_id,
+            'section_id'     => $task->section_id,
+            'title'          => $data['title'],
+            'status'         => 'todo',
+            'priority'       => 'medium',
+            'company_id'     => $this->companyId(),
+            'created_by'     => auth()->id(),
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Subtask added.');
     }
 }

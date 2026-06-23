@@ -50,7 +50,7 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
 
-        $tasks = $project->tasks()->with(['assignee', 'assignees', 'section'])->latest()->get();
+        $tasks = $project->tasks()->with(['assignee', 'assignees', 'section'])->withCount(['comments', 'subtasks'])->latest()->get();
         $sections = $project->sections()->get();
         $members = auth()->user()->company->users()->where('is_active', true)->get();
 

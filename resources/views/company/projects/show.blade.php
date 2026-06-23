@@ -164,9 +164,16 @@
                                         @if($task->status === 'done')<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                     </div>
                                     <input class="al-name-input" value="{{ $task->title }}" onchange="patchField({{ $task->id }}, 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
-                                    <a href="{{ route('company.tasks.show', [$slug, $task]) }}" title="Open task details" style="flex-shrink:0; color:var(--muted); display:flex; padding:3px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-                                    </a>
+                                    @if(($task->subtasks_count ?? 0) > 0)
+                                    <span title="{{ $task->subtasks_count }} subtask(s)" style="display:flex; align-items:center; gap:3px; flex-shrink:0; color:var(--muted); font-size:11px; font-family:var(--mono);">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+                                        {{ $task->subtasks_count }}
+                                    </span>
+                                    @endif
+                                    <button onclick="openPanel({{ $task->id }})" title="Open details" style="flex-shrink:0; color:var(--muted); background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:3px; padding:3px 5px; border-radius:6px;" onmouseover="this.style.color='var(--accent2)'; this.style.background='var(--surface2)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">
+                                        @if(($task->comments_count ?? 0) > 0)<span style="font-size:11px; font-family:var(--mono);">{{ $task->comments_count }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>@endif
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M14 10l7-7M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/></svg>
+                                    </button>
                                 </div>
 
                                 {{-- Due date --}}
@@ -429,8 +436,135 @@
             });
         });
     }
+
+    /* ================= TASK DETAIL PANEL (slide-in) ================= */
+    let panelTaskId = null;
+    let panelDirty = false;
+
+    function openPanel(id){
+        panelTaskId = id;
+        document.getElementById('taskDrawer').classList.add('open');
+        reloadPanel();
+    }
+    function closePanel(){
+        document.getElementById('taskDrawer').classList.remove('open');
+        if(panelDirty){ location.reload(); }
+        panelTaskId = null;
+    }
+    function reloadPanel(){
+        if(!panelTaskId) return;
+        const body=document.getElementById('taskPanelBody');
+        fetch(`/${slug}/admin/tasks/${panelTaskId}/panel`, { headers:{'Accept':'text/html'} })
+            .then(r=>r.text()).then(html=>{
+                body.innerHTML = html;
+                body.querySelectorAll('.al-status').forEach(applyStatus);
+                body.querySelectorAll('.al-pri').forEach(applyPri);
+            });
+    }
+
+    function panelPatch(field, value){
+        panelDirty = true;
+        return patchField(panelTaskId, field, value);
+    }
+    function syncCompleteBtn(status){
+        const btn=document.getElementById('panelComplete');
+        if(!btn) return;
+        if(status==='done'){ btn.style.background='rgba(74,222,128,0.15)'; btn.style.border='1px solid rgba(74,222,128,0.4)'; btn.style.color='#4ade80'; btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Completed'; btn.setAttribute('onclick',"panelMarkComplete('done')"); }
+        else { btn.style.background='var(--surface2)'; btn.style.border='1px solid var(--border2)'; btn.style.color='var(--text)'; btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Mark complete'; btn.setAttribute('onclick',"panelMarkComplete('"+status+"')"); }
+    }
+    function panelMarkComplete(current){
+        const next = current==='done' ? 'todo' : 'done';
+        panelDirty = true;
+        patchField(panelTaskId,'status',next).then(()=>reloadPanel());
+    }
+    function panelAssigneeChange(){
+        const ids=[...document.querySelectorAll('.panel-asg-cb:checked')].map(c=>parseInt(c.value));
+        panelDirty = true;
+        patchField(panelTaskId,'assignees',ids).then(d=>{
+            const sum=document.getElementById('panelAsgSummary');
+            if(!sum) return;
+            const a=d.task.assignees;
+            if(!a.length){ sum.innerHTML='<div style="width:26px;height:26px;border-radius:50%;border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;color:var(--muted);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 7a4 4 0 108 0 4 4 0 00-8 0"/></svg></div><span style="font-size:13px;color:var(--muted);">No assignee</span>'; }
+            else { sum.innerHTML = a.map(x=>`<div style="display:flex;align-items:center;gap:6px;"><div class="al-avatar">${x.initial}</div><span style="font-size:13px;color:var(--text);">${x.name}</span></div>`).join(''); }
+        });
+    }
+    function panelAddComment(form){
+        panelDirty = true;
+        fetch(form.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:new FormData(form) })
+            .then(r=>r.json()).then(()=>reloadPanel());
+        return false;
+    }
+    function panelDeleteComment(id){
+        panelDirty = true;
+        fetch(`/${slug}/admin/tasks/comments/${id}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'} })
+            .then(()=>reloadPanel());
+    }
+    function panelUpload(input){
+        if(!input.files.length) return;
+        panelDirty = true;
+        const fd=new FormData(); fd.append('file', input.files[0]);
+        fetch(input.dataset.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:fd })
+            .then(r=>r.json()).then(()=>reloadPanel());
+    }
+    function panelDeleteAttachment(id){
+        panelDirty = true;
+        fetch(`/${slug}/admin/tasks/attachments/${id}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'} })
+            .then(()=>reloadPanel());
+    }
+    function panelAddSubtask(form){
+        panelDirty = true;
+        fetch(form.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:new FormData(form) })
+            .then(r=>r.json()).then(()=>reloadPanel());
+        return false;
+    }
+    function panelToggleSubtask(id, current){
+        const next = current==='done' ? 'todo' : 'done';
+        panelDirty = true;
+        patchField(id,'status',next).then(()=>reloadPanel());
+    }
+    function panelDeleteTask(){
+        if(!confirm('Delete this task?')) return;
+        fetch(`/${slug}/admin/tasks/${panelTaskId}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'} })
+            .then(()=>{ panelDirty=false; document.getElementById('taskDrawer').classList.remove('open'); location.reload(); });
+    }
+
+    /* close assignee dropdown on outside click */
+    document.addEventListener('click', function(e){
+        const drop=document.getElementById('panelAsgDrop');
+        const sum=document.getElementById('panelAsgSummary');
+        if(drop && drop.classList.contains('show') && !drop.contains(e.target) && sum && !sum.contains(e.target)){
+            drop.classList.remove('show');
+        }
+    });
+    /* ESC closes panel */
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ const d=document.getElementById('taskDrawer'); if(d.classList.contains('open')) closePanel(); } });
     </script>
 
-    <style>[x-cloak]{display:none!important;}</style>
+    {{-- Slide-in task detail drawer --}}
+    <div id="taskDrawer" class="task-drawer">
+        <div class="task-drawer-overlay" onclick="closePanel()"></div>
+        <div class="task-drawer-panel">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                <span style="font-size:12px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em;">Task details</span>
+                <button onclick="closePanel()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:5px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div id="taskPanelBody" style="flex:1; overflow-y:auto; padding:22px 24px;">
+                <div style="text-align:center; color:var(--muted); padding:40px; font-size:13px;">Loading…</div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        [x-cloak]{display:none!important;}
+        .task-drawer { position:fixed; inset:0; z-index:200; pointer-events:none; }
+        .task-drawer .task-drawer-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.5); opacity:0; transition:opacity 0.2s; }
+        .task-drawer .task-drawer-panel { position:absolute; top:0; right:0; height:100%; width:560px; max-width:92vw; background:var(--surface); border-left:1px solid var(--border2); display:flex; flex-direction:column; transform:translateX(100%); transition:transform 0.25s ease; box-shadow:-10px 0 40px rgba(0,0,0,0.35); }
+        .task-drawer.open { pointer-events:auto; }
+        .task-drawer.open .task-drawer-overlay { opacity:1; }
+        .task-drawer.open .task-drawer-panel { transform:translateX(0); }
+        .panel-drop.show { display:block !important; }
+    </style>
 
 </x-company-layout>

@@ -40,6 +40,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::delete('sections/{section}', [CompanySectionController::class, 'destroy'])->name('sections.destroy');
     Route::post('tasks/{task}/comments', [CompanyTaskController::class, 'storeComment'])->name('tasks.comments.store');
     Route::post('tasks/{task}/attachments', [CompanyTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
+    Route::post('tasks/{task}/subtasks', [CompanyTaskController::class, 'storeSubtask'])->name('tasks.subtasks.store');
     
     // Projects resource
     Route::resource('projects', CompanyProjectController::class);
@@ -47,6 +48,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     // Tasks GET/PUT/PATCH/DELETE routes
     Route::get('tasks', [CompanyTaskController::class, 'index'])->name('tasks.index');
     Route::get('tasks/{task}', [CompanyTaskController::class, 'show'])->name('tasks.show');
+    Route::get('tasks/{task}/panel', [CompanyTaskController::class, 'panel'])->name('tasks.panel');
     Route::patch('tasks/{task}/status', [CompanyTaskController::class, 'updateStatus'])->name('tasks.updateStatus');
     Route::patch('tasks/{task}/inline', [CompanyTaskController::class, 'inlineUpdate'])->name('tasks.inline');
     Route::put('tasks/{task}', [CompanyTaskController::class, 'update'])->name('tasks.update');
