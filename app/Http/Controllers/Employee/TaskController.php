@@ -65,16 +65,35 @@ class TaskController extends Controller
             ]);
         }
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Task status updated.');
     }
 
     public function show(string $slug, Task $task)
     {
         abort_if($task->company_id !== auth()->user()->company_id, 403);
-        
+
         $task->load(['project', 'assignee', 'assignees', 'comments.user', 'attachments.uploader', 'activities.user', 'subtasks.assignees']);
-        
+
         return view('employee.tasks.show', compact('task'));
+    }
+
+    /**
+     * Render the task detail panel (HTML fragment) for the employee slide-in drawer.
+     */
+    public function panel(string $slug, Task $task)
+    {
+        abort_if($task->company_id !== auth()->user()->company_id, 403);
+
+        $task->load(['project', 'section', 'assignees', 'comments.user', 'attachments.uploader', 'subtasks.assignees']);
+
+        $userId = auth()->id();
+        $isMine = $task->assigned_to === $userId || $task->assignees->contains('id', $userId);
+
+        return view('employee.tasks._panel', compact('task', 'isMine', 'slug'));
     }
 
     public function storeComment(Request $request, string $slug, Task $task)
@@ -109,17 +128,25 @@ class TaskController extends Controller
                 'link' => route('company.tasks.show', [$slug, $task]),
             ]);
         }
-        
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Comment added.');
     }
-    
+
     public function destroyComment(string $slug, TaskComment $comment)
     {
         abort_if($comment->task->company_id !== auth()->user()->company_id, 403);
         abort_if($comment->user_id !== auth()->id(), 403);
-        
+
         $comment->delete();
-        
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'Comment deleted.');
     }
     
@@ -150,20 +177,28 @@ class TaskController extends Controller
             'action' => 'uploaded',
             'description' => auth()->user()->name . ' uploaded a file: ' . $file->getClientOriginalName(),
         ]);
-        
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'File uploaded.');
     }
-    
+
     public function destroyAttachment(string $slug, TaskAttachment $attachment)
     {
         abort_if($attachment->task->company_id !== auth()->user()->company_id, 403);
-        
+
         if (Storage::disk('public')->exists($attachment->file_path)) {
             Storage::disk('public')->delete($attachment->file_path);
         }
-        
+
         $attachment->delete();
-        
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return back()->with('success', 'File deleted.');
     }
 }

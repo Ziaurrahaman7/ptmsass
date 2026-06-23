@@ -33,6 +33,7 @@ class ProjectController extends Controller
         $tasks = Task::where('project_id', $project->id)
             ->whereNull('parent_task_id')
             ->with(['assignees', 'assignee', 'section'])
+            ->withCount(['comments', 'subtasks'])
             ->latest()
             ->get();
 

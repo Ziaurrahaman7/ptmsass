@@ -73,6 +73,7 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     Route::get('/projects/{project}', [EmployeeProjectController::class, 'show'])->name('projects.show');
     Route::get('/tasks', [EmployeeTaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks/{task}', [EmployeeTaskController::class, 'show'])->name('tasks.show');
+    Route::get('/tasks/{task}/panel', [EmployeeTaskController::class, 'panel'])->name('tasks.panel');
     Route::patch('/tasks/{task}/status', [EmployeeTaskController::class, 'updateStatus'])->name('tasks.status');
     Route::post('/tasks/{task}/comments', [EmployeeTaskController::class, 'storeComment'])->name('tasks.comments.store');
     Route::delete('/tasks/comments/{comment}', [EmployeeTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
