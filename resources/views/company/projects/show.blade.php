@@ -175,60 +175,93 @@
                 render();
             };
 
+            /* ---- widget (section) show/hide ---- */
+            const WIDGETS = [{key:'metrics',label:'Progress'},{key:'timeline',label:'6-Month Timeline'},{key:'goal',label:'Month Goal'},{key:'weekly',label:'Weekly Execution'}];
+            const W_KEY = 'widgets_hidden_{{ $project->id }}';
+            function getHiddenW(){ try { return new Set(JSON.parse(localStorage.getItem(W_KEY)||'[]')); } catch(e){ return new Set(); } }
+            function saveHiddenW(s){ localStorage.setItem(W_KEY, JSON.stringify([...s])); }
+            window.hideWidget = k => { const s=getHiddenW(); s.add(k); saveHiddenW(s); render(); };
+            window.toggleWidget = (k,show) => { const s=getHiddenW(); if(show) s.delete(k); else s.add(k); saveHiddenW(s); render(); };
+            window.toggleWidgetMenu = e => { e.stopPropagation(); const m=document.getElementById('wMenu'); if(m) m.style.display = (m.style.display==='block'?'none':'block'); };
+            function xBtn(k){ return `<button onclick="hideWidget('${k}')" title="Hide section" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 7px;font-size:14px;line-height:1;border-radius:6px;" onmouseover="this.style.color='var(--danger)';this.style.background='var(--surface2)'" onmouseout="this.style.color='var(--muted)';this.style.background='transparent'">✕</button>`; }
+            document.addEventListener('click', function(ev){ const m=document.getElementById('wMenu'); if(m && m.style.display==='block' && !m.contains(ev.target) && !ev.target.closest('[onclick*="toggleWidgetMenu"]')) m.style.display='none'; });
+
             function render(){
+                const hw = getHiddenW();
                 const total=TASKS.length, done=TASKS.filter(t=>t.status==='done').length;
                 const pct = total? Math.round(done/total*100):0;
                 let doneWeeks=0; months.forEach(mo=>weekRanges(mo.y,mo.m).forEach(r=>{ if(weekDone(tasksInWeek(mo,r))) doneWeeks++; }));
                 const am=months[activeMonth]; const amTasks=tasksInMonth(am);
 
                 let h='';
-                h+=`<div class="tl-metrics">
-                    <div class="tl-mcard"><div class="tl-mlabel">Overall Progress</div><div class="tl-mvalue" style="color:${am.color}">${pct}%</div><div class="tl-pbar"><div class="tl-pfill" style="width:${pct}%;background:${am.color}"></div></div></div>
-                    <div class="tl-mcard"><div class="tl-mlabel">Tasks Done</div><div class="tl-mvalue">${done}<span style="font-size:15px;color:var(--muted)"> / ${total}</span></div><div class="tl-msub">across all months</div></div>
-                    <div class="tl-mcard"><div class="tl-mlabel">Weeks Complete</div><div class="tl-mvalue">${doneWeeks}<span style="font-size:15px;color:var(--muted)"> / 24</span></div><div class="tl-msub">fully-done weeks</div></div>
-                    <div class="tl-mcard"><div class="tl-mlabel">Selected Month</div><div class="tl-mvalue" style="font-size:16px;line-height:1.3">${am.label}</div><div class="tl-msub">Month ${activeMonth+1} of 6 · ${amTasks.length} tasks</div></div>
+
+                // Sections (widget) control
+                h+=`<div style="display:flex;justify-content:flex-end;margin-bottom:10px;position:relative;">
+                    <button onclick="toggleWidgetMenu(event)" style="display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--border2);color:var(--muted);font-size:12px;font-family:var(--font);cursor:pointer;padding:6px 12px;border-radius:8px;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        Sections${hw.size? ` <span style="color:var(--accent2);">${WIDGETS.length-hw.size}/${WIDGETS.length}</span>`:''}
+                    </button>
+                    <div id="wMenu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;width:220px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.4);z-index:60;padding:8px;text-align:left;">
+                        <div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.06em;padding:2px 8px 6px;">Show sections</div>
+                        ${WIDGETS.map(w=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--text);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'"><input type="checkbox" ${hw.has(w.key)?'':'checked'} onchange="toggleWidget('${w.key}', this.checked)" style="width:15px;height:15px;cursor:pointer;"> ${w.label}</label>`).join('')}
+                    </div>
                 </div>`;
 
-                h+=`<div class="tl-section"><div class="tl-stitle">6-Month Timeline</div><div class="tl-months">`;
-                months.forEach((mo,mi)=>{
-                    const ranges=weekRanges(mo.y,mo.m); const mt=tasksInMonth(mo);
-                    const allDone=mt.length>0 && mt.every(t=>t.status==='done'); const someDone=mt.some(t=>t.status==='done');
-                    const statusColor = allDone? '#4ade80' : someDone? mo.color : 'var(--border2)';
-                    const active = mi===activeMonth;
-                    h+=`<div class="tl-mblock ${active?'active':''}" onclick="tlSelectMonth(${mi})" style="${active?`border-color:${mo.color}`:''}">
-                        <div class="tl-mhead" style="color:${active?mo.color:'var(--muted)'}">M${mi+1}<div class="tl-mstatus" style="background:${statusColor}"></div></div>
-                        <div style="padding:0 11px 4px;font-size:11px;color:var(--muted);line-height:1.3">${mo.label}</div>
-                        <div class="tl-mweeks">${ranges.map((r,wi)=>{ const wt=tasksInWeek(mo,r); const c=weekDone(wt)?mo.color:(active&&wi===activeWeek?mo.color+'55':(wt.length?'var(--border2)':'var(--border)')); return `<div class="tl-wdot" style="background:${c}"></div>`; }).join('')}</div>
+                if(!hw.has('metrics')){
+                    h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span class="tl-stitle" style="margin-bottom:0;">Progress</span>${xBtn('metrics')}</div>`;
+                    h+=`<div class="tl-metrics">
+                        <div class="tl-mcard"><div class="tl-mlabel">Overall Progress</div><div class="tl-mvalue" style="color:${am.color}">${pct}%</div><div class="tl-pbar"><div class="tl-pfill" style="width:${pct}%;background:${am.color}"></div></div></div>
+                        <div class="tl-mcard"><div class="tl-mlabel">Tasks Done</div><div class="tl-mvalue">${done}<span style="font-size:15px;color:var(--muted)"> / ${total}</span></div><div class="tl-msub">across all months</div></div>
+                        <div class="tl-mcard"><div class="tl-mlabel">Weeks Complete</div><div class="tl-mvalue">${doneWeeks}<span style="font-size:15px;color:var(--muted)"> / 24</span></div><div class="tl-msub">fully-done weeks</div></div>
+                        <div class="tl-mcard"><div class="tl-mlabel">Selected Month</div><div class="tl-mvalue" style="font-size:16px;line-height:1.3">${am.label}</div><div class="tl-msub">Month ${activeMonth+1} of 6 · ${amTasks.length} tasks</div></div>
                     </div>`;
-                });
-                h+=`</div></div>`;
+                }
 
-                const goalVal = GOALS[activeMonth+1] || '';
-                h+=`<div class="tl-section" style="border-color:${am.color}33;">
-                    <div class="tl-stitle">Month ${activeMonth+1} Goal</div>
-                    <textarea onchange="tlSaveGoal(${activeMonth+1}, this.value)" placeholder="Set the goal for ${am.label}..." style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;font-family:var(--font);padding:11px 13px;resize:vertical;line-height:1.6;min-height:62px;">${esc(goalVal)}</textarea>
-                </div>`;
+                if(!hw.has('timeline')){
+                    h+=`<div class="tl-section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span class="tl-stitle" style="margin-bottom:0;">6-Month Timeline</span>${xBtn('timeline')}</div><div class="tl-months">`;
+                    months.forEach((mo,mi)=>{
+                        const ranges=weekRanges(mo.y,mo.m); const mt=tasksInMonth(mo);
+                        const allDone=mt.length>0 && mt.every(t=>t.status==='done'); const someDone=mt.some(t=>t.status==='done');
+                        const statusColor = allDone? '#4ade80' : someDone? mo.color : 'var(--border2)';
+                        const active = mi===activeMonth;
+                        h+=`<div class="tl-mblock ${active?'active':''}" onclick="tlSelectMonth(${mi})" style="${active?`border-color:${mo.color}`:''}">
+                            <div class="tl-mhead" style="color:${active?mo.color:'var(--muted)'}">M${mi+1}<div class="tl-mstatus" style="background:${statusColor}"></div></div>
+                            <div style="padding:0 11px 4px;font-size:11px;color:var(--muted);line-height:1.3">${mo.label}</div>
+                            <div class="tl-mweeks">${ranges.map((r,wi)=>{ const wt=tasksInWeek(mo,r); const c=weekDone(wt)?mo.color:(active&&wi===activeWeek?mo.color+'55':(wt.length?'var(--border2)':'var(--border)')); return `<div class="tl-wdot" style="background:${c}"></div>`; }).join('')}</div>
+                        </div>`;
+                    });
+                    h+=`</div></div>`;
+                }
 
-                h+=`<div class="tl-section"><div class="tl-stitle">Weekly Execution — ${am.label}</div><div class="tl-tabs">`;
-                const ranges=weekRanges(am.y,am.m);
-                ranges.forEach((r,wi)=>{ const wt=tasksInWeek(am,r); const isDone=weekDone(wt); h+=`<button class="tl-tab ${wi===activeWeek?'active':''} ${isDone?'done':''}" onclick="tlSelectWeek(${wi})">${isDone?'✓ ':''}Week ${wi+1} · ${r[0]}–${r[1]} ${MN[am.m-1]} <span style="opacity:0.55">(${wt.length})</span></button>`; });
-                h+=`</div>`;
+                if(!hw.has('goal')){
+                    const goalVal = GOALS[activeMonth+1] || '';
+                    h+=`<div class="tl-section" style="border-color:${am.color}33;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span class="tl-stitle" style="margin-bottom:0;">Month ${activeMonth+1} Goal</span>${xBtn('goal')}</div>
+                        <textarea onchange="tlSaveGoal(${activeMonth+1}, this.value)" placeholder="Set the goal for ${am.label}..." style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;font-family:var(--font);padding:11px 13px;resize:vertical;line-height:1.6;min-height:62px;">${esc(goalVal)}</textarea>
+                    </div>`;
+                }
 
-                const wr=ranges[activeWeek]; const wt=tasksInWeek(am,wr);
-                const wdoneCount=wt.filter(t=>t.status==='done').length; const wpct=wt.length?Math.round(wdoneCount/wt.length*100):0;
-                h+=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
-                    <div><div style="font-size:15px;font-weight:600;">Week ${activeWeek+1}</div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:3px;">${wdoneCount}/${wt.length} tasks · ${wpct}% done</div>
-                    <div class="tl-pbar" style="width:200px;margin-top:6px;"><div class="tl-pfill" style="width:${wpct}%;background:${am.color}"></div></div></div>
-                    ${wt.length? `<button onclick="tlToggleWeek()" style="padding:7px 14px;border-radius:8px;border:1px solid ${wpct===100?am.color:'var(--border2)'};background:${wpct===100?am.color+'22':'transparent'};color:${wpct===100?am.color:'var(--muted)'};font-size:12px;cursor:pointer;font-family:var(--font);white-space:nowrap;">${wpct===100?'✓ Week Complete':'Mark all complete'}</button>`:''}
-                </div>`;
+                if(!hw.has('weekly')){
+                    h+=`<div class="tl-section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><span class="tl-stitle" style="margin-bottom:0;">Weekly Execution — ${am.label}</span>${xBtn('weekly')}</div><div class="tl-tabs">`;
+                    const ranges=weekRanges(am.y,am.m);
+                    ranges.forEach((r,wi)=>{ const wt=tasksInWeek(am,r); const isDone=weekDone(wt); h+=`<button class="tl-tab ${wi===activeWeek?'active':''} ${isDone?'done':''}" onclick="tlSelectWeek(${wi})">${isDone?'✓ ':''}Week ${wi+1} · ${r[0]}–${r[1]} ${MN[am.m-1]} <span style="opacity:0.55">(${wt.length})</span></button>`; });
+                    h+=`</div>`;
 
-                if(!wt.length){ h+=`<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:6px 0;">No tasks scheduled for this week.</div>`; }
-                else { h+=`<div>`; wt.forEach(t=>{ h+=`<div class="tl-task ${t.status==='done'?'done':''}" onclick="tlToggleTask(${t.id})">
-                    <div class="tl-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3" style="opacity:${t.status==='done'?1:0}"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div style="font-size:13px;line-height:1.5;${t.status==='done'?'text-decoration:line-through;color:var(--muted);':''}">${esc(t.title)}</div>
-                </div>`; }); h+=`</div>`; }
-                h+=`</div>`;
+                    const wr=ranges[activeWeek]; const wt=tasksInWeek(am,wr);
+                    const wdoneCount=wt.filter(t=>t.status==='done').length; const wpct=wt.length?Math.round(wdoneCount/wt.length*100):0;
+                    h+=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
+                        <div><div style="font-size:15px;font-weight:600;">Week ${activeWeek+1}</div>
+                        <div style="font-size:11px;color:var(--muted);margin-top:3px;">${wdoneCount}/${wt.length} tasks · ${wpct}% done</div>
+                        <div class="tl-pbar" style="width:200px;margin-top:6px;"><div class="tl-pfill" style="width:${wpct}%;background:${am.color}"></div></div></div>
+                        ${wt.length? `<button onclick="tlToggleWeek()" style="padding:7px 14px;border-radius:8px;border:1px solid ${wpct===100?am.color:'var(--border2)'};background:${wpct===100?am.color+'22':'transparent'};color:${wpct===100?am.color:'var(--muted)'};font-size:12px;cursor:pointer;font-family:var(--font);white-space:nowrap;">${wpct===100?'✓ Week Complete':'Mark all complete'}</button>`:''}
+                    </div>`;
+
+                    if(!wt.length){ h+=`<div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:6px 0;">No tasks scheduled for this week.</div>`; }
+                    else { h+=`<div>`; wt.forEach(t=>{ h+=`<div class="tl-task ${t.status==='done'?'done':''}" onclick="tlToggleTask(${t.id})">
+                        <div class="tl-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3" style="opacity:${t.status==='done'?1:0}"><polyline points="20 6 9 17 4 12"/></svg></div>
+                        <div style="font-size:13px;line-height:1.5;${t.status==='done'?'text-decoration:line-through;color:var(--muted);':''}">${esc(t.title)}</div>
+                    </div>`; }); h+=`</div>`; }
+                    h+=`</div>`;
+                }
 
                 document.getElementById('timelineRoot').innerHTML=h;
             }
