@@ -26,6 +26,10 @@
     <style>
         .al-cell { padding:9px 14px; border-right:1px solid var(--border); display:flex; align-items:center; min-width:0; }
         .al-row:hover { background:var(--surface2); }
+        .al-row-actions { display:flex; align-items:center; gap:9px; flex-shrink:0; opacity:0; transition:opacity 0.12s; }
+        .al-row:hover .al-row-actions { opacity:1; }
+        .al-metaicon { display:flex; align-items:center; gap:3px; cursor:pointer; color:var(--muted); font-size:11px; font-family:var(--mono); background:none; border:none; padding:2px; }
+        .al-metaicon:hover { color:var(--accent2); }
         .al-name-input { background:transparent; border:1px solid transparent; border-radius:6px; color:var(--text); font-size:13px; font-weight:500; padding:5px 8px; width:100%; font-family:var(--font); }
         .al-name-input:hover { background:rgba(255,255,255,0.04); }
         .al-name-input:focus { outline:none; background:var(--surface2); border-color:var(--accent2); }
@@ -319,10 +323,20 @@
                                         {{ $task->subtasks_count }}
                                     </span>
                                     @endif
-                                    <button onclick="openPanel({{ $task->id }})" title="Open details" style="flex-shrink:0; color:var(--muted); background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:3px; padding:3px 5px; border-radius:6px;" onmouseover="this.style.color='var(--accent2)'; this.style.background='var(--surface2)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">
-                                        @if(($task->comments_count ?? 0) > 0)<span style="font-size:11px; font-family:var(--mono);">{{ $task->comments_count }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>@endif
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M14 10l7-7M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/></svg>
-                                    </button>
+                                    {{-- Hover-only meta/actions: comment · attachment · open details --}}
+                                    <div class="al-row-actions">
+                                        <button class="al-metaicon" onclick="openPanel({{ $task->id }})" title="Comments">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                                            @if(($task->comments_count ?? 0) > 0){{ $task->comments_count }}@endif
+                                        </button>
+                                        <button class="al-metaicon" onclick="openPanel({{ $task->id }})" title="Attachments">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                                            @if(($task->attachments_count ?? 0) > 0){{ $task->attachments_count }}@endif
+                                        </button>
+                                        <button class="al-metaicon" onclick="openPanel({{ $task->id }})" title="Open details">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M14 10l7-7M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/></svg>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {{-- Due date --}}
