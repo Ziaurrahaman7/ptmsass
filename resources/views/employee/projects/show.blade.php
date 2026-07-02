@@ -44,6 +44,27 @@
         .al-gridrow > .al-cell:last-child { border-right:none; }
         .col-menu.show { display:block !important; }
         .al-cfval { font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .tb-btn { display:flex; align-items:center; gap:6px; background:none; border:none; color:var(--muted); font-size:13px; font-family:var(--font); cursor:pointer; padding:6px 10px; border-radius:7px; }
+        .tb-btn:hover { color:var(--text); background:var(--surface2); }
+        .tb-menu { display:none; position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:60; padding:8px; text-align:left; }
+        .tb-menu.show { display:block; }
+        .tb-mlabel { font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; padding:2px 8px 5px; }
+        .tb-opt { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); }
+        .tb-opt:hover { background:var(--surface2); }
+        .tb-opt input { width:15px; height:15px; cursor:pointer; }
+        .qf-pill { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:20px; border:1px solid var(--border2); background:transparent; color:var(--text); font-size:13px; font-family:var(--font); cursor:pointer; transition:all 0.15s; }
+        .qf-pill:hover { border-color:var(--muted); }
+        .qf-pill.active { background:rgba(34,211,238,0.12); border-color:rgba(34,211,238,0.5); color:var(--accent2); }
+        .tb-field { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:14px; font-family:var(--font); cursor:pointer; padding:9px 10px; border-radius:7px; }
+        .tb-field:hover { background:var(--surface2); }
+        .tb-field svg { color:var(--muted); flex-shrink:0; }
+        .fg-group { border:1px solid var(--border); border-radius:8px; padding:10px 12px; background:var(--surface2); }
+        .fg-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+        .fg-title { font-size:12px; font-weight:600; color:var(--text); }
+        .fg-opts { display:flex; flex-wrap:wrap; gap:6px 14px; }
+        .fg-opt { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--text); cursor:pointer; }
+        .fg-opt input { width:15px; height:15px; cursor:pointer; }
+        .group-none .al-sechead { display:none; }
         [x-cloak]{display:none!important;}
     </style>
 
@@ -258,10 +279,89 @@
         <div x-show="tab==='list'">
 
             {{-- Toolbar (read-only: search only) --}}
-            <div style="display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-bottom:12px;">
+            <div class="al-toolbar" style="display:flex; align-items:center; justify-content:flex-end; gap:2px; margin-bottom:12px;">
+                {{-- Filter --}}
+                <div style="position:relative;">
+                    <button class="tb-btn" onclick="tbToggle(event,'tbFilter')" id="tbFilterBtn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                        Filter <span id="tbFilterCount" style="display:none; color:var(--accent2); font-family:var(--mono);"></span>
+                    </button>
+                    <div id="tbFilter" class="tb-menu" style="width:480px; max-width:92vw; padding:18px 20px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                            <span style="font-size:16px; font-weight:600; color:var(--text);">Filters</span>
+                            <button onclick="tbClearFilters()" style="background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; font-family:var(--font);" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">Clear</button>
+                        </div>
+                        <div class="tb-mlabel" style="padding-left:0;">Quick filters</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+                            <button class="qf-pill" data-qf="incomplete" onclick="tbQuick('incomplete')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg> Incomplete tasks</button>
+                            <button class="qf-pill" data-qf="completed" onclick="tbQuick('completed')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> Completed tasks</button>
+                            <button class="qf-pill" data-qf="mine" onclick="tbQuick('mine')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/></svg> Just my tasks</button>
+                            <button class="qf-pill" data-qf="due_this_week" onclick="tbQuick('due_this_week')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg> Due this week</button>
+                            <button class="qf-pill" data-qf="due_next_week" onclick="tbQuick('due_next_week')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg> Due next week</button>
+                        </div>
+                        <div id="tbFilterGroups" style="margin-top:12px; display:flex; flex-direction:column; gap:10px;"></div>
+                        <div style="border-top:1px solid var(--border); margin-top:14px; padding-top:12px; position:relative;">
+                            <button onclick="tbToggleAddFields(event)" style="display:flex; align-items:center; gap:7px; background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; font-family:var(--font);" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add filter <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <div id="tbAddFields" style="display:none; position:absolute; bottom:calc(100% + 6px); left:0; width:240px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); z-index:70; padding:6px; max-height:320px; overflow-y:auto;">
+                                <button class="tb-field" onclick="addFilterField('completion')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> Completion status</button>
+                                <button class="tb-field" onclick="addFilterField('due')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg> Due date</button>
+                                <button class="tb-field" onclick="addFilterField('createdby')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/></svg> Created by</button>
+                                <button class="tb-field" onclick="addFilterField('created')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Created on</button>
+                                <button class="tb-field" onclick="addFilterField('modified')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg> Last modified on</button>
+                                <button class="tb-field" onclick="addFilterField('assignee')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/></svg> Assignee</button>
+                                <button class="tb-field" onclick="addFilterField('status')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg> Status</button>
+                                <button class="tb-field" onclick="addFilterField('priority')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg> Priority</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{-- Sort --}}
+                <div style="position:relative;">
+                    <button class="tb-btn" onclick="tbToggle(event,'tbSort')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 18V4"/></svg> Sort</button>
+                    <div id="tbSort" class="tb-menu" style="width:210px;">
+                        <div class="tb-mlabel" style="padding-left:0;">Sort by</div>
+                        @php $sortOpts = [
+                            ['default','Default','<circle cx="12" cy="12" r="9"/>'],
+                            ['due','Due date','<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>'],
+                            ['assignee','Assignee','<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/>'],
+                            ['createdby','Created by','<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/>'],
+                            ['created','Created on','<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'],
+                            ['modified','Last modified on','<path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/>'],
+                            ['title','Alphabetical','<path d="M5 19l4-12 4 12M6.5 15h5M15 8h5M15 8l2.5 6M20 8l-2.5 6"/>'],
+                            ['status','Status','<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>'],
+                            ['priority','Priority','<path d="M4 21V4M4 4l14 4-14 4"/>'],
+                        ]; @endphp
+                        @foreach($sortOpts as $o)
+                        <label class="tb-opt"><input type="radio" name="tbsort" value="{{ $o[0] }}" {{ $o[0]==='default'?'checked':'' }} onchange="tbSetSort('{{ $o[0] }}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">{!! $o[2] !!}</svg> {{ $o[1] }}</label>
+                        @endforeach
+                    </div>
+                </div>
+                {{-- Group --}}
+                <div style="position:relative;">
+                    <button class="tb-btn" onclick="tbToggle(event,'tbGroup')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg> Group</button>
+                    <div id="tbGroup" class="tb-menu" style="width:160px;">
+                        <label class="tb-opt"><input type="radio" name="tbgroup" value="section" checked onchange="tbSetGroup('section')"> Section</label>
+                        <label class="tb-opt"><input type="radio" name="tbgroup" value="none" onchange="tbSetGroup('none')"> None</label>
+                    </div>
+                </div>
+                {{-- Options --}}
+                <div style="position:relative;">
+                    <button class="tb-btn" onclick="tbToggle(event,'tbOptions')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Options</button>
+                    <div id="tbOptions" class="tb-menu" style="width:200px;">
+                        <label class="tb-opt"><input type="checkbox" onchange="tbHideCompleted(this.checked)"> Hide completed tasks</label>
+                        <div style="border-top:1px solid var(--border); margin:6px 0; padding-top:6px;"></div>
+                        <button onclick="tbExpandAllSubs(true)" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);font-size:13px;cursor:pointer;font-family:var(--font);padding:6px 8px;border-radius:6px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">Expand all subtasks</button>
+                        <button onclick="tbExpandAllSubs(false)" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);font-size:13px;cursor:pointer;font-family:var(--font);padding:6px 8px;border-radius:6px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">Collapse all subtasks</button>
+                    </div>
+                </div>
+                <div style="width:1px; height:20px; background:var(--border2); margin:0 6px;"></div>
+                {{-- Search --}}
                 <div style="position:relative; display:flex; align-items:center;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="position:absolute; left:9px; pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" oninput="filterTasks(this.value)" placeholder="Search tasks..." class="ptm-input" style="font-size:12px; padding:6px 10px 6px 28px; width:180px;">
+                    <input type="text" oninput="filterTasks(this.value)" placeholder="Search..." class="ptm-input" style="font-size:12px; padding:6px 10px 6px 28px; width:150px;">
                 </div>
             </div>
 
@@ -297,20 +397,20 @@
                 @foreach($groups as $group)
                 <div x-data="{ open: true }">
                     {{-- Section header --}}
-                    <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--surface);">
+                    <div class="al-sechead" style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--surface);">
                         <svg @click="open=!open" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="open ? '' : 'transform:rotate(-90deg)'" style="color:var(--muted); transition:transform 0.15s; cursor:pointer; flex-shrink:0;"><path d="M19 9l-7 7-7-7"/></svg>
                         <span style="font-size:13px; font-weight:600; color:{{ $group['id'] ? 'var(--text)' : 'var(--muted)' }};">{{ $group['name'] }}</span>
                         <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $group['tasks']->count() }}</span>
                     </div>
 
                     {{-- Rows --}}
-                    <div x-show="open">
+                    <div x-show="open" class="al-tasklist">
                         @forelse($group['tasks'] as $task)
                             @php
                                 $isMine = $task->assigned_to === $myId || $task->assignees->contains('id', $myId);
                                 $sm = $statusMeta[$task->status] ?? $statusMeta['todo'];
                             @endphp
-                            <div class="al-row al-gridrow" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
+                            <div class="al-row al-gridrow" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" data-status="{{ $task->status }}" data-priority="{{ $task->priority }}" data-due="{{ $task->due_date?->format('Y-m-d') }}" data-assignees="{{ $task->assignees->pluck('id')->push($task->assigned_to)->filter()->unique()->implode(',') }}" data-createdby="{{ $task->created_by }}" data-created="{{ $task->created_at?->format('Y-m-d') }}" data-modified="{{ $task->updated_at?->format('Y-m-d') }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
                                 <div class="al-cell c-name" style="gap:6px;">
                                     @if(($task->subtasks_count ?? 0) > 0)
@@ -524,12 +624,129 @@
     function applyStatus(sel){ const [c,b]=statusStyle(sel.value); sel.style.color=c; sel.style.background=b; }
     document.querySelectorAll('.al-status').forEach(applyStatus);
 
-    function filterTasks(q){
-        q=q.trim().toLowerCase();
-        document.querySelectorAll('.al-row, .al-subrow').forEach(row=>{
-            row.style.display = (!q || row.dataset.title.includes(q)) ? '' : 'none';
+    /* ================= LIST TOOLBAR (filter / sort / group / options) ================= */
+    const MY_ID = {{ auth()->id() }};
+    const MEMBERS = @json($members->map(fn($m)=>['id'=>$m->id,'name'=>$m->name])->values());
+    const MEMBER_NAME = {}; MEMBERS.forEach(m=> MEMBER_NAME[String(m.id)] = m.name);
+    let TB = { q:'', status:new Set(), priority:new Set(), qf:new Set(), assignee:new Set(), createdby:new Set(), created:new Set(), modified:new Set(), hideDone:false, fields:new Set() };
+
+    function tbToggle(e, id){
+        e.stopPropagation();
+        const m=document.getElementById(id); const open=m.classList.contains('show');
+        document.querySelectorAll('.tb-menu').forEach(x=>x.classList.remove('show'));
+        if(!open) m.classList.add('show');
+    }
+    document.addEventListener('click', function(e){
+        if(!e.target.closest('.al-toolbar')) document.querySelectorAll('.tb-menu').forEach(x=>x.classList.remove('show'));
+    });
+
+    function fmtDate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+    function weekBounds(offset){ const now=new Date(); now.setHours(0,0,0,0); const day=(now.getDay()+6)%7; const mon=new Date(now); mon.setDate(now.getDate()-day+offset*7); const sun=new Date(mon); sun.setDate(mon.getDate()+6); return [fmtDate(mon), fmtDate(sun)]; }
+    function dueInWeek(due, offset){ if(!due) return false; const [s,e]=weekBounds(offset); return due>=s && due<=e; }
+    function dateInRange(d, key){ if(!d) return false; const now=new Date(), today=fmtDate(now);
+        if(key==='today') return d===today;
+        if(key==='this_week') return dueInWeek(d,0);
+        if(key==='this_month') return d.slice(0,7)===(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
+        if(key==='older') return d < fmtDate(new Date(now.getFullYear(), now.getMonth(), 1));
+        return false; }
+
+    function rowVisible(row){
+        if(TB.q && !row.dataset.title.includes(TB.q)) return false;
+        if(TB.status.size && !TB.status.has(row.dataset.status)) return false;
+        if(TB.priority.size && !TB.priority.has(row.dataset.priority)) return false;
+        if(TB.hideDone && row.dataset.status==='done') return false;
+        if(TB.qf.has('incomplete') && row.dataset.status==='done') return false;
+        if(TB.qf.has('completed') && row.dataset.status!=='done') return false;
+        if(TB.qf.has('mine') && !(row.dataset.assignees||'').split(',').includes(String(MY_ID))) return false;
+        const dueKeys=['due_this_week','due_next_week','overdue','no_date'].filter(k=>TB.qf.has(k));
+        if(dueKeys.length){ const due=row.dataset.due, today=fmtDate(new Date());
+            const ok = dueKeys.some(k => (k==='due_this_week'&&dueInWeek(due,0)) || (k==='due_next_week'&&dueInWeek(due,1)) || (k==='overdue'&&due&&due<today&&row.dataset.status!=='done') || (k==='no_date'&&!due));
+            if(!ok) return false; }
+        if(TB.assignee.size){ const ids=(row.dataset.assignees||'').split(','); if(![...TB.assignee].some(a=>ids.includes(String(a)))) return false; }
+        if(TB.createdby.size && !TB.createdby.has(row.dataset.createdby)) return false;
+        if(TB.created.size && ![...TB.created].some(k=>dateInRange(row.dataset.created,k))) return false;
+        if(TB.modified.size && ![...TB.modified].some(k=>dateInRange(row.dataset.modified,k))) return false;
+        return true;
+    }
+    function applyRowVisibility(){
+        document.querySelectorAll('.al-tasklist > .al-row').forEach(row=>{
+            const vis=rowVisible(row);
+            row.style.display = vis ? 'grid' : 'none';
+            const subs=document.getElementById('subs-'+(row.id||'').replace('row-',''));
+            if(subs){ if(!vis) subs.style.display='none'; else if(subs.getAttribute('data-open')==='1') subs.style.display='block'; }
         });
     }
+    function filterTasks(q){ TB.q=(q||'').trim().toLowerCase(); applyRowVisibility(); }
+    function tbFilterCount(){
+        const n = TB.status.size+TB.priority.size+TB.qf.size+TB.assignee.size+TB.createdby.size+TB.created.size+TB.modified.size;
+        const c=document.getElementById('tbFilterCount'), b=document.getElementById('tbFilterBtn');
+        if(n){ c.textContent=n; c.style.display='inline'; b.style.color='var(--text)'; } else { c.style.display='none'; b.style.color=''; }
+    }
+    function tbQuick(key){
+        if(TB.qf.has(key)){ TB.qf.delete(key); } else { if(key==='incomplete') TB.qf.delete('completed'); if(key==='completed') TB.qf.delete('incomplete'); TB.qf.add(key); }
+        document.querySelectorAll('#tbFilter .qf-pill').forEach(p=> p.classList.toggle('active', TB.qf.has(p.dataset.qf)));
+        renderFilterGroups(); tbFilterCount(); applyRowVisibility();
+    }
+    const FIELD_DEFS = {
+        completion: { label:'Completion status', target:'qf', opts:[['incomplete','Incomplete'],['completed','Completed']] },
+        due:        { label:'Due date', target:'qf', opts:[['due_this_week','This week'],['due_next_week','Next week'],['overdue','Overdue'],['no_date','No due date']] },
+        assignee:   { label:'Assignee', target:'assignee', opts: MEMBERS.map(m=>[String(m.id), m.name]) },
+        createdby:  { label:'Created by', target:'createdby', opts: MEMBERS.map(m=>[String(m.id), m.name]) },
+        created:    { label:'Created on', target:'created', opts:[['today','Today'],['this_week','This week'],['this_month','This month'],['older','Older']] },
+        modified:   { label:'Last modified on', target:'modified', opts:[['today','Today'],['this_week','This week'],['this_month','This month'],['older','Older']] },
+        status:     { label:'Status', target:'status', opts:[['todo','To Do'],['in_progress','In Progress'],['in_review','In Review'],['done','Done']] },
+        priority:   { label:'Priority', target:'priority', opts:[['urgent','Urgent'],['high','High'],['medium','Medium'],['low','Low']] },
+    };
+    function tbSetForTarget(t){ return TB[t]; }
+    function tbToggleAddFields(e){ e.stopPropagation(); const m=document.getElementById('tbAddFields'); m.style.display = m.style.display==='block'?'none':'block'; }
+    function addFilterField(key){ TB.fields.add(key); document.getElementById('tbAddFields').style.display='none'; renderFilterGroups(); }
+    function removeFilterField(key){ TB.fields.delete(key); const def=FIELD_DEFS[key]; const set=tbSetForTarget(def.target); def.opts.forEach(([v])=> set.delete(v)); renderFilterGroups(); tbFilterCount(); applyRowVisibility(); }
+    function fgToggle(key, val, on){
+        const set=tbSetForTarget(FIELD_DEFS[key].target);
+        if(on){ if(key==='completion'&&val==='incomplete') set.delete('completed'); if(key==='completion'&&val==='completed') set.delete('incomplete'); set.add(val); } else set.delete(val);
+        document.querySelectorAll('#tbFilter .qf-pill').forEach(p=> p.classList.toggle('active', TB.qf.has(p.dataset.qf)));
+        renderFilterGroups(); tbFilterCount(); applyRowVisibility();
+    }
+    function renderFilterGroups(){
+        const wrap=document.getElementById('tbFilterGroups'); if(!wrap) return;
+        wrap.innerHTML = [...TB.fields].map(key=>{
+            const def=FIELD_DEFS[key]; const set=tbSetForTarget(def.target);
+            const opts=def.opts.map(([v,l])=>`<label class="fg-opt"><input type="checkbox" ${set.has(v)?'checked':''} onchange="fgToggle('${key}','${v}',this.checked)"> ${l}</label>`).join('');
+            return `<div class="fg-group"><div class="fg-head"><span class="fg-title">${def.label}</span><button onclick="removeFilterField('${key}')" title="Remove" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">✕</button></div><div class="fg-opts">${opts}</div></div>`;
+        }).join('');
+    }
+    function tbClearFilters(){
+        TB.status.clear(); TB.priority.clear(); TB.qf.clear(); TB.assignee.clear(); TB.createdby.clear(); TB.created.clear(); TB.modified.clear(); TB.fields.clear();
+        document.querySelectorAll('#tbFilter .qf-pill').forEach(p=>p.classList.remove('active'));
+        renderFilterGroups(); tbFilterCount(); applyRowVisibility();
+    }
+    function tbHideCompleted(on){ TB.hideDone=on; applyRowVisibility(); }
+    function tbExpandAllSubs(open){
+        document.querySelectorAll('[id^="subs-"]').forEach(box=>{ box.style.display=open?'block':'none'; box.setAttribute('data-open', open?'1':'0'); });
+        document.querySelectorAll('.al-chev').forEach(ch=> ch.style.transform = open?'rotate(0deg)':'rotate(-90deg)');
+        if(open) applyRowVisibility();
+        document.querySelectorAll('.tb-menu').forEach(x=>x.classList.remove('show'));
+    }
+    function tbSetGroup(mode){ const inner=document.querySelector('.al-table-inner'); if(mode==='none') inner.classList.add('group-none'); else inner.classList.remove('group-none'); }
+    const PRIO_ORDER={urgent:0,high:1,medium:2,low:3}, STAT_ORDER={todo:0,in_progress:1,in_review:2,done:3};
+    function tbSetSort(key){
+        document.querySelectorAll('.al-tasklist').forEach(list=>{
+            const rows=[...list.querySelectorAll(':scope > .al-row')];
+            rows.sort((a,b)=>{
+                if(key==='title') return a.dataset.title.localeCompare(b.dataset.title);
+                if(key==='due') return (a.dataset.due||'9999-99').localeCompare(b.dataset.due||'9999-99');
+                if(key==='created') return (a.dataset.created||'9999-99').localeCompare(b.dataset.created||'9999-99');
+                if(key==='modified') return (b.dataset.modified||'').localeCompare(a.dataset.modified||'');
+                if(key==='priority') return (PRIO_ORDER[a.dataset.priority]??9)-(PRIO_ORDER[b.dataset.priority]??9);
+                if(key==='status') return (STAT_ORDER[a.dataset.status]??9)-(STAT_ORDER[b.dataset.status]??9);
+                if(key==='assignee') return (MEMBER_NAME[(a.dataset.assignees||'').split(',')[0]]||'zzzz').localeCompare(MEMBER_NAME[(b.dataset.assignees||'').split(',')[0]]||'zzzz');
+                if(key==='createdby') return (MEMBER_NAME[a.dataset.createdby]||'zzzz').localeCompare(MEMBER_NAME[b.dataset.createdby]||'zzzz');
+                return (+a.dataset.pos||0)-(+b.dataset.pos||0);
+            });
+            rows.forEach(row=>{ list.appendChild(row); const subs=document.getElementById('subs-'+row.id.replace('row-','')); if(subs) list.appendChild(subs); });
+        });
+    }
+    document.querySelectorAll('.al-tasklist').forEach(list=>{ [...list.querySelectorAll(':scope > .al-row')].forEach((r,i)=> r.dataset.pos=i); });
 
     function toggleSubs(id, el){
         const box=document.getElementById('subs-'+id); if(!box) return;

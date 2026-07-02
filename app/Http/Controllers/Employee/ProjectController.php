@@ -39,7 +39,8 @@ class ProjectController extends Controller
 
         $sections = $project->sections()->get();
         $customFields = $project->customFields()->get();
+        $members = auth()->user()->company->users()->where('is_active', true)->get(['id', 'name']);
 
-        return view('employee.projects.show', compact('project', 'tasks', 'sections', 'customFields'));
+        return view('employee.projects.show', compact('project', 'tasks', 'sections', 'customFields', 'members'));
     }
 }
