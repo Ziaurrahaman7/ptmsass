@@ -50,7 +50,11 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
 
-        $tasks = $project->tasks()->with(['assignee', 'assignees', 'section'])->withCount(['comments', 'subtasks', 'attachments'])->orderBy('position')->orderByDesc('created_at')->get();
+        $tasks = $project->tasks()
+            ->whereNull('parent_task_id')
+            ->with(['assignee', 'assignees', 'section', 'subtasks' => fn($q) => $q->with('assignees')->orderBy('position')->orderByDesc('created_at')])
+            ->withCount(['comments', 'subtasks', 'attachments'])
+            ->orderBy('position')->orderByDesc('created_at')->get();
         $sections = $project->sections()->get();
         $members = auth()->user()->company->users()->where('is_active', true)->get();
 

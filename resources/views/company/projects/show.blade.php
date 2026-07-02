@@ -317,20 +317,22 @@
                             @php $sm = $statusMeta[$task->status] ?? $statusMeta['todo']; @endphp
                             <div class="al-row" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
-                                <div class="al-cell" style="gap:7px;">
+                                <div class="al-cell" style="gap:6px;">
                                     <span class="al-drag" title="Drag to move / reorder">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
                                     </span>
+                                    @if(($task->subtasks_count ?? 0) > 0)
+                                    <span class="al-subtoggle" onclick="toggleSubs({{ $task->id }}, this)" title="{{ $task->subtasks_count }} subtask(s)" style="display:flex; align-items:center; gap:2px; cursor:pointer; color:var(--muted); flex-shrink:0; font-size:10px; font-family:var(--mono);">
+                                        <svg class="al-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform:rotate(-90deg); transition:transform 0.15s;"><path d="M19 9l-7 7-7-7"/></svg>
+                                        {{ $task->subtasks_count }}
+                                    </span>
+                                    @else
+                                    <span style="width:15px; flex-shrink:0;"></span>
+                                    @endif
                                     <div id="done-{{ $task->id }}" onclick="cycleDone({{ $task->id }}, '{{ $task->status }}')" title="Toggle done" style="width:15px; height:15px; border-radius:50%; border:1.5px solid {{ $task->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $task->status === 'done' ? '#4ade80' : 'transparent' }}; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;">
                                         @if($task->status === 'done')<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                     </div>
                                     <input class="al-name-input" value="{{ $task->title }}" onchange="patchField({{ $task->id }}, 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
-                                    @if(($task->subtasks_count ?? 0) > 0)
-                                    <span title="{{ $task->subtasks_count }} subtask(s)" style="display:flex; align-items:center; gap:3px; flex-shrink:0; color:var(--muted); font-size:11px; font-family:var(--mono);">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
-                                        {{ $task->subtasks_count }}
-                                    </span>
-                                    @endif
                                     {{-- Hover-only meta/actions: comment · attachment · open details --}}
                                     <div class="al-row-actions">
                                         <button class="al-metaicon" onclick="openPanel({{ $task->id }})" title="Comments">
@@ -400,6 +402,56 @@
                                     </button>
                                 </div>
                             </div>
+
+                            {{-- Subtasks (collapsible) --}}
+                            @if($task->subtasks->count() > 0)
+                            <div id="subs-{{ $task->id }}" data-open="0" style="display:none;">
+                                @foreach($task->subtasks as $sub)
+                                <div class="al-subrow" id="row-{{ $sub->id }}" data-title="{{ strtolower($sub->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); transition:background 0.1s;">
+                                    <div class="al-cell" style="gap:7px; padding-left:52px;">
+                                        <div id="done-{{ $sub->id }}" onclick="cycleDone({{ $sub->id }}, '{{ $sub->status }}')" title="Toggle done" style="width:14px; height:14px; border-radius:50%; border:1.5px solid {{ $sub->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $sub->status === 'done' ? '#4ade80' : 'transparent' }}; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                                            @if($sub->status === 'done')<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
+                                        </div>
+                                        <input class="al-name-input" value="{{ $sub->title }}" onchange="patchField({{ $sub->id }}, 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}" style="font-weight:400;">
+                                        <button class="al-metaicon" onclick="openPanel({{ $sub->id }})" title="Open details" style="opacity:0.6;">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M14 10l7-7M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/></svg>
+                                        </button>
+                                    </div>
+                                    <div class="al-cell">
+                                        <input type="date" id="due-{{ $sub->id }}" class="al-date" value="{{ $sub->due_date?->format('Y-m-d') }}"
+                                            style="{{ $sub->due_date?->isPast() && $sub->status !== 'done' ? 'color:#f87171;' : '' }}"
+                                            onchange="patchField({{ $sub->id }}, 'due_date', this.value).then(d => recolorDue({{ $sub->id }}, d))">
+                                    </div>
+                                    <div class="al-cell">
+                                        @forelse($sub->assignees->take(3) as $a)
+                                            <div class="al-avatar" title="{{ $a->name }}" style="margin-right:2px;">{{ strtoupper(substr($a->name,0,1)) }}</div>
+                                        @empty
+                                            <span style="font-size:12px; color:var(--muted);">—</span>
+                                        @endforelse
+                                    </div>
+                                    <div class="al-cell">
+                                        <select class="al-pill al-status" onchange="applyStatus(this); patchField({{ $sub->id }}, 'status', this.value).then(()=>updateDone({{ $sub->id }}, this.value))">
+                                            @foreach(['todo'=>'To Do','in_progress'=>'In Progress','in_review'=>'In Review','done'=>'Done'] as $val=>$lbl)
+                                            <option value="{{ $val }}" {{ $sub->status===$val?'selected':'' }}>{{ $lbl }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="al-cell">
+                                        <select class="al-pill al-pri" onchange="applyPri(this); patchField({{ $sub->id }}, 'priority', this.value)">
+                                            @foreach(['low'=>'Low','medium'=>'Medium','high'=>'High','urgent'=>'Urgent'] as $val=>$lbl)
+                                            <option value="{{ $val }}" {{ $sub->priority===$val?'selected':'' }}>{{ $lbl }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="al-cell" style="border-right:none; justify-content:center;">
+                                        <button onclick="deleteTask({{ $sub->id }})" title="Delete subtask" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                            @endif
                         @endforeach
 
                         {{-- Add task row --}}
@@ -608,12 +660,26 @@
         });
     }
 
+    /* ================= SUBTASK EXPAND / COLLAPSE ================= */
+    function toggleSubs(id, el){
+        const box=document.getElementById('subs-'+id); if(!box) return;
+        const chev=el.querySelector('.al-chev');
+        if(box.getAttribute('data-open')==='1'){ box.style.display='none'; box.setAttribute('data-open','0'); if(chev) chev.style.transform='rotate(-90deg)'; }
+        else { box.style.display='block'; box.setAttribute('data-open','1'); if(chev) chev.style.transform='rotate(0deg)'; }
+    }
+
     /* ================= LIST DRAG & DROP (reorder + move sections) ================= */
     if (window.Sortable) {
         document.querySelectorAll('.al-tasklist').forEach(function(list){
             Sortable.create(list, {
                 group:'tasks', animation:150, handle:'.al-drag', draggable:'.al-row', ghostClass:'sortable-ghost',
                 onEnd:function(evt){
+                    const moved = evt.item;
+                    // keep the moved task's subtask rows attached right below it
+                    const mid = moved.id.replace('row-','');
+                    const subs = document.getElementById('subs-'+mid);
+                    if(subs){ moved.parentNode.insertBefore(subs, moved.nextSibling); }
+
                     const to = evt.to;
                     const sectionId = to.getAttribute('data-section-id') || '';
                     const ids = Array.from(to.querySelectorAll('.al-row')).map(r=>parseInt(r.id.replace('row-','')));

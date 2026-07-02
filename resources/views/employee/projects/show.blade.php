@@ -254,17 +254,19 @@
                             @endphp
                             <div class="al-row" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
-                                <div class="al-cell" style="gap:9px;">
+                                <div class="al-cell" style="gap:6px;">
+                                    @if(($task->subtasks_count ?? 0) > 0)
+                                    <span class="al-subtoggle" onclick="toggleSubs({{ $task->id }}, this)" title="{{ $task->subtasks_count }} subtask(s)" style="display:flex; align-items:center; gap:2px; cursor:pointer; color:var(--muted); flex-shrink:0; font-size:10px; font-family:var(--mono);">
+                                        <svg class="al-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform:rotate(-90deg); transition:transform 0.15s;"><path d="M19 9l-7 7-7-7"/></svg>
+                                        {{ $task->subtasks_count }}
+                                    </span>
+                                    @else
+                                    <span style="width:15px; flex-shrink:0;"></span>
+                                    @endif
                                     <div style="width:15px; height:15px; border-radius:50%; border:1.5px solid {{ $task->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $task->status === 'done' ? '#4ade80' : 'transparent' }}; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
                                         @if($task->status === 'done')<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                     </div>
                                     <span onclick="openPanel({{ $task->id }})" style="font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; flex:1;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text)'">{{ $task->title }}</span>
-                                    @if(($task->subtasks_count ?? 0) > 0)
-                                    <span title="{{ $task->subtasks_count }} subtask(s)" style="display:flex; align-items:center; gap:3px; flex-shrink:0; color:var(--muted); font-size:11px; font-family:var(--mono);">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
-                                        {{ $task->subtasks_count }}
-                                    </span>
-                                    @endif
                                     <button onclick="openPanel({{ $task->id }})" title="Open details" style="flex-shrink:0; color:var(--muted); background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:3px; padding:3px 5px; border-radius:6px;" onmouseover="this.style.color='var(--accent2)'; this.style.background='var(--surface2)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">
                                         @if(($task->comments_count ?? 0) > 0)<span style="font-size:11px; font-family:var(--mono);">{{ $task->comments_count }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>@endif
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M14 10l7-7M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/></svg>
@@ -311,6 +313,53 @@
                                     <span class="al-badge" style="{{ $priorityStyles[$task->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($task->priority) }}</span>
                                 </div>
                             </div>
+
+                            {{-- Subtasks (collapsible) --}}
+                            @if($task->subtasks->count() > 0)
+                            <div id="subs-{{ $task->id }}" data-open="0" style="display:none;">
+                                @foreach($task->subtasks as $sub)
+                                    @php
+                                        $subMine = $sub->assigned_to === $myId || $sub->assignees->contains('id', $myId);
+                                        $ssm = $statusMeta[$sub->status] ?? $statusMeta['todo'];
+                                    @endphp
+                                    <div class="al-subrow" data-title="{{ strtolower($sub->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
+                                        <div class="al-cell" style="gap:8px; padding-left:50px;">
+                                            <div style="width:14px; height:14px; border-radius:50%; border:1.5px solid {{ $sub->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $sub->status === 'done' ? '#4ade80' : 'transparent' }}; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                                                @if($sub->status === 'done')<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
+                                            </div>
+                                            <span onclick="openPanel({{ $sub->id }})" style="font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; flex:1;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text)'">{{ $sub->title }}</span>
+                                        </div>
+                                        <div class="al-cell" style="font-size:12px; font-family:var(--mono); {{ $sub->due_date?->isPast() && $sub->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">
+                                            {{ $sub->due_date?->format('d M Y') ?? '—' }}
+                                        </div>
+                                        <div class="al-cell">
+                                            @forelse($sub->assignees->take(3) as $a)
+                                                <div class="al-avatar" title="{{ $a->name }}" style="margin-right:2px;">{{ strtoupper(substr($a->name,0,1)) }}</div>
+                                            @empty
+                                                <span style="font-size:12px; color:var(--muted);">—</span>
+                                            @endforelse
+                                        </div>
+                                        <div class="al-cell">
+                                            @if($subMine)
+                                                <form method="POST" action="{{ route('employee.tasks.status', [$slug, $sub]) }}" style="width:100%;">
+                                                    @csrf @method('PATCH')
+                                                    <select name="status" class="al-pill al-status" onchange="applyStatus(this); this.form.submit()">
+                                                        @foreach(['todo'=>'To Do','in_progress'=>'In Progress','in_review'=>'In Review','done'=>'Done'] as $val=>$lbl)
+                                                            <option value="{{ $val }}" {{ $sub->status===$val?'selected':'' }}>{{ $lbl }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </form>
+                                            @else
+                                                <span class="al-badge" style="border-color:var(--border2); color:{{ $ssm['color'] }};">{{ $ssm['label'] }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="al-cell" style="border-right:none;">
+                                            <span class="al-badge" style="{{ $priorityStyles[$sub->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($sub->priority) }}</span>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            @endif
                         @empty
                             <div style="padding:11px 14px 11px 35px; font-size:12px; color:var(--muted); font-family:var(--mono); border-bottom:1px solid var(--border);">No tasks in this section</div>
                         @endforelse
@@ -403,9 +452,16 @@
 
     function filterTasks(q){
         q=q.trim().toLowerCase();
-        document.querySelectorAll('.al-row').forEach(row=>{
+        document.querySelectorAll('.al-row, .al-subrow').forEach(row=>{
             row.style.display = (!q || row.dataset.title.includes(q)) ? '' : 'none';
         });
+    }
+
+    function toggleSubs(id, el){
+        const box=document.getElementById('subs-'+id); if(!box) return;
+        const chev=el.querySelector('.al-chev');
+        if(box.getAttribute('data-open')==='1'){ box.style.display='none'; box.setAttribute('data-open','0'); if(chev) chev.style.transform='rotate(-90deg)'; }
+        else { box.style.display='block'; box.setAttribute('data-open','1'); if(chev) chev.style.transform='rotate(0deg)'; }
     }
 
     /* ================= TASK DETAIL PANEL (slide-in) ================= */

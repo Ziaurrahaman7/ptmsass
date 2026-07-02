@@ -32,7 +32,7 @@ class ProjectController extends Controller
         // All parent tasks of the project, grouped by section for the list view
         $tasks = Task::where('project_id', $project->id)
             ->whereNull('parent_task_id')
-            ->with(['assignees', 'assignee', 'section'])
+            ->with(['assignees', 'assignee', 'section', 'subtasks' => fn($q) => $q->with('assignees')->orderBy('position')->orderByDesc('created_at')])
             ->withCount(['comments', 'subtasks'])
             ->latest()
             ->get();
