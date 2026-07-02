@@ -390,15 +390,7 @@
                     </div>
                 </div>
                 {{-- Options --}}
-                <div style="position:relative;">
-                    <button class="tb-btn" onclick="tbToggle(event,'tbOptions')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Options</button>
-                    <div id="tbOptions" class="tb-menu" style="width:200px;">
-                        <label class="tb-opt"><input type="checkbox" onchange="tbHideCompleted(this.checked)"> Hide completed tasks</label>
-                        <div style="border-top:1px solid var(--border); margin:6px 0; padding-top:6px;"></div>
-                        <button onclick="tbExpandAllSubs(true)" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);font-size:13px;cursor:pointer;font-family:var(--font);padding:6px 8px;border-radius:6px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">Expand all subtasks</button>
-                        <button onclick="tbExpandAllSubs(false)" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);font-size:13px;cursor:pointer;font-family:var(--font);padding:6px 8px;border-radius:6px;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">Collapse all subtasks</button>
-                    </div>
-                </div>
+                <button class="tb-btn" onclick="openOptions()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Options</button>
                 <div style="width:1px; height:20px; background:var(--border2); margin:0 6px;"></div>
                 {{-- Search --}}
                 <div style="position:relative; display:flex; align-items:center;">
@@ -868,6 +860,15 @@
     document.querySelectorAll('.al-tasklist').forEach(list=>{ [...list.querySelectorAll(':scope > .al-row')].forEach((r,i)=> r.dataset.pos=i); });
     document.querySelectorAll('[data-section-block]').forEach((b,i)=> b.dataset.secpos=i);
 
+    /* ---- Options / view-settings drawer ---- */
+    let optSubExpanded=false;
+    function openOptions(){ document.getElementById('optDrawer').classList.add('open'); updateOptHidden(); }
+    function closeOptions(){ document.getElementById('optDrawer').classList.remove('open'); }
+    function toggleOptCols(){ const c=document.getElementById('optCols'); c.style.display = c.style.display==='block'?'none':'block'; }
+    function updateOptHidden(){ const el=document.getElementById('optHiddenCount'); if(el){ const n=getHidden().size; el.textContent = n? (n+' hidden') : ''; } }
+    function toggleOptSubtasks(){ optSubExpanded=!optSubExpanded; tbExpandAllSubs(optSubExpanded); const l=document.getElementById('optSubLabel'); if(l) l.textContent = optSubExpanded?'Expanded':'Collapsed'; }
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const d=document.getElementById('optDrawer'); if(d && d.classList.contains('open')) closeOptions(); } });
+
     function toggleSubs(id, el){
         const box=document.getElementById('subs-'+id); if(!box) return;
         const chev=el.querySelector('.al-chev');
@@ -978,6 +979,66 @@
     document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ const d=document.getElementById('taskDrawer'); if(d.classList.contains('open')) closePanel(); } });
     </script>
 
+    {{-- Options / View settings drawer --}}
+    <div id="optDrawer" class="opt-drawer">
+        <div class="opt-overlay" onclick="closeOptions()"></div>
+        <div class="opt-panel">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                <span style="font-size:16px; font-weight:600; color:var(--text);">List</span>
+                <button onclick="closeOptions()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:5px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l-7 6 7 6"/></svg></button>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:18px 20px;">
+                <div style="display:flex; gap:12px; align-items:flex-end; margin-bottom:18px;">
+                    <div>
+                        <div style="font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">Icon</div>
+                        <div style="width:42px; height:42px; border:1px solid var(--border2); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px; background:var(--surface2);">🗂️</div>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">View name</div>
+                        <input type="text" value="List" class="ptm-input" style="width:100%;" readonly>
+                    </div>
+                </div>
+                <div style="border-top:1px solid var(--border); margin:4px 0 8px;"></div>
+
+                <div class="opt-row" onclick="toggleOptCols()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
+                    <span>Show/hide columns</span>
+                    <span style="margin-left:auto; font-size:12px; color:var(--muted);" id="optHiddenCount"></span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                </div>
+                <div id="optCols" style="display:none; padding:4px 0 8px 30px;">
+                    @foreach(array_merge([['due','Due date'],['assignee','Assignee'],['status','Status'],['priority','Priority']], $customFields->map(fn($cf)=>['cf-'.$cf->id, $cf->name])->all()) as $oc)
+                    <label class="opt-check"><input type="checkbox" class="col-toggle" value="{{ $oc[0] }}" checked onchange="toggleCol('{{ $oc[0] }}', this.checked); updateOptHidden()"> {{ $oc[1] }}</label>
+                    @endforeach
+                </div>
+
+                <div class="opt-row" onclick="closeOptions(); setTimeout(()=>document.getElementById('tbFilter').classList.add('show'),260)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                    <span>Filters</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="margin-left:auto;"><path d="M9 6l6 6-6 6"/></svg>
+                </div>
+                <div class="opt-row" onclick="closeOptions(); setTimeout(()=>document.getElementById('tbSort').classList.add('show'),260)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 18V4"/></svg>
+                    <span>Sorts</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="margin-left:auto;"><path d="M9 6l6 6-6 6"/></svg>
+                </div>
+                <div class="opt-row" onclick="closeOptions(); setTimeout(()=>document.getElementById('tbGroup').classList.add('show'),260)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
+                    <span>Groups</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="margin-left:auto;"><path d="M9 6l6 6-6 6"/></svg>
+                </div>
+                <div class="opt-row" onclick="toggleOptSubtasks()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>
+                    <span>Subtasks</span>
+                    <span style="margin-left:auto; font-size:12px; color:var(--muted);" id="optSubLabel">Collapsed</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="opt-row" style="cursor:default;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
+                    <span>Hide completed tasks</span>
+                    <label style="margin-left:auto; display:flex; align-items:center;"><input type="checkbox" onchange="tbHideCompleted(this.checked)" style="width:16px; height:16px; cursor:pointer;"></label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Slide-in task detail drawer --}}
     <div id="taskDrawer" class="task-drawer">
         <div class="task-drawer-overlay" onclick="closePanel()"></div>
@@ -1001,6 +1062,18 @@
         .task-drawer.open { pointer-events:auto; }
         .task-drawer.open .task-drawer-overlay { opacity:1; }
         .task-drawer.open .task-drawer-panel { transform:translateX(0); }
+        .opt-drawer { position:fixed; inset:0; z-index:190; pointer-events:none; }
+        .opt-drawer .opt-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.4); opacity:0; transition:opacity 0.2s; }
+        .opt-drawer .opt-panel { position:absolute; top:0; right:0; height:100%; width:420px; max-width:92vw; background:var(--surface); border-left:1px solid var(--border2); display:flex; flex-direction:column; transform:translateX(100%); transition:transform 0.25s ease; box-shadow:-10px 0 40px rgba(0,0,0,0.35); }
+        .opt-drawer.open { pointer-events:auto; }
+        .opt-drawer.open .opt-overlay { opacity:1; }
+        .opt-drawer.open .opt-panel { transform:translateX(0); }
+        .opt-row { display:flex; align-items:center; gap:12px; padding:12px 10px; border-radius:8px; cursor:pointer; font-size:14px; color:var(--text); }
+        .opt-row:hover { background:var(--surface2); }
+        .opt-row > svg:first-child { color:var(--muted); flex-shrink:0; }
+        .opt-check { display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text); }
+        .opt-check:hover { background:var(--surface2); }
+        .opt-check input { width:15px; height:15px; cursor:pointer; }
     </style>
 
 </x-employee-layout>
