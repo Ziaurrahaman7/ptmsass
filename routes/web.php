@@ -33,6 +33,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('tasks', [CompanyTaskController::class, 'storeFromIndex'])->name('tasks.store_index');
     Route::post('projects/{project}/tasks', [CompanyTaskController::class, 'store'])->name('tasks.store');
     Route::post('projects/{project}/tasks/quick', [CompanyTaskController::class, 'quickStore'])->name('tasks.quick_store');
+    Route::post('projects/{project}/tasks/reorder', [CompanyTaskController::class, 'reorder'])->name('tasks.reorder');
 
     // Sections
     Route::post('projects/{project}/sections', [CompanySectionController::class, 'store'])->name('sections.store');

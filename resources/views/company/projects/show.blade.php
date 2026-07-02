@@ -28,6 +28,11 @@
         .al-row:hover { background:var(--surface2); }
         .al-row-actions { display:flex; align-items:center; gap:9px; flex-shrink:0; opacity:0; transition:opacity 0.12s; }
         .al-row:hover .al-row-actions { opacity:1; }
+        .al-drag { flex-shrink:0; cursor:grab; color:var(--muted); opacity:0; transition:opacity 0.12s; display:flex; align-items:center; }
+        .al-row:hover .al-drag { opacity:0.6; }
+        .al-drag:hover { opacity:1 !important; }
+        .al-drag:active { cursor:grabbing; }
+        .sortable-ghost { opacity:0.35; }
         .al-metaicon { display:flex; align-items:center; gap:3px; cursor:pointer; color:var(--muted); font-size:11px; font-family:var(--mono); background:none; border:none; padding:2px; }
         .al-metaicon:hover { color:var(--accent2); }
         .al-name-input { background:transparent; border:1px solid transparent; border-radius:6px; color:var(--text); font-size:13px; font-weight:500; padding:5px 8px; width:100%; font-family:var(--font); }
@@ -307,12 +312,15 @@
                     </div>
 
                     {{-- Task rows --}}
-                    <div x-show="open">
+                    <div x-show="open" class="al-tasklist" data-section-id="{{ $group['id'] }}">
                         @foreach($group['tasks'] as $task)
                             @php $sm = $statusMeta[$task->status] ?? $statusMeta['todo']; @endphp
                             <div class="al-row" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
-                                <div class="al-cell" style="gap:9px;">
+                                <div class="al-cell" style="gap:7px;">
+                                    <span class="al-drag" title="Drag to move / reorder">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+                                    </span>
                                     <div id="done-{{ $task->id }}" onclick="cycleDone({{ $task->id }}, '{{ $task->status }}')" title="Toggle done" style="width:15px; height:15px; border-radius:50%; border:1.5px solid {{ $task->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $task->status === 'done' ? '#4ade80' : 'transparent' }}; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;">
                                         @if($task->status === 'done')<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                     </div>
@@ -595,6 +603,25 @@
                         headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
                         body:JSON.stringify({status:newStatus})
                     }).then(r=>r.json()).then(d=>{ if(d.success) location.reload(); }).catch(()=>location.reload());
+                }
+            });
+        });
+    }
+
+    /* ================= LIST DRAG & DROP (reorder + move sections) ================= */
+    if (window.Sortable) {
+        document.querySelectorAll('.al-tasklist').forEach(function(list){
+            Sortable.create(list, {
+                group:'tasks', animation:150, handle:'.al-drag', draggable:'.al-row', ghostClass:'sortable-ghost',
+                onEnd:function(evt){
+                    const to = evt.to;
+                    const sectionId = to.getAttribute('data-section-id') || '';
+                    const ids = Array.from(to.querySelectorAll('.al-row')).map(r=>parseInt(r.id.replace('row-','')));
+                    fetch(`/${slug}/admin/projects/{{ $project->id }}/tasks/reorder`, {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
+                        body:JSON.stringify({ section_id: sectionId, task_ids: ids })
+                    });
                 }
             });
         });

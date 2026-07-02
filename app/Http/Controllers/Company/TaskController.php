@@ -362,6 +362,32 @@ class TaskController extends Controller
     }
 
     /**
+     * Reorder tasks within a section and/or move a task to another section (drag & drop).
+     * Receives the target section and the ordered list of task ids in that section.
+     */
+    public function reorder(Request $request, string $slug, Project $project)
+    {
+        abort_if($project->company_id !== $this->companyId(), 403);
+
+        $data = $request->validate([
+            'section_id'  => 'nullable|exists:sections,id',
+            'task_ids'    => 'required|array',
+            'task_ids.*'  => 'integer',
+        ]);
+
+        $sectionId = $this->validSectionId($data['section_id'] ?? null, $project->id);
+
+        foreach ($data['task_ids'] as $i => $tid) {
+            Task::where('id', $tid)
+                ->where('project_id', $project->id)
+                ->where('company_id', $this->companyId())
+                ->update(['section_id' => $sectionId, 'position' => $i]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
      * Inline single/partial field update from the List view (AJAX). Only updates the
      * fields actually present in the request.
      */
