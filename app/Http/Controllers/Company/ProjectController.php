@@ -56,9 +56,10 @@ class ProjectController extends Controller
             ->withCount(['comments', 'subtasks', 'attachments'])
             ->orderBy('position')->orderByDesc('created_at')->get();
         $sections = $project->sections()->get();
+        $customFields = $project->customFields()->get();
         $members = auth()->user()->company->users()->where('is_active', true)->get();
 
-        return view('company.projects.show', compact('project', 'tasks', 'sections', 'members'));
+        return view('company.projects.show', compact('project', 'tasks', 'sections', 'customFields', 'members'));
     }
 
     public function edit(string $slug, Project $project)

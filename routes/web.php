@@ -5,6 +5,7 @@ use App\Http\Controllers\Superadmin\CompanyController;
 use App\Http\Controllers\Superadmin\DashboardController;
 use App\Http\Controllers\Company\DashboardController as CompanyDashboardController;
 use App\Http\Controllers\Company\ProjectController as CompanyProjectController;
+use App\Http\Controllers\Company\CustomFieldController as CompanyCustomFieldController;
 use App\Http\Controllers\Company\SectionController as CompanySectionController;
 use App\Http\Controllers\Company\TaskController as CompanyTaskController;
 use App\Http\Controllers\Company\MemberController as CompanyMemberController;
@@ -34,6 +35,11 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('projects/{project}/tasks', [CompanyTaskController::class, 'store'])->name('tasks.store');
     Route::post('projects/{project}/tasks/quick', [CompanyTaskController::class, 'quickStore'])->name('tasks.quick_store');
     Route::post('projects/{project}/tasks/reorder', [CompanyTaskController::class, 'reorder'])->name('tasks.reorder');
+
+    // Custom fields
+    Route::post('projects/{project}/custom-fields', [CompanyCustomFieldController::class, 'store'])->name('custom_fields.store');
+    Route::delete('custom-fields/{customField}', [CompanyCustomFieldController::class, 'destroy'])->name('custom_fields.destroy');
+    Route::patch('tasks/{task}/custom', [CompanyTaskController::class, 'setCustomValue'])->name('tasks.custom');
 
     // Sections
     Route::post('projects/{project}/sections', [CompanySectionController::class, 'store'])->name('sections.store');

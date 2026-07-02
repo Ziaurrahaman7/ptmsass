@@ -38,7 +38,8 @@ class ProjectController extends Controller
             ->get();
 
         $sections = $project->sections()->get();
+        $customFields = $project->customFields()->get();
 
-        return view('employee.projects.show', compact('project', 'tasks', 'sections'));
+        return view('employee.projects.show', compact('project', 'tasks', 'sections', 'customFields'));
     }
 }

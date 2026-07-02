@@ -38,6 +38,11 @@ class Project extends Model
         return $this->hasMany(Section::class)->orderBy('position')->orderBy('id');
     }
 
+    public function customFields()
+    {
+        return $this->hasMany(CustomField::class)->orderBy('position')->orderBy('id');
+    }
+
     public function progressPercentage(): int
     {
         $total = $this->tasks()->count();

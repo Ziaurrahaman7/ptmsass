@@ -20,7 +20,10 @@
         }
         $noSection = $tasks->whereNull('section_id');
         $groups[] = ['id' => null, 'name' => '(No section)', 'tasks' => $noSection];
-        $colGrid = 'grid-template-columns:minmax(0,1fr) 150px 175px 150px 130px;';
+        $cfWidths = str_repeat(' 160px', $customFields->count());
+        $colGrid = 'grid-template-columns:minmax(360px,1.5fr) 150px 175px 150px 130px'.$cfWidths.' 44px;';
+        $tableMinWidth = 360 + 649 + (160 * $customFields->count());
+        $cfTypeIcon = ['text'=>'T','number'=>'#','date'=>'📅','select'=>'▾'];
     @endphp
 
     <style>
@@ -38,6 +41,9 @@
         .al-kcard:hover { border-color:var(--border2); }
         .al-ptrack { height:4px; background:var(--border); border-radius:2px; }
         .al-pfill { height:100%; border-radius:2px; background:var(--accent); }
+        .al-gridrow > .al-cell:last-child { border-right:none; }
+        .col-menu.show { display:block !important; }
+        .al-cfval { font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         [x-cloak]{display:none!important;}
     </style>
 
@@ -226,14 +232,33 @@
                 </div>
             </div>
 
-            <div class="ptm-card" style="overflow:hidden;">
+            <div class="ptm-card" style="overflow-x:auto; overflow-y:visible;">
+                <div class="al-table-inner" style="min-width:{{ $tableMinWidth }}px;">
                 {{-- Column header --}}
-                <div style="display:grid; {{ $colGrid }} background:var(--surface2); border-bottom:1px solid var(--border);">
-                    <div class="al-cell ptm-section-title">Name</div>
-                    <div class="al-cell ptm-section-title">Due date</div>
-                    <div class="al-cell ptm-section-title">Assignee</div>
-                    <div class="al-cell ptm-section-title">Status</div>
-                    <div class="al-cell ptm-section-title" style="border-right:none;">Priority</div>
+                <div class="al-gridrow" style="display:grid; {{ $colGrid }} background:var(--surface2); border-bottom:1px solid var(--border);">
+                    <div class="al-cell ptm-section-title c-name">Name</div>
+                    <div class="al-cell ptm-section-title c-due">Due date</div>
+                    <div class="al-cell ptm-section-title c-assignee">Assignee</div>
+                    <div class="al-cell ptm-section-title c-status">Status</div>
+                    <div class="al-cell ptm-section-title c-priority">Priority</div>
+                    @foreach($customFields as $cf)
+                    <div class="al-cell ptm-section-title c-cf-{{ $cf->id }}" style="gap:6px;">
+                        <span style="font-size:10px; color:var(--accent2); font-family:var(--mono); opacity:0.7; flex-shrink:0;">{{ $cfTypeIcon[$cf->type] ?? 'T' }}</span>
+                        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $cf->name }}</span>
+                    </div>
+                    @endforeach
+                    <div class="al-cell c-actions" style="border-right:none; justify-content:center; position:relative; overflow:visible;">
+                        <button onclick="event.stopPropagation(); document.getElementById('colMenu').classList.toggle('show')" title="Show columns" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; padding:2px 6px; border-radius:6px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">+</button>
+                        <div id="colMenu" class="col-menu" style="display:none; position:absolute; top:calc(100% + 6px); right:0; width:220px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:60; padding:10px; text-align:left;">
+                            <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Show columns</div>
+                            @foreach(array_merge([['due','Due date'],['assignee','Assignee'],['status','Status'],['priority','Priority']], $customFields->map(fn($cf)=>['cf-'.$cf->id, $cf->name])->all()) as $bc)
+                            <label style="display:flex; align-items:center; gap:8px; padding:5px 6px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                                <input type="checkbox" class="col-toggle" value="{{ $bc[0] }}" checked onchange="toggleCol('{{ $bc[0] }}', this.checked)" style="width:15px; height:15px; cursor:pointer;">
+                                {{ $bc[1] }}
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
 
                 @foreach($groups as $group)
@@ -252,9 +277,9 @@
                                 $isMine = $task->assigned_to === $myId || $task->assignees->contains('id', $myId);
                                 $sm = $statusMeta[$task->status] ?? $statusMeta['todo'];
                             @endphp
-                            <div class="al-row" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
+                            <div class="al-row al-gridrow" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
-                                <div class="al-cell" style="gap:6px;">
+                                <div class="al-cell c-name" style="gap:6px;">
                                     @if(($task->subtasks_count ?? 0) > 0)
                                     <span class="al-subtoggle" onclick="toggleSubs({{ $task->id }}, this)" title="{{ $task->subtasks_count }} subtask(s)" style="display:flex; align-items:center; gap:2px; cursor:pointer; color:var(--muted); flex-shrink:0; font-size:10px; font-family:var(--mono);">
                                         <svg class="al-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform:rotate(-90deg); transition:transform 0.15s;"><path d="M19 9l-7 7-7-7"/></svg>
@@ -274,12 +299,12 @@
                                 </div>
 
                                 {{-- Due date --}}
-                                <div class="al-cell" style="font-size:12px; font-family:var(--mono); {{ $task->due_date?->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">
+                                <div class="al-cell c-due" style="font-size:12px; font-family:var(--mono); {{ $task->due_date?->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">
                                     {{ $task->due_date?->format('d M Y') ?? '—' }}
                                 </div>
 
                                 {{-- Assignee --}}
-                                <div class="al-cell">
+                                <div class="al-cell c-assignee">
                                     @if($task->assignees->count() > 0)
                                         <div style="display:flex; align-items:center; gap:4px;">
                                             @foreach($task->assignees->take(3) as $a)
@@ -293,7 +318,7 @@
                                 </div>
 
                                 {{-- Status (editable only for own tasks) --}}
-                                <div class="al-cell">
+                                <div class="al-cell c-status">
                                     @if($isMine)
                                         <form method="POST" action="{{ route('employee.tasks.status', [$slug, $task]) }}" style="width:100%;">
                                             @csrf @method('PATCH')
@@ -309,9 +334,19 @@
                                 </div>
 
                                 {{-- Priority (read-only) --}}
-                                <div class="al-cell" style="border-right:none;">
+                                <div class="al-cell c-priority">
                                     <span class="al-badge" style="{{ $priorityStyles[$task->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($task->priority) }}</span>
                                 </div>
+
+                                {{-- Custom fields (read-only) --}}
+                                @foreach($customFields as $cf)
+                                    @php $cval = ($task->custom_values[$cf->id] ?? '') ?: (($task->custom_values[(string)$cf->id] ?? '')); @endphp
+                                    <div class="al-cell c-cf-{{ $cf->id }}">
+                                        <span class="al-cfval">{{ $cval !== '' ? $cval : '—' }}</span>
+                                    </div>
+                                @endforeach
+
+                                <div class="al-cell c-actions" style="border-right:none;"></div>
                             </div>
 
                             {{-- Subtasks (collapsible) --}}
@@ -322,24 +357,24 @@
                                         $subMine = $sub->assigned_to === $myId || $sub->assignees->contains('id', $myId);
                                         $ssm = $statusMeta[$sub->status] ?? $statusMeta['todo'];
                                     @endphp
-                                    <div class="al-subrow" data-title="{{ strtolower($sub->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
-                                        <div class="al-cell" style="gap:8px; padding-left:50px;">
+                                    <div class="al-subrow al-gridrow" data-title="{{ strtolower($sub->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
+                                        <div class="al-cell c-name" style="gap:8px; padding-left:50px;">
                                             <div style="width:14px; height:14px; border-radius:50%; border:1.5px solid {{ $sub->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $sub->status === 'done' ? '#4ade80' : 'transparent' }}; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
                                                 @if($sub->status === 'done')<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                             </div>
                                             <span onclick="openPanel({{ $sub->id }})" style="font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; flex:1;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text)'">{{ $sub->title }}</span>
                                         </div>
-                                        <div class="al-cell" style="font-size:12px; font-family:var(--mono); {{ $sub->due_date?->isPast() && $sub->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">
+                                        <div class="al-cell c-due" style="font-size:12px; font-family:var(--mono); {{ $sub->due_date?->isPast() && $sub->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">
                                             {{ $sub->due_date?->format('d M Y') ?? '—' }}
                                         </div>
-                                        <div class="al-cell">
+                                        <div class="al-cell c-assignee">
                                             @forelse($sub->assignees->take(3) as $a)
                                                 <div class="al-avatar" title="{{ $a->name }}" style="margin-right:2px;">{{ strtoupper(substr($a->name,0,1)) }}</div>
                                             @empty
                                                 <span style="font-size:12px; color:var(--muted);">—</span>
                                             @endforelse
                                         </div>
-                                        <div class="al-cell">
+                                        <div class="al-cell c-status">
                                             @if($subMine)
                                                 <form method="POST" action="{{ route('employee.tasks.status', [$slug, $sub]) }}" style="width:100%;">
                                                     @csrf @method('PATCH')
@@ -353,9 +388,14 @@
                                                 <span class="al-badge" style="border-color:var(--border2); color:{{ $ssm['color'] }};">{{ $ssm['label'] }}</span>
                                             @endif
                                         </div>
-                                        <div class="al-cell" style="border-right:none;">
+                                        <div class="al-cell c-priority">
                                             <span class="al-badge" style="{{ $priorityStyles[$sub->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($sub->priority) }}</span>
                                         </div>
+                                        @foreach($customFields as $cf)
+                                            @php $scval = ($sub->custom_values[$cf->id] ?? '') ?: (($sub->custom_values[(string)$cf->id] ?? '')); @endphp
+                                            <div class="al-cell c-cf-{{ $cf->id }}"><span class="al-cfval">{{ $scval !== '' ? $scval : '—' }}</span></div>
+                                        @endforeach
+                                        <div class="al-cell c-actions" style="border-right:none;"></div>
                                     </div>
                                 @endforeach
                             </div>
@@ -366,6 +406,7 @@
                     </div>
                 </div>
                 @endforeach
+                </div>
             </div>
         </div>
 
@@ -463,6 +504,47 @@
         if(box.getAttribute('data-open')==='1'){ box.style.display='none'; box.setAttribute('data-open','0'); if(chev) chev.style.transform='rotate(-90deg)'; }
         else { box.style.display='block'; box.setAttribute('data-open','1'); if(chev) chev.style.transform='rotate(0deg)'; }
     }
+
+    /* ================= COLUMN SHOW / HIDE ================= */
+    const CF_IDS = @json($customFields->pluck('id'));
+    const COL_DEFS = [
+        {key:'name', w:'minmax(360px,1.5fr)', min:360},
+        {key:'due', w:'150px', min:150},
+        {key:'assignee', w:'175px', min:175},
+        {key:'status', w:'150px', min:150},
+        {key:'priority', w:'130px', min:130},
+        ...CF_IDS.map(id=>({key:'cf-'+id, w:'160px', min:160})),
+        {key:'actions', w:'44px', min:44},
+    ];
+    const COL_KEY = 'cols_hidden_emp_{{ $project->id }}';
+    function getHidden(){ try { return new Set(JSON.parse(localStorage.getItem(COL_KEY) || '[]')); } catch(e){ return new Set(); } }
+    function applyCols(){
+        const hidden = getHidden();
+        COL_DEFS.forEach(c=>{
+            if(c.key==='name' || c.key==='actions') return;
+            const show = !hidden.has(c.key);
+            document.querySelectorAll('.c-'+c.key).forEach(el=> el.style.display = show ? '' : 'none');
+        });
+        const visible = COL_DEFS.filter(c => c.key==='name' || c.key==='actions' || !hidden.has(c.key));
+        const tmpl = visible.map(c=>c.w).join(' ');
+        document.querySelectorAll('.al-gridrow').forEach(r=> r.style.gridTemplateColumns = tmpl);
+        const inner = document.querySelector('.al-table-inner');
+        if(inner) inner.style.minWidth = visible.reduce((a,c)=>a+c.min,0) + 'px';
+        document.querySelectorAll('.col-toggle').forEach(cb=>{ cb.checked = !hidden.has(cb.value); });
+    }
+    function toggleCol(key, visible){
+        const hidden = getHidden();
+        if(visible) hidden.delete(key); else hidden.add(key);
+        localStorage.setItem(COL_KEY, JSON.stringify([...hidden]));
+        applyCols();
+    }
+    document.addEventListener('click', function(e){
+        const menu=document.getElementById('colMenu');
+        if(menu && menu.classList.contains('show') && !menu.contains(e.target) && !e.target.closest('[onclick*="colMenu"]')){
+            menu.classList.remove('show');
+        }
+    });
+    applyCols();
 
     /* ================= TASK DETAIL PANEL (slide-in) ================= */
     /* slug & csrfToken are defined globally by the employee layout. */

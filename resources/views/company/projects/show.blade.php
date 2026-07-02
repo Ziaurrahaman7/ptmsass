@@ -20,7 +20,9 @@
         }
         $noSection = $tasks->whereNull('section_id');
         $groups[] = ['id' => null, 'name' => '(No section)', 'tasks' => $noSection];
-        $colGrid = 'grid-template-columns:minmax(0,1fr) 150px 175px 150px 130px 40px;';
+        $cfWidths = str_repeat(' 160px', $customFields->count());
+        $colGrid = 'grid-template-columns:minmax(360px,1.5fr) 150px 175px 150px 130px'.$cfWidths.' 44px;';
+        $tableMinWidth = 360 + 649 + (160 * $customFields->count());
     @endphp
 
     <style>
@@ -33,6 +35,13 @@
         .al-drag:hover { opacity:1 !important; }
         .al-drag:active { cursor:grabbing; }
         .sortable-ghost { opacity:0.35; }
+        .col-menu.show { display:block !important; }
+        .al-cfhead .al-cfdel { opacity:0; transition:opacity 0.12s; }
+        .al-cfhead:hover .al-cfdel { opacity:1; }
+        .al-cfinput { background:var(--surface2); border:1px solid var(--border2); border-radius:6px; color:var(--text); font-size:12px; font-family:var(--font); padding:6px 9px; width:100%; }
+        .al-cfinput:focus { outline:none; border-color:var(--accent2); }
+        .al-cfinput::placeholder { color:var(--muted); }
+        .al-gridrow > .al-cell:last-child { border-right:none; }
         .al-metaicon { display:flex; align-items:center; gap:3px; cursor:pointer; color:var(--muted); font-size:11px; font-family:var(--mono); background:none; border:none; padding:2px; }
         .al-metaicon:hover { color:var(--accent2); }
         .al-name-input { background:transparent; border:1px solid transparent; border-radius:6px; color:var(--text); font-size:13px; font-weight:500; padding:5px 8px; width:100%; font-family:var(--font); }
@@ -263,16 +272,60 @@
             </div>
 
             {{-- Table --}}
-            <div class="ptm-card" style="overflow:visible;">
+            <div class="ptm-card" style="overflow-x:auto; overflow-y:visible;">
+                <div class="al-table-inner" style="min-width:{{ $tableMinWidth }}px;">
                 {{-- Column header --}}
-                <div style="display:grid; {{ $colGrid }} background:var(--surface2); border-bottom:1px solid var(--border); border-radius:12px 12px 0 0;">
-                    <div class="al-cell ptm-section-title">Name</div>
-                    <div class="al-cell ptm-section-title">Due date</div>
-                    <div class="al-cell ptm-section-title">Assignee</div>
-                    <div class="al-cell ptm-section-title">Status</div>
-                    <div class="al-cell ptm-section-title">Priority</div>
-                    <div class="al-cell" style="border-right:none; justify-content:center;">
-                        <span style="color:var(--muted); font-size:14px;">+</span>
+                <div class="al-gridrow" style="display:grid; {{ $colGrid }} background:var(--surface2); border-bottom:1px solid var(--border); border-radius:12px 12px 0 0;">
+                    <div class="al-cell ptm-section-title c-name">Name</div>
+                    <div class="al-cell ptm-section-title c-due">Due date</div>
+                    <div class="al-cell ptm-section-title c-assignee">Assignee</div>
+                    <div class="al-cell ptm-section-title c-status">Status</div>
+                    <div class="al-cell ptm-section-title c-priority">Priority</div>
+                    @php $cfTypeIcon = ['text'=>'T','number'=>'#','date'=>'📅','select'=>'▾']; @endphp
+                    @foreach($customFields as $cf)
+                    <div class="al-cell ptm-section-title c-cf-{{ $cf->id }} al-cfhead" style="justify-content:space-between; gap:6px;">
+                        <span style="display:flex; align-items:center; gap:6px; min-width:0;">
+                            <span style="font-size:10px; color:var(--accent2); font-family:var(--mono); opacity:0.7; flex-shrink:0;">{{ $cfTypeIcon[$cf->type] ?? 'T' }}</span>
+                            <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $cf->name }}</span>
+                        </span>
+                        <form method="POST" action="{{ route('company.custom_fields.destroy', [$slug, $cf->id]) }}" onsubmit="return confirm('Remove field “{{ addslashes($cf->name) }}”?')" class="al-cfdel" style="display:flex; flex-shrink:0;">
+                            @csrf @method('DELETE')
+                            <button type="submit" title="Remove field" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:0 2px; font-size:11px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+                        </form>
+                    </div>
+                    @endforeach
+                    <div class="al-cell c-actions" style="border-right:none; justify-content:center; position:relative; overflow:visible;">
+                        <button onclick="event.stopPropagation(); document.getElementById('colMenu').classList.toggle('show')" title="Add / show fields" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; padding:2px 6px; border-radius:6px;" onmouseover="this.style.color='var(--accent2)'; this.style.background='var(--surface)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">+</button>
+                        <div id="colMenu" class="col-menu" style="display:none; position:absolute; top:calc(100% + 6px); right:0; width:250px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:60; padding:10px; text-align:left;">
+                            <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Show columns</div>
+                            @foreach([['due','Due date'],['assignee','Assignee'],['status','Status'],['priority','Priority']] as $bc)
+                            <label style="display:flex; align-items:center; gap:8px; padding:5px 6px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                                <input type="checkbox" class="col-toggle" value="{{ $bc[0] }}" checked onchange="toggleCol('{{ $bc[0] }}', this.checked)" style="width:15px; height:15px; cursor:pointer;">
+                                {{ $bc[1] }}
+                            </label>
+                            @endforeach
+                            @foreach($customFields as $cf)
+                            <label style="display:flex; align-items:center; gap:8px; padding:5px 6px; border-radius:6px; cursor:pointer; font-size:13px; color:var(--text);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                                <input type="checkbox" class="col-toggle" value="cf-{{ $cf->id }}" checked onchange="toggleCol('cf-{{ $cf->id }}', this.checked)" style="width:15px; height:15px; cursor:pointer;">
+                                {{ $cf->name }} <span style="font-size:10px; color:var(--muted); font-family:var(--mono);">{{ $cf->type }}</span>
+                            </label>
+                            @endforeach
+                            <div style="border-top:1px solid var(--border); margin:8px 0; padding-top:8px;">
+                                <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Add new field</div>
+                                <form method="POST" action="{{ route('company.custom_fields.store', [$slug, $project]) }}" style="display:flex; flex-direction:column; gap:7px;">
+                                    @csrf
+                                    <input type="text" name="name" placeholder="Field name" required class="ptm-input" style="font-size:12px; padding:7px 9px;">
+                                    <select name="type" class="ptm-select" style="font-size:12px; padding:7px 9px;" onchange="document.getElementById('cfOpts').style.display = this.value==='select' ? 'block' : 'none'">
+                                        <option value="text">Text</option>
+                                        <option value="number">Number</option>
+                                        <option value="date">Date</option>
+                                        <option value="select">Dropdown</option>
+                                    </select>
+                                    <input type="text" id="cfOpts" name="options" placeholder="Options: a, b, c" class="ptm-input" style="font-size:12px; padding:7px 9px; display:none;">
+                                    <button type="submit" class="ptm-btn-primary" style="font-size:12px; padding:7px 10px;">Add field</button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -315,9 +368,9 @@
                     <div x-show="open" class="al-tasklist" data-section-id="{{ $group['id'] }}">
                         @foreach($group['tasks'] as $task)
                             @php $sm = $statusMeta[$task->status] ?? $statusMeta['todo']; @endphp
-                            <div class="al-row" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
+                            <div class="al-row al-gridrow" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
-                                <div class="al-cell" style="gap:6px;">
+                                <div class="al-cell c-name" style="gap:6px;">
                                     <span class="al-drag" title="Drag to move / reorder">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
                                     </span>
@@ -350,14 +403,14 @@
                                 </div>
 
                                 {{-- Due date --}}
-                                <div class="al-cell">
+                                <div class="al-cell c-due">
                                     <input type="date" id="due-{{ $task->id }}" class="al-date" value="{{ $task->due_date?->format('Y-m-d') }}"
                                         style="{{ $task->due_date?->isPast() && $task->status !== 'done' ? 'color:#f87171;' : '' }}"
                                         onchange="patchField({{ $task->id }}, 'due_date', this.value).then(d => recolorDue({{ $task->id }}, d))">
                                 </div>
 
                                 {{-- Assignee --}}
-                                <div class="al-cell" x-data="{ open:false }" style="position:relative; overflow:visible;">
+                                <div class="al-cell c-assignee" x-data="{ open:false }" style="position:relative; overflow:visible;">
                                     <div @click="open=!open" id="asg-{{ $task->id }}" style="display:flex; align-items:center; gap:4px; cursor:pointer; min-height:24px; flex-wrap:wrap;">
                                         @forelse($task->assignees->take(3) as $a)
                                             <div class="al-avatar" title="{{ $a->name }}">{{ strtoupper(substr($a->name,0,1)) }}</div>
@@ -378,7 +431,7 @@
                                 </div>
 
                                 {{-- Status --}}
-                                <div class="al-cell">
+                                <div class="al-cell c-status">
                                     <select class="al-pill al-status" onchange="applyStatus(this); patchField({{ $task->id }}, 'status', this.value).then(()=>updateDone({{ $task->id }}, this.value))">
                                         @foreach(['todo'=>'To Do','in_progress'=>'In Progress','in_review'=>'In Review','done'=>'Done'] as $val=>$lbl)
                                         <option value="{{ $val }}" {{ $task->status===$val?'selected':'' }}>{{ $lbl }}</option>
@@ -387,7 +440,7 @@
                                 </div>
 
                                 {{-- Priority --}}
-                                <div class="al-cell">
+                                <div class="al-cell c-priority">
                                     <select class="al-pill al-pri" onchange="applyPri(this); patchField({{ $task->id }}, 'priority', this.value)">
                                         @foreach(['low'=>'Low','medium'=>'Medium','high'=>'High','urgent'=>'Urgent'] as $val=>$lbl)
                                         <option value="{{ $val }}" {{ $task->priority===$val?'selected':'' }}>{{ $lbl }}</option>
@@ -395,8 +448,25 @@
                                     </select>
                                 </div>
 
+                                {{-- Custom fields --}}
+                                @foreach($customFields as $cf)
+                                    @php $cval = ($task->custom_values[$cf->id] ?? '') ?: (($task->custom_values[(string)$cf->id] ?? '')); @endphp
+                                    <div class="al-cell c-cf-{{ $cf->id }}">
+                                        @if($cf->type === 'select')
+                                            <select class="al-pill" style="background:var(--surface2); color:var(--text);" onchange="saveCustom({{ $task->id }}, {{ $cf->id }}, this.value)">
+                                                <option value="">—</option>
+                                                @foreach(($cf->options ?? []) as $opt)
+                                                <option value="{{ $opt }}" {{ $cval===$opt?'selected':'' }}>{{ $opt }}</option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            <input type="{{ $cf->type === 'number' ? 'number' : ($cf->type === 'date' ? 'date' : 'text') }}" class="al-cfinput" value="{{ $cval }}" onchange="saveCustom({{ $task->id }}, {{ $cf->id }}, this.value)" placeholder="—">
+                                        @endif
+                                    </div>
+                                @endforeach
+
                                 {{-- Delete --}}
-                                <div class="al-cell" style="border-right:none; justify-content:center;">
+                                <div class="al-cell c-actions" style="border-right:none; justify-content:center;">
                                     <button onclick="deleteTask({{ $task->id }})" title="Delete task" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     </button>
@@ -407,8 +477,8 @@
                             @if($task->subtasks->count() > 0)
                             <div id="subs-{{ $task->id }}" data-open="0" style="display:none;">
                                 @foreach($task->subtasks as $sub)
-                                <div class="al-subrow" id="row-{{ $sub->id }}" data-title="{{ strtolower($sub->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); transition:background 0.1s;">
-                                    <div class="al-cell" style="gap:7px; padding-left:52px;">
+                                <div class="al-subrow al-gridrow" id="row-{{ $sub->id }}" data-title="{{ strtolower($sub->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); transition:background 0.1s;">
+                                    <div class="al-cell c-name" style="gap:7px; padding-left:52px;">
                                         <div id="done-{{ $sub->id }}" onclick="cycleDone({{ $sub->id }}, '{{ $sub->status }}')" title="Toggle done" style="width:14px; height:14px; border-radius:50%; border:1.5px solid {{ $sub->status === 'done' ? '#4ade80' : 'var(--border2)' }}; background:{{ $sub->status === 'done' ? '#4ade80' : 'transparent' }}; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;">
                                             @if($sub->status === 'done')<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                         </div>
@@ -417,33 +487,48 @@
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M14 10l7-7M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/></svg>
                                         </button>
                                     </div>
-                                    <div class="al-cell">
+                                    <div class="al-cell c-due">
                                         <input type="date" id="due-{{ $sub->id }}" class="al-date" value="{{ $sub->due_date?->format('Y-m-d') }}"
                                             style="{{ $sub->due_date?->isPast() && $sub->status !== 'done' ? 'color:#f87171;' : '' }}"
                                             onchange="patchField({{ $sub->id }}, 'due_date', this.value).then(d => recolorDue({{ $sub->id }}, d))">
                                     </div>
-                                    <div class="al-cell">
+                                    <div class="al-cell c-assignee">
                                         @forelse($sub->assignees->take(3) as $a)
                                             <div class="al-avatar" title="{{ $a->name }}" style="margin-right:2px;">{{ strtoupper(substr($a->name,0,1)) }}</div>
                                         @empty
                                             <span style="font-size:12px; color:var(--muted);">—</span>
                                         @endforelse
                                     </div>
-                                    <div class="al-cell">
+                                    <div class="al-cell c-status">
                                         <select class="al-pill al-status" onchange="applyStatus(this); patchField({{ $sub->id }}, 'status', this.value).then(()=>updateDone({{ $sub->id }}, this.value))">
                                             @foreach(['todo'=>'To Do','in_progress'=>'In Progress','in_review'=>'In Review','done'=>'Done'] as $val=>$lbl)
                                             <option value="{{ $val }}" {{ $sub->status===$val?'selected':'' }}>{{ $lbl }}</option>
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="al-cell">
+                                    <div class="al-cell c-priority">
                                         <select class="al-pill al-pri" onchange="applyPri(this); patchField({{ $sub->id }}, 'priority', this.value)">
                                             @foreach(['low'=>'Low','medium'=>'Medium','high'=>'High','urgent'=>'Urgent'] as $val=>$lbl)
                                             <option value="{{ $val }}" {{ $sub->priority===$val?'selected':'' }}>{{ $lbl }}</option>
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="al-cell" style="border-right:none; justify-content:center;">
+                                    @foreach($customFields as $cf)
+                                        @php $scval = ($sub->custom_values[$cf->id] ?? '') ?: (($sub->custom_values[(string)$cf->id] ?? '')); @endphp
+                                        <div class="al-cell c-cf-{{ $cf->id }}">
+                                            @if($cf->type === 'select')
+                                                <select class="al-pill" style="background:var(--surface2); color:var(--text);" onchange="saveCustom({{ $sub->id }}, {{ $cf->id }}, this.value)">
+                                                    <option value="">—</option>
+                                                    @foreach(($cf->options ?? []) as $opt)
+                                                    <option value="{{ $opt }}" {{ $scval===$opt?'selected':'' }}>{{ $opt }}</option>
+                                                    @endforeach
+                                                </select>
+                                            @else
+                                                <input type="{{ $cf->type === 'number' ? 'number' : ($cf->type === 'date' ? 'date' : 'text') }}" class="al-cfinput" value="{{ $scval }}" onchange="saveCustom({{ $sub->id }}, {{ $cf->id }}, this.value)" placeholder="—">
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                    <div class="al-cell c-actions" style="border-right:none; justify-content:center;">
                                         <button onclick="deleteTask({{ $sub->id }})" title="Delete subtask" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         </button>
@@ -464,6 +549,7 @@
                     </div>
                 </div>
                 @endforeach
+                </div>
             </div>
         </div>
 
@@ -667,6 +753,57 @@
         if(box.getAttribute('data-open')==='1'){ box.style.display='none'; box.setAttribute('data-open','0'); if(chev) chev.style.transform='rotate(-90deg)'; }
         else { box.style.display='block'; box.setAttribute('data-open','1'); if(chev) chev.style.transform='rotate(0deg)'; }
     }
+
+    /* ================= CUSTOM FIELD VALUE ================= */
+    function saveCustom(taskId, fieldId, value){
+        fetch(`/${slug}/admin/tasks/${taskId}/custom`, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
+            body: JSON.stringify({ field_id: fieldId, value: value })
+        });
+    }
+
+    /* ================= COLUMN SHOW / HIDE ================= */
+    const CF_IDS = @json($customFields->pluck('id'));
+    const COL_DEFS = [
+        {key:'name', w:'minmax(360px,1.5fr)', min:360},
+        {key:'due', w:'150px', min:150},
+        {key:'assignee', w:'175px', min:175},
+        {key:'status', w:'150px', min:150},
+        {key:'priority', w:'130px', min:130},
+        ...CF_IDS.map(id=>({key:'cf-'+id, w:'160px', min:160})),
+        {key:'actions', w:'44px', min:44},
+    ];
+    const COL_KEY = 'cols_hidden_{{ $project->id }}';
+    function getHidden(){ try { return new Set(JSON.parse(localStorage.getItem(COL_KEY) || '[]')); } catch(e){ return new Set(); } }
+    function applyCols(){
+        const hidden = getHidden();
+        COL_DEFS.forEach(c=>{
+            if(c.key==='name' || c.key==='actions') return;
+            const show = !hidden.has(c.key);
+            document.querySelectorAll('.c-'+c.key).forEach(el=> el.style.display = show ? '' : 'none');
+        });
+        const visible = COL_DEFS.filter(c => c.key==='name' || c.key==='actions' || !hidden.has(c.key));
+        const tmpl = visible.map(c=>c.w).join(' ');
+        document.querySelectorAll('.al-gridrow').forEach(r=> r.style.gridTemplateColumns = tmpl);
+        const inner = document.querySelector('.al-table-inner');
+        if(inner) inner.style.minWidth = visible.reduce((a,c)=>a+c.min,0) + 'px';
+        document.querySelectorAll('.col-toggle').forEach(cb=>{ cb.checked = !hidden.has(cb.value); });
+    }
+    function toggleCol(key, visible){
+        const hidden = getHidden();
+        if(visible) hidden.delete(key); else hidden.add(key);
+        localStorage.setItem(COL_KEY, JSON.stringify([...hidden]));
+        applyCols();
+    }
+    document.addEventListener('click', function(e){
+        const menu=document.getElementById('colMenu');
+        if(menu && menu.classList.contains('show') && !menu.contains(e.target) && !e.target.closest('[onclick*="colMenu"]')){
+            menu.classList.remove('show');
+        }
+    });
+    document.addEventListener('DOMContentLoaded', applyCols);
+    applyCols();
 
     /* ================= LIST DRAG & DROP (reorder + move sections) ================= */
     if (window.Sortable) {

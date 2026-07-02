@@ -388,6 +388,32 @@ class TaskController extends Controller
     }
 
     /**
+     * Set a custom field value on a task (inline, AJAX).
+     */
+    public function setCustomValue(Request $request, string $slug, Task $task)
+    {
+        abort_if($task->company_id !== $this->companyId(), 403);
+
+        $data = $request->validate([
+            'field_id' => 'required|exists:custom_fields,id',
+            'value'    => 'nullable|string|max:2000',
+        ]);
+
+        // Ensure the field belongs to this task's project.
+        $belongs = \App\Models\CustomField::where('id', $data['field_id'])
+            ->where('project_id', $task->project_id)
+            ->where('company_id', $this->companyId())
+            ->exists();
+        abort_if(! $belongs, 403);
+
+        $values = $task->custom_values ?? [];
+        $values[$data['field_id']] = $data['value'];
+        $task->update(['custom_values' => $values]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
      * Inline single/partial field update from the List view (AJAX). Only updates the
      * fields actually present in the request.
      */
