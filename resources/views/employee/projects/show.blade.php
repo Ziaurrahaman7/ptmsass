@@ -342,9 +342,51 @@
                 {{-- Group --}}
                 <div style="position:relative;">
                     <button class="tb-btn" onclick="tbToggle(event,'tbGroup')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg> Group</button>
-                    <div id="tbGroup" class="tb-menu" style="width:160px;">
-                        <label class="tb-opt"><input type="radio" name="tbgroup" value="section" checked onchange="tbSetGroup('section')"> Section</label>
-                        <label class="tb-opt"><input type="radio" name="tbgroup" value="none" onchange="tbSetGroup('none')"> None</label>
+                    <div id="tbGroup" class="tb-menu" style="width:380px; max-width:92vw; padding:18px 20px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                            <span style="font-size:16px; font-weight:600; color:var(--text);">Groups</span>
+                            <button onclick="setGroupBy('section')" style="background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; font-family:var(--font);" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">Clear</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <svg width="12" height="16" viewBox="0 0 24 24" fill="var(--muted)" style="flex-shrink:0;"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+                            <div style="position:relative; flex:1;">
+                                <button onclick="toggleGroupFields(event)" style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:10px 12px; color:var(--text); font-size:14px; font-family:var(--font); cursor:pointer;">
+                                    <span style="display:flex; align-items:center; gap:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> <span id="gbLabel">Sections</span></span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                                <div id="gbFields" style="display:none; position:absolute; top:calc(100% + 6px); left:0; width:260px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); z-index:80; padding:6px; max-height:340px; overflow-y:auto;">
+                                    @php $groupFields = [
+                                        ['section','Sections','<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>'],
+                                        ['due','Due date','<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>'],
+                                        ['assignee','Assignee','<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/>'],
+                                        ['createdby','Created by','<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/>'],
+                                        ['created','Created on','<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'],
+                                        ['modified','Last modified on','<path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/>'],
+                                        ['status','Status','<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>'],
+                                        ['priority','Priority','<path d="M4 21V4M4 4l14 4-14 4"/>'],
+                                        ['none','None','<circle cx="12" cy="12" r="9"/><line x1="5" y1="5" x2="19" y2="19"/>'],
+                                    ]; @endphp
+                                    @foreach($groupFields as $gf)
+                                    <button class="tb-field" onclick="setGroupBy('{{ $gf[0] }}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">{!! $gf[2] !!}</svg> {{ $gf[1] }}</button>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <div style="position:relative;">
+                                <button onclick="toggleOrderMenu(event)" style="display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:10px 12px; color:var(--text); font-size:14px; font-family:var(--font); cursor:pointer; white-space:nowrap;">
+                                    <span id="goLabel">Custom order</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                                </button>
+                                <div id="goMenu" style="display:none; position:absolute; top:calc(100% + 6px); right:0; width:180px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); z-index:80; padding:6px;">
+                                    <button class="tb-field" onclick="setGroupOrder('custom')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> Custom order</button>
+                                    <button class="tb-field" onclick="setGroupOrder('asc')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5h10M11 9h7M11 13h4M4 17l3-3 3 3M7 14V4"/></svg> Ascending</button>
+                                    <button class="tb-field" onclick="setGroupOrder('desc')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5h4M11 9h7M11 13h10M4 7l3 3 3-3M7 6v10"/></svg> Descending</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="document.getElementById('gbFields').style.display='block'" style="margin-top:12px; display:flex; align-items:center; gap:7px; background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; font-family:var(--font);" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Change grouping
+                        </button>
                     </div>
                 </div>
                 {{-- Options --}}
@@ -395,7 +437,7 @@
                 </div>
 
                 @foreach($groups as $group)
-                <div x-data="{ open: true }">
+                <div x-data="{ open: true }" data-section-block data-sectionname="{{ $group['name'] }}">
                     {{-- Section header --}}
                     <div class="al-sechead" style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--surface);">
                         <svg @click="open=!open" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="open ? '' : 'transform:rotate(-90deg)'" style="color:var(--muted); transition:transform 0.15s; cursor:pointer; flex-shrink:0;"><path d="M19 9l-7 7-7-7"/></svg>
@@ -410,7 +452,7 @@
                                 $isMine = $task->assigned_to === $myId || $task->assignees->contains('id', $myId);
                                 $sm = $statusMeta[$task->status] ?? $statusMeta['todo'];
                             @endphp
-                            <div class="al-row al-gridrow" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" data-status="{{ $task->status }}" data-priority="{{ $task->priority }}" data-due="{{ $task->due_date?->format('Y-m-d') }}" data-assignees="{{ $task->assignees->pluck('id')->push($task->assigned_to)->filter()->unique()->implode(',') }}" data-createdby="{{ $task->created_by }}" data-created="{{ $task->created_at?->format('Y-m-d') }}" data-modified="{{ $task->updated_at?->format('Y-m-d') }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
+                            <div class="al-row al-gridrow" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" data-status="{{ $task->status }}" data-priority="{{ $task->priority }}" data-due="{{ $task->due_date?->format('Y-m-d') }}" data-assignees="{{ $task->assignees->pluck('id')->push($task->assigned_to)->filter()->unique()->implode(',') }}" data-createdby="{{ $task->created_by }}" data-created="{{ $task->created_at?->format('Y-m-d') }}" data-modified="{{ $task->updated_at?->format('Y-m-d') }}" data-section="{{ $group['id'] }}" data-sectionname="{{ $group['name'] }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
                                 <div class="al-cell c-name" style="gap:6px;">
                                     @if(($task->subtasks_count ?? 0) > 0)
@@ -727,7 +769,84 @@
         if(open) applyRowVisibility();
         document.querySelectorAll('.tb-menu').forEach(x=>x.classList.remove('show'));
     }
-    function tbSetGroup(mode){ const inner=document.querySelector('.al-table-inner'); if(mode==='none') inner.classList.add('group-none'); else inner.classList.remove('group-none'); }
+    /* ---- Group by (client-side re-bucket) ---- */
+    const GROUP_LABEL = { section:'Sections', due:'Due date', assignee:'Assignee', createdby:'Created by', created:'Created on', modified:'Last modified on', status:'Status', priority:'Priority', none:'None' };
+    const STATUS_LABEL = { todo:'To Do', in_progress:'In Progress', in_review:'In Review', done:'Done' };
+    function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+    function dateBucket(d){ if(!d) return {k:'zzz_none', l:'No date'}; if(dateInRange(d,'today')) return {k:'0_today', l:'Today'}; if(dateInRange(d,'this_week')) return {k:'1_week', l:'This week'}; if(dateInRange(d,'this_month')) return {k:'2_month', l:'This month'}; return {k:'3_older', l:'Older'}; }
+    function dueBucket(due, status){ if(!due) return {k:'zzz_none', l:'No due date'}; const today=fmtDate(new Date()); if(due<today && status!=='done') return {k:'0_over', l:'Overdue'}; if(dueInWeek(due,0)) return {k:'1_week', l:'This week'}; if(dueInWeek(due,1)) return {k:'2_next', l:'Next week'}; return {k:'3_later', l:'Later'}; }
+    function groupInfo(row, key){
+        if(key==='status') return [row.dataset.status||'todo', STATUS_LABEL[row.dataset.status]||row.dataset.status];
+        if(key==='priority') return [row.dataset.priority||'low', cap(row.dataset.priority)];
+        if(key==='assignee'){ const id=(row.dataset.assignees||'').split(',')[0]; return id ? [id, MEMBER_NAME[id]||('User '+id)] : ['zzz_none','Unassigned']; }
+        if(key==='createdby'){ const id=row.dataset.createdby; return id ? [id, MEMBER_NAME[id]||('User '+id)] : ['zzz_none','Unknown']; }
+        if(key==='created'){ const b=dateBucket(row.dataset.created); return [b.k,b.l]; }
+        if(key==='modified'){ const b=dateBucket(row.dataset.modified); return [b.k,b.l]; }
+        if(key==='due'){ const b=dueBucket(row.dataset.due, row.dataset.status); return [b.k,b.l]; }
+        return [row.dataset.section||'', row.dataset.sectionname||'(No section)'];
+    }
+    function orderGroupKeys(key, keys){
+        const fixed = { status:['todo','in_progress','in_review','done'], priority:['urgent','high','medium','low'] };
+        if(fixed[key]){ return keys.slice().sort((a,b)=> ((fixed[key].indexOf(a)+1)||99)-((fixed[key].indexOf(b)+1)||99)); }
+        return keys.slice().sort();
+    }
+    let GB_KEY='section', GB_ORDER='custom';
+    window.toggleGroupFields = e => { e.stopPropagation(); const m=document.getElementById('gbFields'); m.style.display = m.style.display==='block'?'none':'block'; };
+    window.toggleOrderMenu = e => { e.stopPropagation(); const m=document.getElementById('goMenu'); m.style.display = m.style.display==='block'?'none':'block'; };
+    window.setGroupOrder = o => { GB_ORDER=o; document.getElementById('goLabel').textContent = o==='asc'?'Ascending':o==='desc'?'Descending':'Custom order'; document.getElementById('goMenu').style.display='none'; setGroupBy(GB_KEY); };
+    function reorderSectionBlocks(){
+        const inner=document.querySelector('.al-table-inner');
+        const blocks=[...inner.querySelectorAll('[data-section-block]')];
+        blocks.sort((a,b)=>{ if(GB_ORDER==='asc') return (a.dataset.sectionname||'').localeCompare(b.dataset.sectionname||''); if(GB_ORDER==='desc') return (b.dataset.sectionname||'').localeCompare(a.dataset.sectionname||''); return (+a.dataset.secpos||0)-(+b.dataset.secpos||0); });
+        blocks.forEach(b=> inner.appendChild(b));
+    }
+    function restoreToSections(){
+        const gv=document.getElementById('groupedView');
+        if(gv){
+            gv.querySelectorAll('.al-row').forEach(row=>{
+                const list=document.querySelector('.al-tasklist[data-section-id="'+(row.dataset.section||'')+'"]');
+                if(list){ list.appendChild(row); const s=document.getElementById('subs-'+row.id.replace('row-','')); if(s) list.appendChild(s); }
+            });
+            gv.remove();
+        }
+        document.querySelectorAll('[data-section-block]').forEach(b=> b.style.display='');
+        document.querySelectorAll('.al-tasklist').forEach(list=>{
+            [...list.querySelectorAll(':scope > .al-row')].sort((a,b)=>(+a.dataset.pos||0)-(+b.dataset.pos||0)).forEach(r=>{ list.appendChild(r); const s=document.getElementById('subs-'+r.id.replace('row-','')); if(s) list.appendChild(s); });
+        });
+    }
+    function buildGrouped(key){
+        const rows=[...document.querySelectorAll('.al-tasklist > .al-row')];
+        const groups=new Map();
+        rows.forEach(row=>{ const [k,l]=groupInfo(row,key); if(!groups.has(k)) groups.set(k,{label:l, rows:[]}); groups.get(k).rows.push(row); });
+        document.querySelectorAll('[data-section-block]').forEach(b=> b.style.display='none');
+        const gv=document.createElement('div'); gv.id='groupedView';
+        let orderedKeys=[...groups.keys()];
+        if(GB_ORDER==='asc') orderedKeys.sort((a,b)=> groups.get(a).label.localeCompare(groups.get(b).label));
+        else if(GB_ORDER==='desc') orderedKeys.sort((a,b)=> groups.get(b).label.localeCompare(groups.get(a).label));
+        else orderedKeys=orderGroupKeys(key, orderedKeys);
+        orderedKeys.forEach(k=>{
+            const g=groups.get(k);
+            const head=document.createElement('div'); head.className='al-sechead'; head.style.cssText='display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--surface); cursor:pointer;';
+            head.innerHTML=`<svg class="gh-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--muted); transition:transform 0.15s;"><path d="M19 9l-7 7-7-7"/></svg><span style="font-size:13px; font-weight:600; color:var(--text);">${g.label}</span><span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">${g.rows.length}</span>`;
+            const listDiv=document.createElement('div'); listDiv.className='al-tasklist';
+            head.onclick=()=>{ const open=listDiv.style.display!=='none'; listDiv.style.display=open?'none':''; head.querySelector('.gh-chev').style.transform=open?'rotate(-90deg)':''; };
+            g.rows.forEach(row=>{ listDiv.appendChild(row); const s=document.getElementById('subs-'+row.id.replace('row-','')); if(s) listDiv.appendChild(s); });
+            gv.appendChild(head); gv.appendChild(listDiv);
+        });
+        document.querySelector('.al-table-inner').appendChild(gv);
+        applyRowVisibility();
+    }
+    function setGroupBy(key){
+        GB_KEY=key;
+        document.getElementById('gbFields').style.display='none';
+        document.getElementById('gbLabel').textContent = GROUP_LABEL[key] || 'Sections';
+        const inner=document.querySelector('.al-table-inner');
+        restoreToSections();
+        inner.classList.remove('group-none');
+        if(key==='section'){ if(GB_ORDER!=='custom') reorderSectionBlocks(); return; }
+        if(key==='none'){ inner.classList.add('group-none'); return; }
+        buildGrouped(key);
+    }
     const PRIO_ORDER={urgent:0,high:1,medium:2,low:3}, STAT_ORDER={todo:0,in_progress:1,in_review:2,done:3};
     function tbSetSort(key){
         document.querySelectorAll('.al-tasklist').forEach(list=>{
@@ -747,6 +866,7 @@
         });
     }
     document.querySelectorAll('.al-tasklist').forEach(list=>{ [...list.querySelectorAll(':scope > .al-row')].forEach((r,i)=> r.dataset.pos=i); });
+    document.querySelectorAll('[data-section-block]').forEach((b,i)=> b.dataset.secpos=i);
 
     function toggleSubs(id, el){
         const box=document.getElementById('subs-'+id); if(!box) return;
