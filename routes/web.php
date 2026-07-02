@@ -44,6 +44,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     // Sections
     Route::post('projects/{project}/sections', [CompanySectionController::class, 'store'])->name('sections.store');
     Route::patch('sections/{section}', [CompanySectionController::class, 'update'])->name('sections.update');
+    Route::post('sections/{section}/duplicate', [CompanySectionController::class, 'duplicate'])->name('sections.duplicate');
     Route::delete('sections/{section}', [CompanySectionController::class, 'destroy'])->name('sections.destroy');
     Route::post('tasks/{task}/comments', [CompanyTaskController::class, 'storeComment'])->name('tasks.comments.store');
     Route::post('tasks/{task}/attachments', [CompanyTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');

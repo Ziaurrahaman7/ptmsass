@@ -65,6 +65,20 @@
         .fg-opt { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--text); cursor:pointer; }
         .fg-opt input { width:15px; height:15px; cursor:pointer; }
         .group-none .al-sechead { display:none; }
+        .sec-actions { visibility:hidden; opacity:0; transition:opacity 0.12s; }
+        .al-sechead:hover .sec-actions, .sec-actions.pinned { visibility:visible; opacity:1; }
+        .sa-btn { background:none; border:none; color:var(--muted); cursor:pointer; padding:4px 6px; border-radius:6px; display:flex; align-items:center; }
+        .sa-btn:hover { color:var(--text); background:var(--surface2); }
+        .sec-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; width:250px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); z-index:70; padding:6px; }
+        .sec-menu.show { display:block; }
+        .sec-mi { display:flex; align-items:center; justify-content:flex-start; gap:10px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:13px; font-family:var(--font); cursor:pointer; padding:8px 10px; border-radius:7px; position:relative; }
+        .sec-mi:hover { background:var(--surface2); }
+        .sec-mi > svg { color:var(--muted); flex-shrink:0; }
+        .sec-mi.has-sub > svg:last-of-type { margin-left:auto; }
+        .sec-sub { display:none; position:absolute; left:calc(100% + 4px); top:-6px; width:200px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); padding:6px; z-index:80; }
+        .sec-mi.has-sub:hover .sec-sub { display:block; }
+        .sec-sub button { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:13px; font-family:var(--font); cursor:pointer; padding:8px 10px; border-radius:7px; }
+        .sec-sub button:hover { background:var(--surface2); }
         [x-cloak]{display:none!important;}
     </style>
 
@@ -435,6 +449,32 @@
                         <svg @click="open=!open" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="open ? '' : 'transform:rotate(-90deg)'" style="color:var(--muted); transition:transform 0.15s; cursor:pointer; flex-shrink:0;"><path d="M19 9l-7 7-7-7"/></svg>
                         <span style="font-size:13px; font-weight:600; color:{{ $group['id'] ? 'var(--text)' : 'var(--muted)' }};">{{ $group['name'] }}</span>
                         <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $group['tasks']->count() }}</span>
+                        <div class="sec-actions" style="display:flex; align-items:center; gap:2px;">
+                            <div style="position:relative;">
+                                <button type="button" class="sa-btn" onclick="toggleSecMenu(event, '{{ $group['id'] ?: 'none' }}')" title="Section options">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+                                </button>
+                                <div id="secmenu-{{ $group['id'] ?: 'none' }}" class="sec-menu">
+                                    <div class="sec-mi has-sub">
+                                        <span style="display:flex; align-items:center; gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg> Expand or collapse subtasks</span>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                                        <div class="sec-sub">
+                                            <button onclick="sectionSubs(this, true)">Expand all</button>
+                                            <button onclick="sectionSubs(this, false)">Collapse all</button>
+                                        </div>
+                                    </div>
+                                    <div class="sec-mi has-sub">
+                                        <span style="display:flex; align-items:center; gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg> Expand or collapse groups</span>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                                        <div class="sec-sub">
+                                            <button onclick="allGroups(true); closeSecMenus()">Expand all groups</button>
+                                            <button onclick="allGroups(false); closeSecMenus()">Collapse all groups</button>
+                                        </div>
+                                    </div>
+                                    <button class="sec-mi" onclick="hideEmptyGroups()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10 10 0 016 6m2-2a10 10 0 0114 8 10 10 0 01-1.5 3M1 1l22 22"/></svg> Hide all empty groups</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Rows --}}
@@ -875,6 +915,29 @@
         if(box.getAttribute('data-open')==='1'){ box.style.display='none'; box.setAttribute('data-open','0'); if(chev) chev.style.transform='rotate(-90deg)'; }
         else { box.style.display='block'; box.setAttribute('data-open','1'); if(chev) chev.style.transform='rotate(0deg)'; }
     }
+
+    /* ---- section header ... menu (view-only) ---- */
+    function closeSecMenus(){ document.querySelectorAll('.sec-menu.show').forEach(m=>m.classList.remove('show')); document.querySelectorAll('.sec-actions.pinned').forEach(a=>a.classList.remove('pinned')); }
+    function toggleSecMenu(e, id){
+        e.stopPropagation();
+        const menu=document.getElementById('secmenu-'+id); const open=menu.classList.contains('show');
+        closeSecMenus();
+        if(!open){ menu.classList.add('show'); menu.closest('.sec-actions').classList.add('pinned'); }
+    }
+    function sectionSubs(btn, open){
+        const block=btn.closest('[data-section-block]');
+        if(block){
+            block.querySelectorAll('[id^="subs-"]').forEach(box=>{ box.style.display=open?'block':'none'; box.setAttribute('data-open', open?'1':'0'); });
+            block.querySelectorAll('.al-chev').forEach(ch=> ch.style.transform=open?'rotate(0deg)':'rotate(-90deg)');
+        }
+        closeSecMenus();
+    }
+    function allGroups(open){ document.querySelectorAll('[data-section-block]').forEach(b=>{ try { if(window.Alpine) Alpine.$data(b).open = open; } catch(e){} }); }
+    function hideEmptyGroups(){
+        document.querySelectorAll('[data-section-block]').forEach(b=>{ const has=b.querySelector('.al-tasklist > .al-row'); if(!has) b.style.display = b.style.display==='none' ? '' : 'none'; });
+        closeSecMenus();
+    }
+    document.addEventListener('click', function(e){ if(!e.target.closest('.sec-actions')) closeSecMenus(); });
 
     /* ================= COLUMN SHOW / HIDE ================= */
     const CF_IDS = @json($customFields->pluck('id'));

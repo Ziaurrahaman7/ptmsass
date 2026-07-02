@@ -45,6 +45,30 @@ class SectionController extends Controller
         return back()->with('success', 'Section renamed.');
     }
 
+    public function duplicate(string $slug, Section $section)
+    {
+        abort_if($section->company_id !== $this->companyId(), 403);
+
+        $new = Section::create([
+            'company_id' => $this->companyId(),
+            'project_id' => $section->project_id,
+            'name'       => $section->name . ' (copy)',
+            'position'   => (int) $section->project->sections()->max('position') + 1,
+        ]);
+
+        $tasks = \App\Models\Task::where('section_id', $section->id)
+            ->whereNull('parent_task_id')->get();
+
+        foreach ($tasks as $t) {
+            $copy = $t->replicate(['created_at', 'updated_at']);
+            $copy->section_id = $new->id;
+            $copy->save();
+            $copy->assignees()->sync($t->assignees->pluck('id')->all());
+        }
+
+        return back()->with('success', 'Section duplicated.');
+    }
+
     public function destroy(string $slug, Section $section)
     {
         abort_if($section->company_id !== $this->companyId(), 403);

@@ -38,6 +38,21 @@
         .col-menu.show { display:block !important; }
         .al-cfhead .al-cfdel { opacity:0; transition:opacity 0.12s; }
         .al-cfhead:hover .al-cfdel { opacity:1; }
+        .sec-actions { visibility:hidden; opacity:0; transition:opacity 0.12s; }
+        .al-sechead:hover .sec-actions, .sec-actions.pinned { visibility:visible; opacity:1; }
+        .sa-btn { background:none; border:none; color:var(--muted); cursor:pointer; padding:4px 6px; border-radius:6px; display:flex; align-items:center; }
+        .sa-btn:hover { color:var(--text); background:var(--surface2); }
+        .sec-menu { display:none; position:absolute; top:calc(100% + 6px); left:0; width:250px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); z-index:70; padding:6px; }
+        .sec-menu.show { display:block; }
+        .sec-mi { display:flex; align-items:center; justify-content:flex-start; gap:10px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:13px; font-family:var(--font); cursor:pointer; padding:8px 10px; border-radius:7px; position:relative; }
+        .sec-mi:hover { background:var(--surface2); }
+        .sec-mi > svg { color:var(--muted); flex-shrink:0; }
+        .sec-mi.has-sub > svg:last-of-type { margin-left:auto; }
+        .sec-sub { display:none; position:absolute; left:calc(100% + 4px); top:-6px; width:200px; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); padding:6px; z-index:80; }
+        .sec-mi.has-sub:hover .sec-sub { display:block; }
+        .sec-sub button { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:13px; font-family:var(--font); cursor:pointer; padding:8px 10px; border-radius:7px; }
+        .sec-sub button:hover { background:var(--surface2); }
+        .sec-sub button svg { color:var(--muted); flex-shrink:0; }
         .tb-btn { display:flex; align-items:center; gap:6px; background:none; border:none; color:var(--muted); font-size:13px; font-family:var(--font); cursor:pointer; padding:6px 10px; border-radius:7px; }
         .tb-btn:hover { color:var(--text); background:var(--surface2); }
         .tb-menu { display:none; position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:60; padding:8px; text-align:left; }
@@ -539,16 +554,57 @@
                         <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $group['tasks']->count() }}</span>
 
                         @if($group['id'])
-                        <div style="margin-left:auto; display:flex; align-items:center; gap:2px;">
-                            <button type="button" onclick="toggleSecRename({{ $group['id'] }})" title="Rename section" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                        <div class="sec-actions" style="display:flex; align-items:center; gap:2px;">
+                            <button type="button" class="sa-btn" onclick="event.stopPropagation(); focusSectionAdd(this)" title="Add task to section">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </button>
-                            <form method="POST" action="{{ route('company.sections.destroy', [$slug, $group['id']]) }}" onsubmit="return confirm('Delete section “{{ addslashes($group['name']) }}”? Its tasks move to (No section).')" style="display:inline;">
-                                @csrf @method('DELETE')
-                                <button type="submit" title="Delete section" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            <div style="position:relative;">
+                                <button type="button" class="sa-btn" onclick="toggleSecMenu(event, {{ $group['id'] }})" title="Section options">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
                                 </button>
-                            </form>
+                                <div id="secmenu-{{ $group['id'] }}" class="sec-menu">
+                                    <div class="sec-mi has-sub">
+                                        <span style="display:flex; align-items:center; gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg> Add rule to section</span>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                                        <div class="sec-sub" style="width:300px;">
+                                            <button onclick="alert('Automation rules (AI Studio) are an Asana feature and are not available in this app.')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New rule</button>
+                                            <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; padding:8px 10px 4px;">Suggested AI Studio rules</div>
+                                            <div style="padding:8px 10px; opacity:0.55;"><div style="font-size:13px; color:var(--text);">↕ Smart section sorting</div><div style="font-size:11px; color:var(--muted);">Automatically sort relevant tasks into this section</div></div>
+                                            <div style="padding:8px 10px; opacity:0.55;"><div style="font-size:13px; color:var(--text);">✎ Automatically name tasks</div><div style="font-size:11px; color:var(--muted);">Ensures consistent naming for tasks in this section</div></div>
+                                            <div style="padding:8px 10px; opacity:0.55;"><div style="font-size:13px; color:var(--text);">💬 Summarize work that's been done</div><div style="font-size:11px; color:var(--muted);">Writes a summary when a task moves here</div></div>
+                                            <div style="font-size:11px; color:var(--muted); padding:8px 10px; border-top:1px solid var(--border);">Automation is not available in this app.</div>
+                                        </div>
+                                    </div>
+                                    <button class="sec-mi" onclick="toggleSecRename({{ $group['id'] }}); closeSecMenus()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg> Rename section</button>
+                                    <div class="sec-mi has-sub">
+                                        <span style="display:flex; align-items:center; gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Add section</span>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                                        <div class="sec-sub"><button onclick="focusAddSectionInput(); closeSecMenus()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New section</button></div>
+                                    </div>
+                                    <button class="sec-mi" onclick="if(confirm('Duplicate this section and its tasks?')) document.getElementById('secdup-{{ $group['id'] }}').submit()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Duplicate section</button>
+                                    <div class="sec-mi has-sub">
+                                        <span style="display:flex; align-items:center; gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg> Expand or collapse subtasks</span>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                                        <div class="sec-sub">
+                                            <button onclick="sectionSubs(this, true)">Expand all</button>
+                                            <button onclick="sectionSubs(this, false)">Collapse all</button>
+                                        </div>
+                                    </div>
+                                    <div class="sec-mi has-sub">
+                                        <span style="display:flex; align-items:center; gap:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg> Expand or collapse groups</span>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                                        <div class="sec-sub">
+                                            <button onclick="allGroups(true); closeSecMenus()">Expand all groups</button>
+                                            <button onclick="allGroups(false); closeSecMenus()">Collapse all groups</button>
+                                        </div>
+                                    </div>
+                                    <button class="sec-mi" onclick="hideEmptyGroups()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10 10 0 016 6m2-2a10 10 0 0114 8 10 10 0 01-1.5 3M1 1l22 22"/></svg> Hide all empty groups</button>
+                                    <div style="border-top:1px solid var(--border); margin:5px 0;"></div>
+                                    <button class="sec-mi" onclick="if(confirm('Delete section “{{ addslashes($group['name']) }}”? Its tasks move to (No section).')) document.getElementById('secdel-{{ $group['id'] }}').submit()" style="color:var(--danger);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Delete section</button>
+                                </div>
+                            </div>
+                            <form id="secdel-{{ $group['id'] }}" method="POST" action="{{ route('company.sections.destroy', [$slug, $group['id']]) }}" style="display:none;">@csrf @method('DELETE')</form>
+                            <form id="secdup-{{ $group['id'] }}" method="POST" action="{{ route('company.sections.duplicate', [$slug, $group['id']]) }}" style="display:none;">@csrf</form>
                         </div>
                         @endif
                     </div>
@@ -901,6 +957,43 @@
         name.style.display = showing ? 'inline' : 'none';
         if(!showing){ form.querySelector('input[name=name]').focus(); }
     }
+
+    /* ---- section header + / ... menu ---- */
+    function closeSecMenus(){ document.querySelectorAll('.sec-menu.show').forEach(m=>m.classList.remove('show')); document.querySelectorAll('.sec-actions.pinned').forEach(a=>a.classList.remove('pinned')); }
+    function toggleSecMenu(e, id){
+        e.stopPropagation();
+        const menu=document.getElementById('secmenu-'+id); const open=menu.classList.contains('show');
+        closeSecMenus();
+        if(!open){ menu.classList.add('show'); menu.closest('.sec-actions').classList.add('pinned'); }
+    }
+    function focusSectionAdd(btn){
+        const block=btn.closest('[data-section-block]');
+        const inp=block && block.querySelector('.al-addrow input[name="title"]');
+        if(inp){ inp.focus(); inp.scrollIntoView({block:'center', behavior:'smooth'}); }
+    }
+    function focusAddSectionInput(){
+        const inp=document.querySelector('input[name="name"][placeholder^="Add section"]');
+        if(inp){ inp.focus(); inp.scrollIntoView({block:'center', behavior:'smooth'}); }
+    }
+    function sectionSubs(btn, open){
+        const block=btn.closest('[data-section-block]');
+        if(block){
+            block.querySelectorAll('[id^="subs-"]').forEach(box=>{ box.style.display=open?'block':'none'; box.setAttribute('data-open', open?'1':'0'); });
+            block.querySelectorAll('.al-chev').forEach(ch=> ch.style.transform=open?'rotate(0deg)':'rotate(-90deg)');
+        }
+        closeSecMenus();
+    }
+    function allGroups(open){
+        document.querySelectorAll('[data-section-block]').forEach(b=>{ try { if(window.Alpine) Alpine.$data(b).open = open; } catch(e){} });
+    }
+    function hideEmptyGroups(){
+        document.querySelectorAll('[data-section-block]').forEach(b=>{
+            const has=b.querySelector('.al-tasklist > .al-row');
+            if(!has) b.style.display = b.style.display==='none' ? '' : 'none';
+        });
+        closeSecMenus();
+    }
+    document.addEventListener('click', function(e){ if(!e.target.closest('.sec-actions')) closeSecMenus(); });
 
     /* ---- toolbar ---- */
     function focusFirstAdd(){
