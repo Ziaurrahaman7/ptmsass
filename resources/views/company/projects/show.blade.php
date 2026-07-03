@@ -53,6 +53,8 @@
         .sec-sub button { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:13px; font-family:var(--font); cursor:pointer; padding:8px 10px; border-radius:7px; }
         .sec-sub button:hover { background:var(--surface2); }
         .sec-sub button svg { color:var(--muted); flex-shrink:0; }
+        .mv-opt { display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:13px; font-family:var(--font); cursor:pointer; padding:8px 10px; border-radius:7px; }
+        .mv-opt:hover { background:var(--surface2); }
         .tb-btn { display:flex; align-items:center; gap:6px; background:none; border:none; color:var(--muted); font-size:13px; font-family:var(--font); cursor:pointer; padding:6px 10px; border-radius:7px; }
         .tb-btn:hover { color:var(--text); background:var(--surface2); }
         .tb-menu { display:none; position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.4); z-index:60; padding:8px; text-align:left; }
@@ -631,8 +633,11 @@
                                         @if($task->status === 'done')<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                     </div>
                                     <input class="al-name-input" value="{{ $task->title }}" onchange="patchField({{ $task->id }}, 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
-                                    {{-- Hover-only meta/actions: comment · attachment · open details --}}
+                                    {{-- Hover-only meta/actions: move · comment · attachment · open details --}}
                                     <div class="al-row-actions">
+                                        <button class="al-metaicon" onclick="openMoveMenu(event, {{ $task->id }})" title="Move to section">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7l-4 4 4 4M4 11h10M16 17l4-4-4-4M20 13H10"/></svg>
+                                        </button>
                                         <button class="al-metaicon" onclick="openPanel({{ $task->id }})" title="Comments">
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
                                             @if(($task->comments_count ?? 0) > 0){{ $task->comments_count }}@endif
@@ -995,6 +1000,39 @@
     }
     document.addEventListener('click', function(e){ if(!e.target.closest('.sec-actions')) closeSecMenus(); });
 
+    /* ---- move task to section (row hover) ---- */
+    let moveTaskId=null;
+    function openMoveMenu(e, taskId){
+        e.stopPropagation();
+        moveTaskId=taskId;
+        const cur=document.getElementById('row-'+taskId)?.dataset.section || '';
+        const m=document.getElementById('moveMenu');
+        m.innerHTML = '<div class="tb-mlabel" style="padding-left:8px;">Move between sections</div>'
+            + SECTIONS.map(s=>`<button class="mv-opt" onclick="moveTaskToSection(${taskId}, '${s.id}')">${String(s.id)===cur?'✓ ':'　'}${(s.name||'').replace(/</g,'&lt;')}</button>`).join('')
+            + `<button class="mv-opt" onclick="moveTaskToSection(${taskId}, '')">${cur===''?'✓ ':'　'}(No section)</button>`;
+        const r=e.currentTarget.getBoundingClientRect();
+        m.style.left=Math.min(r.left-100, window.innerWidth-236)+'px';
+        m.style.top='auto';
+        m.style.bottom=(window.innerHeight - r.top + 4)+'px';
+        m.style.display='block';
+    }
+    function moveTaskToSection(taskId, sectionId){
+        document.getElementById('moveMenu').style.display='none';
+        patchField(taskId, 'section_id', sectionId);
+        const row=document.getElementById('row-'+taskId);
+        if(!row) return;
+        row.dataset.section = sectionId;
+        if(typeof GB_KEY!=='undefined' && GB_KEY!=='section') return; // grouped view: just save
+        const list=document.querySelector('.al-tasklist[data-section-id="'+sectionId+'"]');
+        if(list){
+            const add=list.querySelector(':scope > .al-addrow');
+            if(add) list.insertBefore(row, add); else list.appendChild(row);
+            const subs=document.getElementById('subs-'+taskId);
+            if(subs){ if(add) list.insertBefore(subs, add); else list.appendChild(subs); }
+        }
+    }
+    document.addEventListener('click', function(e){ const m=document.getElementById('moveMenu'); if(m && m.style.display==='block' && !m.contains(e.target) && !e.target.closest('[onclick*="openMoveMenu"]')) m.style.display='none'; });
+
     /* ---- toolbar ---- */
     function focusFirstAdd(){
         const input=document.querySelector('.al-addrow input[name=title]');
@@ -1004,6 +1042,7 @@
     const MY_ID = {{ auth()->id() }};
     const MEMBERS = @json($members->map(fn($m)=>['id'=>$m->id,'name'=>$m->name])->values());
     const MEMBER_NAME = {}; MEMBERS.forEach(m=> MEMBER_NAME[String(m.id)] = m.name);
+    const SECTIONS = @json($sections->map(fn($s)=>['id'=>$s->id,'name'=>$s->name])->values());
     let TB = { q:'', status:new Set(), priority:new Set(), qf:new Set(), assignee:new Set(), createdby:new Set(), created:new Set(), modified:new Set(), hideDone:false, fields:new Set() };
 
     function tbToggle(e, id){
@@ -1470,6 +1509,9 @@
     /* ESC closes panel */
     document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ const d=document.getElementById('taskDrawer'); if(d.classList.contains('open')) closePanel(); } });
     </script>
+
+    {{-- Move-to-section menu --}}
+    <div id="moveMenu" style="display:none; position:fixed; width:220px; max-height:300px; overflow-y:auto; background:var(--surface); border:1px solid var(--border2); border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.45); z-index:120; padding:6px;"></div>
 
     {{-- Options / View settings drawer --}}
     <div id="optDrawer" class="opt-drawer">
