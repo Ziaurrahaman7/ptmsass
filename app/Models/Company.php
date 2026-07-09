@@ -26,6 +26,11 @@ class Company extends Model
         return $this->hasMany(User::class);
     }
 
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    }
+
     public function admin()
     {
         return $this->hasOne(User::class)->where('role', 'company_admin');

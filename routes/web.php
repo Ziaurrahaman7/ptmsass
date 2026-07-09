@@ -9,6 +9,8 @@ use App\Http\Controllers\Company\CustomFieldController as CompanyCustomFieldCont
 use App\Http\Controllers\Company\SectionController as CompanySectionController;
 use App\Http\Controllers\Company\TaskController as CompanyTaskController;
 use App\Http\Controllers\Company\MemberController as CompanyMemberController;
+use App\Http\Controllers\Company\TeamController as CompanyTeamController;
+use App\Http\Controllers\Company\TeamFieldController as CompanyTeamFieldController;
 use App\Http\Controllers\Company\NotificationController as CompanyNotificationController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
@@ -68,7 +70,25 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::get('members', [CompanyMemberController::class, 'index'])->name('members.index');
     Route::post('members', [CompanyMemberController::class, 'store'])->name('members.store');
     Route::patch('members/{user}/toggle', [CompanyMemberController::class, 'toggle'])->name('members.toggle');
-    
+
+    // Team
+    Route::post('teams', [CompanyTeamController::class, 'store'])->name('teams.store');
+    Route::get('teams/{team}', [CompanyTeamController::class, 'overview'])->name('team.overview');
+    Route::put('teams/{team}', [CompanyTeamController::class, 'update'])->name('teams.update');
+    Route::post('teams/{team}/members', [CompanyTeamController::class, 'addMembers'])->name('teams.members.add');
+    Route::patch('teams/{team}/members/{user}/title', [CompanyTeamController::class, 'updateMemberTitle'])->name('teams.members.title');
+    Route::delete('teams/{team}/members/{user}', [CompanyTeamController::class, 'removeMember'])->name('teams.members.remove');
+    Route::post('teams/{team}/fields', [CompanyTeamFieldController::class, 'store'])->name('teams.fields.store');
+    Route::delete('teams/{team}/fields/{field}', [CompanyTeamFieldController::class, 'destroy'])->name('teams.fields.destroy');
+    Route::patch('teams/{team}/members/{user}/field', [CompanyTeamFieldController::class, 'setValue'])->name('teams.members.field');
+    Route::post('teams/{team}/messages', [CompanyTeamController::class, 'storeMessage'])->name('teams.messages.store');
+    Route::post('teams/{team}/docs', [CompanyTeamController::class, 'storeDoc'])->name('teams.docs.store');
+    Route::delete('teams/{team}/docs/{doc}', [CompanyTeamController::class, 'destroyDoc'])->name('teams.docs.destroy');
+    Route::post('teams/{team}/notes', [CompanyTeamController::class, 'storeNote'])->name('teams.notes.store');
+    Route::patch('teams/{team}/notes/{note}', [CompanyTeamController::class, 'updateNote'])->name('teams.notes.update');
+    Route::delete('teams/{team}/notes/{note}', [CompanyTeamController::class, 'destroyNote'])->name('teams.notes.destroy');
+    Route::delete('teams/{team}', [CompanyTeamController::class, 'destroy'])->name('teams.destroy');
+
     // Notifications
     Route::get('notifications', [CompanyNotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/unread', [CompanyNotificationController::class, 'unread'])->name('notifications.unread');

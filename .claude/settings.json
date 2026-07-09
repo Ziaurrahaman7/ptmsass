@@ -3,7 +3,13 @@
     "allow": [
       "PowerShell(php artisan view:clear 2>&1; php artisan view:cache 2>&1; Write-Output \"EXIT: $LASTEXITCODE\")",
       "PowerShell(php artisan migrate 2>&1; Write-Output \"EXIT: $LASTEXITCODE\")",
-      "PowerShell(php artisan route:list --name=projects.goal 2>&1; php -l app/Http/Controllers/Company/ProjectController.php; php artisan view:clear 2>&1; php artisan view:cache 2>&1; Write-Output \"EXIT: $LASTEXITCODE\")"
+      "PowerShell(php artisan route:list --name=projects.goal 2>&1; php -l app/Http/Controllers/Company/ProjectController.php; php artisan view:clear 2>&1; php artisan view:cache 2>&1; Write-Output \"EXIT: $LASTEXITCODE\")",
+      "PowerShell(php artisan migrate --force)",
+      "PowerShell(php artisan view:cache 2>&1)",
+      "PowerShell(php artisan view:clear 2>&1)",
+      "PowerShell(php artisan migrate --force 2>&1)",
+      "PowerShell(php -l app/Http/Controllers/Company/TeamFieldController.php)",
+      "PowerShell(php -l app/Http/Controllers/Company/TeamController.php)"
     ]
   }
 }

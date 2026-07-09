@@ -144,16 +144,42 @@
                 ->get(['id', 'name']);
             $activeProject = request()->route('project');
             $activeProjectId = is_object($activeProject) ? $activeProject->id : (int) $activeProject;
+            $sidebarTeams = \App\Models\Team::where('company_id', auth()->user()->company_id)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+            $activeTeam = request()->route('team');
+            $activeTeamId = is_object($activeTeam) ? $activeTeam->id : (int) $activeTeam;
         @endphp
         <nav style="flex:1; padding:10px 8px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
             <a href="{{ route('company.dashboard', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.dashboard') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
             </a>
+            <a href="{{ route('company.tasks.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.tasks.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                My Tasks
+            </a>
             <a href="{{ route('company.members.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.members.*') ? 'active' : '' }}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 Members
             </a>
+
+            {{-- Teams Dropdown --}}
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
+                <span class="ptm-section-title">Teams</span>
+                <button onclick="document.getElementById('createTeamModal').style.display='flex'" style="background:none; border:none; color:var(--muted); cursor:pointer; display:flex; padding:0;" title="New team" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+            @forelse($sidebarTeams as $sidebarTeam)
+                <a href="{{ route('company.team.overview', [$slug, $sidebarTeam->id]) }}"
+                   class="ptm-nav-link {{ $activeTeamId === $sidebarTeam->id ? 'active' : '' }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $sidebarTeam->name }}</span>
+                </a>
+            @empty
+                <div style="padding:6px 12px; font-size:11px; color:var(--muted); font-family:var(--mono);">No teams yet</div>
+            @endforelse
 
             {{-- Projects list --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
@@ -237,6 +263,53 @@
 
             {{ $slot }}
         </main>
+    </div>
+</div>
+
+{{-- Create Team Modal --}}
+<div id="createTeamModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--surface); border:1px solid var(--border2); border-radius:16px; width:100%; max-width:460px;">
+        <div style="padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:15px; font-weight:600; color:var(--text);">Create Team</span>
+            <button onclick="document.getElementById('createTeamModal').style.display='none'" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px;">✕</button>
+        </div>
+        <form method="POST" action="{{ route('company.teams.store', $slug) }}" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+            @csrf
+            <div>
+                <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TEAM NAME *</label>
+                <input type="text" name="name" class="ptm-input" style="width:100%;" placeholder="e.g. Design Team" required>
+            </div>
+            <div>
+                <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">DESCRIPTION</label>
+                <textarea name="description" rows="2" class="ptm-input" style="width:100%; resize:vertical;" placeholder="What does this team work on?"></textarea>
+            </div>
+            <div>
+                <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ADD MEMBERS</label>
+                <div class="custom-multiselect" style="position:relative;">
+                    <div class="multiselect-trigger" onclick="toggleMultiselectTeam(this)" style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; min-height:42px;">
+                        <div class="selected-users" style="display:flex; flex-wrap:wrap; gap:4px; flex:1;">
+                            <span style="font-size:13px; color:var(--muted);">Select members...</span>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="multiselect-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; margin-top:4px; background:var(--surface); border:1px solid var(--border2); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:1000; max-height:200px; overflow-y:auto;">
+                        <div style="padding:8px;">
+                            @foreach(auth()->user()->company->users()->where('is_active', true)->get() as $m)
+                            <label class="multiselect-option" data-user-id="{{ $m->id }}" data-user-name="{{ $m->name }}" data-user-initial="{{ strtoupper(substr($m->name,0,1)) }}" style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+                                <input type="checkbox" name="members[]" value="{{ $m->id }}" style="width:16px; height:16px; cursor:pointer;" onchange="updateSelectedUsersTeam(this)">
+                                <div style="width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center;">{{ strtoupper(substr($m->name,0,1)) }}</div>
+                                <span style="font-size:13px; color:var(--text);">{{ $m->name }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; padding-top:4px;">
+                <button type="submit" class="ptm-btn-primary">Create Team</button>
+                <button type="button" onclick="document.getElementById('createTeamModal').style.display='none'" class="ptm-btn-ghost">Cancel</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -342,6 +415,40 @@ document.addEventListener('click', function(e) {
 // Fetch notifications every 30 seconds
 fetchNotifications();
 setInterval(fetchNotifications, 30000);
+
+// Team multiselect
+function toggleMultiselectTeam(trigger) {
+    const dropdown = trigger.nextElementSibling;
+    const isVisible = dropdown.style.display === 'block';
+    document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
+    dropdown.style.display = isVisible ? 'none' : 'block';
+    trigger.querySelector('svg').style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function updateSelectedUsersTeam(checkbox) {
+    const container = checkbox.closest('.custom-multiselect');
+    const selectedDiv = container.querySelector('.selected-users');
+    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    selectedDiv.innerHTML = '';
+    if (checkedBoxes.length === 0) {
+        selectedDiv.innerHTML = '<span style="font-size:13px; color:var(--muted);">Select members...</span>';
+    } else {
+        checkedBoxes.forEach(cb => {
+            const option = cb.closest('.multiselect-option');
+            const badge = document.createElement('div');
+            badge.style.cssText = 'display:inline-flex; align-items:center; gap:4px; padding:4px 8px; background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.3); border-radius:6px; font-size:12px; color:var(--text);';
+            badge.innerHTML = `<div style="width:18px;height:18px;border-radius:4px;background:rgba(74,222,128,0.3);color:#4ade80;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;">${option.dataset.userInitial}</div><span>${option.dataset.userName}</span>`;
+            selectedDiv.appendChild(badge);
+        });
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-multiselect')) {
+        document.querySelectorAll('.multiselect-dropdown').forEach(d => d.style.display = 'none');
+        document.querySelectorAll('.multiselect-trigger svg').forEach(svg => svg.style.transform = 'rotate(0deg)');
+    }
+});
 </script>
 
 </body>
