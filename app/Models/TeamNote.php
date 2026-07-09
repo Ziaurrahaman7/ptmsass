@@ -10,6 +10,12 @@ class TeamNote extends Model
         'company_id', 'team_id', 'user_id', 'title', 'content',
     ];
 
+    protected $casts = [
+        'company_id' => 'integer',
+        'team_id'    => 'integer',
+        'user_id'    => 'integer',
+    ];
+
     public function team()
     {
         return $this->belongsTo(Team::class);

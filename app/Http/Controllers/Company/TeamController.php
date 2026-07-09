@@ -88,7 +88,9 @@ class TeamController extends Controller
             $team->members()->attach($data['members']);
         }
 
-        return back()->with('success', 'Team created.');
+        // Go straight to the new team (correct id + slug) so the user never has to guess the URL.
+        return redirect()->route('company.team.overview', ['slug' => $slug, 'team' => $team])
+            ->with('success', 'Team created.');
     }
 
     public function update(Request $request, string $slug, Team $team)

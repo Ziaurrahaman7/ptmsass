@@ -9,7 +9,9 @@
       "PowerShell(php artisan view:clear 2>&1)",
       "PowerShell(php artisan migrate --force 2>&1)",
       "PowerShell(php -l app/Http/Controllers/Company/TeamFieldController.php)",
-      "PowerShell(php -l app/Http/Controllers/Company/TeamController.php)"
+      "PowerShell(php -l app/Http/Controllers/Company/TeamController.php)",
+      "Bash(php -l app/Http/Controllers/Company/TeamController.php)",
+      "Bash(php -v)"
     ]
   }
 }

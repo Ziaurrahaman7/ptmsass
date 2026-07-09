@@ -8,6 +8,11 @@ class Team extends Model
 {
     protected $fillable = ['company_id', 'name', 'description'];
 
+    protected $casts = [
+        'id'         => 'integer',
+        'company_id' => 'integer',
+    ];
+
     public function company()
     {
         return $this->belongsTo(Company::class);
