@@ -164,6 +164,15 @@
                 Members
             </a>
 
+            {{-- Insights --}}
+            <div style="padding:14px 12px 6px;">
+                <span class="ptm-section-title">Insights</span>
+            </div>
+            <a href="{{ route('company.insights.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.insights.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Reporting
+            </a>
+
             {{-- Teams Dropdown --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
                 <span class="ptm-section-title">Teams</span>

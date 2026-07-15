@@ -12,6 +12,7 @@ use App\Http\Controllers\Company\MemberController as CompanyMemberController;
 use App\Http\Controllers\Company\TeamController as CompanyTeamController;
 use App\Http\Controllers\Company\TeamFieldController as CompanyTeamFieldController;
 use App\Http\Controllers\Company\NotificationController as CompanyNotificationController;
+use App\Http\Controllers\Company\InsightController as CompanyInsightController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
@@ -94,6 +95,10 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::get('notifications/unread', [CompanyNotificationController::class, 'unread'])->name('notifications.unread');
     Route::patch('notifications/{notification}/read', [CompanyNotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
     Route::post('notifications/mark-all-read', [CompanyNotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+
+    // Insights
+    Route::get('insights', [CompanyInsightController::class, 'index'])->name('insights.index');
+    Route::get('insights/{type}', [CompanyInsightController::class, 'show'])->name('insights.show');
 });
 
 // Employee routes — /{slug}/...
