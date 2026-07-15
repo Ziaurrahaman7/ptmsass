@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
+use App\Models\Dashboard;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Http\Request;
 
 class InsightController extends Controller
 {
@@ -59,9 +61,95 @@ class InsightController extends Controller
                 ->map(fn($t) => ['label' => User::find($t->created_by)?->name ?? 'Unknown', 'value' => $t->cnt])->values(),
         ];
 
+        $userDashboards = Dashboard::where('company_id', $companyId)
+            ->where('user_id', auth()->id())
+            ->latest()->get();
+
         return view('company.insights.index', compact(
-            'slug', 'completionRate', 'totalTasks', 'overdueCount', 'noDueDateCount', 'unassignedCount', 'chartData'
+            'slug', 'completionRate', 'totalTasks', 'overdueCount', 'noDueDateCount', 'unassignedCount', 'chartData', 'userDashboards'
         ));
+    }
+
+    // Store a new custom dashboard
+    public function storeDashboard(Request $request, string $slug)
+    {
+        $title = trim($request->title ?? '') ?: 'New Dashboard';
+
+        $dashboard = Dashboard::create([
+            'company_id'     => $this->companyId(),
+            'user_id'        => auth()->id(),
+            'title'          => $title,
+            'chart_style'    => $request->chart_style ?? 'bar',
+            'x_axis'         => $request->x_axis ?? 'assignee',
+            'report_on'      => $request->report_on ?? 'tasks',
+            'project_filter' => ($request->project_filter && $request->project_filter !== 'all') ? $request->project_filter : null,
+            'status_filter'  => ($request->status_filter  && $request->status_filter  !== 'all') ? $request->status_filter  : null,
+            'priority_filter'=> ($request->priority_filter && $request->priority_filter !== 'all') ? $request->priority_filter : null,
+            'date_range'     => ($request->date_range && $request->date_range !== 'all') ? $request->date_range : null,
+        ]);
+
+        return response()->json([
+            'url'   => route('company.insights.dashboards.show', [$slug, $dashboard->id]),
+            'id'    => $dashboard->id,
+            'title' => $dashboard->title,
+        ]);
+    }
+
+    // Show a saved custom dashboard
+    public function showDashboard(string $slug, Dashboard $dashboard)
+    {
+        abort_if($dashboard->company_id !== $this->companyId(), 403);
+
+        $companyId = $this->companyId();
+        $q = Task::where('company_id', $companyId);
+
+        if ($dashboard->project_filter) $q->where('project_id', $dashboard->project_filter);
+        if ($dashboard->status_filter)  $q->where('status', $dashboard->status_filter);
+        if ($dashboard->priority_filter) $q->where('priority', $dashboard->priority_filter);
+        if ($dashboard->date_range && $dashboard->date_range !== 'all') {
+            $q->whereDate('created_at', '>=', now()->subDays((int)$dashboard->date_range));
+        }
+
+        $chartData = $this->buildChartData($companyId, $dashboard->x_axis, clone $q);
+
+        return view('company.insights.dashboard', compact('slug', 'dashboard', 'chartData'));
+    }
+
+    public function destroyDashboard(string $slug, Dashboard $dashboard)
+    {
+        abort_if($dashboard->company_id !== $this->companyId(), 403);
+        $dashboard->delete();
+        return redirect()->route('company.insights.index', $slug);
+    }
+
+    private function buildChartData(int $companyId, string $xAxis, $baseQuery): array
+    {
+        return match($xAxis) {
+            'assignee' => User::where('company_id', $companyId)->where('role', 'employee')
+                ->withCount(['assignedTasks as cnt' => fn($q) => $q->where('company_id', $companyId)])
+                ->orderByDesc('cnt')->take(10)->get()
+                ->map(fn($u) => ['label' => $u->name, 'value' => $u->cnt])->values()->toArray(),
+            'project'  => Project::where('company_id', $companyId)
+                ->withCount('tasks as cnt')->orderByDesc('cnt')->take(8)->get()
+                ->map(fn($p) => ['label' => $p->name, 'value' => $p->cnt])->values()->toArray(),
+            'status'   => [
+                ['label' => 'Todo',        'value' => (clone $baseQuery)->where('status', 'todo')->count()],
+                ['label' => 'In Progress', 'value' => (clone $baseQuery)->where('status', 'in_progress')->count()],
+                ['label' => 'In Review',   'value' => (clone $baseQuery)->where('status', 'in_review')->count()],
+                ['label' => 'Done',        'value' => (clone $baseQuery)->where('status', 'done')->count()],
+            ],
+            'priority' => [
+                ['label' => 'Urgent', 'value' => (clone $baseQuery)->where('priority', 'urgent')->count()],
+                ['label' => 'High',   'value' => (clone $baseQuery)->where('priority', 'high')->count()],
+                ['label' => 'Medium', 'value' => (clone $baseQuery)->where('priority', 'medium')->count()],
+                ['label' => 'Low',    'value' => (clone $baseQuery)->where('priority', 'low')->count()],
+            ],
+            'due_date' => [
+                ['label' => 'Overdue',  'value' => (clone $baseQuery)->where('status', '!=', 'done')->whereNotNull('due_date')->whereDate('due_date', '<', today())->count()],
+                ['label' => 'On track', 'value' => (clone $baseQuery)->where('status', '!=', 'done')->whereDate('due_date', '>=', today())->count()],
+            ],
+            default => [],
+        };
     }
 
     // Dashboard detail page

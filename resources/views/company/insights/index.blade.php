@@ -102,7 +102,7 @@
 
     {{-- Create button --}}
     <div style="margin-bottom: 32px;">
-        <button class="rep-create-btn" onclick="document.getElementById('addChartModal').style.display='flex'">
+        <button class="rep-create-btn" onclick="openChartConfig('Custom Chart','custom','bar','assignee')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Create
         </button>
@@ -141,12 +141,13 @@
 
         {{-- LIST VIEW --}}
         <div id="viewList">
-            <div class="rep-create-row">
+            <div class="rep-create-row" onclick="openChartConfig('Custom Chart','custom','bar','assignee')" style="cursor:pointer;">
                 <div class="rep-create-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </div>
                 <span style="font-size: 14px; color: var(--muted);">Create dashboard</span>
             </div>
+            {{-- Built-in dashboards --}}
             @foreach($dashboards as $db)
             <a href="{{ route('company.insights.show', [$slug, $db['type']]) }}" class="rep-row">
                 <div class="rep-icon {{ $db['icon'] }}">
@@ -159,12 +160,27 @@
                 <div class="rep-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</div>
             </a>
             @endforeach
+            {{-- User-created dashboards --}}
+            <div id="userDashboardsList">
+            @foreach($userDashboards as $ud)
+            <a href="{{ route('company.insights.dashboards.show', [$slug, $ud->id]) }}" class="rep-row">
+                <div class="rep-icon rep-icon-indigo">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text);">{{ $ud->title }}</div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Custom dashboard · {{ $ud->chart_style }} · {{ $ud->x_axis }}</div>
+                </div>
+                <div class="rep-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</div>
+            </a>
+            @endforeach
+            </div>
         </div>
 
         {{-- GRID VIEW --}}
         <div id="viewGrid" style="display:none;">
             <div class="rep-grid-wrap">
-                <div class="rep-grid-create">
+                <div class="rep-grid-create" onclick="openChartConfig('Custom Chart','custom','bar','assignee')">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted)"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     <span style="font-size: 13px; color: var(--muted);">Create dashboard</span>
                 </div>
@@ -749,9 +765,41 @@ function updatePreview() {
 }
 
 function addChart() {
-    const title = document.getElementById('cfgTitleInput').value || 'New Chart';
-    alert('Chart "' + title + '" added to dashboard!');
-    closeConfigModal();
+    const titleInput = document.getElementById('cfgTitleInput');
+    const title = titleInput.value.trim() || document.getElementById('cfgChartTitle').textContent || 'New Dashboard';
+    titleInput.style.borderColor = '';
+
+    const btn = document.querySelector('.cfg-add-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    fetch('{{ route("company.insights.dashboards.store", $slug) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        body: JSON.stringify({
+            title:           title,
+            chart_style:     document.getElementById('cfgStyle').value,
+            x_axis:          document.getElementById('cfgXAxis').value,
+            report_on:       document.getElementById('cfgReportOn').value,
+            project_filter:  document.getElementById('cfgProject').value,
+            status_filter:   document.getElementById('cfgStatus').value,
+            priority_filter: document.getElementById('cfgPriority').value,
+            date_range:      document.getElementById('cfgDateRange').value,
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.url) window.location.href = data.url;
+        else { btn.disabled = false; btn.textContent = 'Add chart'; }
+    })
+    .catch(err => {
+        console.error(err);
+        btn.disabled = false;
+        btn.textContent = 'Add chart';
+    });
 }
 
 document.addEventListener('keydown', e => {
