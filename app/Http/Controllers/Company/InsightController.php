@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\Dashboard;
+use App\Models\DashboardWidget;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -101,18 +102,67 @@ class InsightController extends Controller
         abort_if($dashboard->company_id !== $this->companyId(), 403);
 
         $companyId = $this->companyId();
-        $q = Task::where('company_id', $companyId);
+        $widgets = $dashboard->widgets;
 
+        // Build chart data for each widget
+        $widgetsData = $widgets->map(function ($widget) use ($companyId) {
+            $q = Task::where('company_id', $companyId);
+            if ($widget->project_filter) $q->where('project_id', $widget->project_filter);
+            if ($widget->status_filter)  $q->where('status', $widget->status_filter);
+            if ($widget->priority_filter) $q->where('priority', $widget->priority_filter);
+            if ($widget->date_range && $widget->date_range !== 'all') {
+                $q->whereDate('created_at', '>=', now()->subDays((int)$widget->date_range));
+            }
+            return [
+                'widget'    => $widget,
+                'chartData' => $this->buildChartData($companyId, $widget->x_axis, clone $q),
+            ];
+        });
+
+        $projects = Project::where('company_id', $companyId)->orderBy('name')->get();
+
+        // Legacy single-chart data (for backward compat)
+        $q = Task::where('company_id', $companyId);
         if ($dashboard->project_filter) $q->where('project_id', $dashboard->project_filter);
         if ($dashboard->status_filter)  $q->where('status', $dashboard->status_filter);
         if ($dashboard->priority_filter) $q->where('priority', $dashboard->priority_filter);
         if ($dashboard->date_range && $dashboard->date_range !== 'all') {
             $q->whereDate('created_at', '>=', now()->subDays((int)$dashboard->date_range));
         }
-
         $chartData = $this->buildChartData($companyId, $dashboard->x_axis, clone $q);
 
-        return view('company.insights.dashboard', compact('slug', 'dashboard', 'chartData'));
+        return view('company.insights.dashboard', compact('slug', 'dashboard', 'chartData', 'widgetsData', 'projects'));
+    }
+
+    // Store a widget on a dashboard
+    public function storeWidget(Request $request, string $slug, Dashboard $dashboard)
+    {
+        abort_if($dashboard->company_id !== $this->companyId(), 403);
+
+        $position = $dashboard->widgets()->count();
+
+        $widget = DashboardWidget::create([
+            'dashboard_id'   => $dashboard->id,
+            'title'          => trim($request->title ?? '') ?: 'New Chart',
+            'chart_style'    => $request->chart_style ?? 'bar',
+            'x_axis'         => $request->x_axis ?? 'assignee',
+            'project_filter' => ($request->project_filter && $request->project_filter !== 'all') ? $request->project_filter : null,
+            'status_filter'  => ($request->status_filter  && $request->status_filter  !== 'all') ? $request->status_filter  : null,
+            'priority_filter'=> ($request->priority_filter && $request->priority_filter !== 'all') ? $request->priority_filter : null,
+            'date_range'     => ($request->date_range && $request->date_range !== 'all') ? $request->date_range : null,
+            'position'       => $position,
+        ]);
+
+        return response()->json(['success' => true, 'widget_id' => $widget->id]);
+    }
+
+    // Delete a widget
+    public function destroyWidget(string $slug, Dashboard $dashboard, DashboardWidget $widget)
+    {
+        abort_if($dashboard->company_id !== $this->companyId(), 403);
+        abort_if($widget->dashboard_id !== $dashboard->id, 403);
+        $widget->delete();
+        return response()->json(['success' => true]);
     }
 
     public function destroyDashboard(string $slug, Dashboard $dashboard)

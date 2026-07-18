@@ -101,6 +101,8 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('insights/dashboards', [CompanyInsightController::class, 'storeDashboard'])->name('insights.dashboards.store');
     Route::get('insights/dashboards/{dashboard}', [CompanyInsightController::class, 'showDashboard'])->name('insights.dashboards.show');
     Route::delete('insights/dashboards/{dashboard}', [CompanyInsightController::class, 'destroyDashboard'])->name('insights.dashboards.destroy');
+    Route::post('insights/dashboards/{dashboard}/widgets', [CompanyInsightController::class, 'storeWidget'])->name('insights.widgets.store');
+    Route::delete('insights/dashboards/{dashboard}/widgets/{widget}', [CompanyInsightController::class, 'destroyWidget'])->name('insights.widgets.destroy');
     Route::get('insights/{type}', [CompanyInsightController::class, 'show'])->name('insights.show');
 });
 
