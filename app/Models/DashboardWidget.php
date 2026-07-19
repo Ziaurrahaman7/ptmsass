@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class DashboardWidget extends Model
 {
     protected $fillable = [
-        'dashboard_id', 'title', 'chart_style', 'x_axis',
+        'dashboard_id', 'title', 'chart_style', 'x_axis', 'content',
         'project_filter', 'status_filter', 'priority_filter', 'date_range', 'position',
     ];
 

@@ -88,6 +88,24 @@ function renderChart(canvasId, style, cd) {
     transition: background .15s, border-color .15s;
 }
 .btn-add-widget:hover { background: var(--border); border-color: var(--border2); }
+
+/* Add widget dropdown menu */
+.add-widget-menu {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 50;
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
+    padding: 6px; width: 240px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.add-widget-menu.open { display: block; }
+.add-widget-menu-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; text-align: left; cursor: pointer;
+    padding: 8px 10px; border-radius: 8px; color: var(--text); font-family: var(--font);
+    transition: background .12s;
+}
+.add-widget-menu-item:hover { background: var(--surface2); }
+.add-widget-menu-item svg { flex-shrink: 0; color: var(--muted); }
+.add-widget-menu-item-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.add-widget-menu-item-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
 .btn-delete-db {
     background: none; border: 1px solid var(--border2); color: var(--muted);
     border-radius: 8px; padding: 7px 12px; font-size: 12px;
@@ -179,10 +197,27 @@ function renderChart(canvasId, style, cd) {
         <span class="db-title-text">{{ $dashboard->title }}</span>
     </div>
     <div class="db-actions">
-        <button class="btn-add-widget" onclick="openModal()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add widget
-        </button>
+        <div style="position:relative;">
+            <button class="btn-add-widget" onclick="toggleAddWidgetMenu(event)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add widget
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div id="addWidgetMenu" class="add-widget-menu">
+                <button type="button" class="add-widget-menu-item" onclick="closeAddWidgetMenu(); openAddChartModal();">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    <div><div class="add-widget-menu-item-title">Template chart</div><div class="add-widget-menu-item-desc">Pick from ready-made reports</div></div>
+                </button>
+                <button type="button" class="add-widget-menu-item" onclick="closeAddWidgetMenu(); openChartConfig('Custom Chart','bar','assignee');">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="4" y1="19" x2="4" y2="10"/><line x1="10" y1="19" x2="10" y2="5"/><line x1="16" y1="19" x2="16" y2="13"/></svg>
+                    <div><div class="add-widget-menu-item-title">Custom chart</div><div class="add-widget-menu-item-desc">Build your own from scratch</div></div>
+                </button>
+                <button type="button" class="add-widget-menu-item" onclick="closeAddWidgetMenu(); openTextWidgetModal();">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+                    <div><div class="add-widget-menu-item-title">Text area</div><div class="add-widget-menu-item-desc">Add a free-text note</div></div>
+                </button>
+            </div>
+        </div>
         <form method="POST" action="{{ route('company.insights.dashboards.destroy', [$slug, $dashboard->id]) }}"
               onsubmit="return confirm('Delete this dashboard?')" style="margin:0;">
             @csrf @method('DELETE')
@@ -236,7 +271,7 @@ function renderChart(canvasId, style, cd) {
 
     {{-- If no widgets yet: show placeholder next to legacy chart --}}
     @if($widgetsData->isEmpty())
-    <div class="widget-placeholder" onclick="openModal()">
+    <div class="widget-placeholder" onclick="openAddChartModal()">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.35;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         <div style="font-size:13px; color:var(--text); font-weight:500;">Add text, images, links and more to this dashboard.</div>
     </div>
@@ -260,9 +295,15 @@ function renderChart(canvasId, style, cd) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
         <div class="widget-card-title">{{ $w->title }}</div>
-        <div class="widget-card-meta">{{ ucfirst(str_replace('_',' ',$w->x_axis)) }} · {{ $metaStr }}</div>
+        <div class="widget-card-meta">
+            @if($w->chart_style === 'text') Note
+            @else {{ ucfirst(str_replace('_',' ',$w->x_axis)) }} · {{ $metaStr }}
+            @endif
+        </div>
 
-        @if($w->chart_style === 'number')
+        @if($w->chart_style === 'text')
+            <div style="white-space:pre-wrap; font-size:13px; line-height:1.7; color:var(--text); min-height:80px; padding-bottom:4px;">{{ $w->content }}</div>
+        @elseif($w->chart_style === 'number')
             @php $total = collect($cd)->sum('value'); @endphp
             <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 0;">
                 <div style="font-size:64px; font-weight:700; color:#4ade80; line-height:1;">{{ $total }}</div>
@@ -292,92 +333,32 @@ function renderChart(canvasId, style, cd) {
 
     {{-- Trailing placeholder when widgets exist --}}
     @if($widgetsData->isNotEmpty())
-    <div class="widget-placeholder" onclick="openModal()">
+    <div class="widget-placeholder" onclick="openAddChartModal()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.35;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         <div style="font-size:13px;">Add another widget</div>
     </div>
     @endif
 </div>
 
-{{-- Add Widget Modal --}}
-<div class="modal-overlay" id="addWidgetModal">
+{{-- Add chart gallery + config modal (Template chart / Custom chart) --}}
+@include('company.insights.partials.chart-modal', ['submitUrl' => route('company.insights.widgets.store', [$slug, $dashboard->id])])
+
+{{-- Text area widget modal --}}
+<div class="modal-overlay" id="textWidgetModal">
     <div class="modal-box">
-        <div class="modal-title">Add Widget</div>
-        <form id="addWidgetForm">
-            @csrf
-            <div class="form-row">
-                <label class="form-label">Widget Title</label>
-                <input type="text" name="title" class="form-control" placeholder="e.g. Tasks by Assignee" required>
-            </div>
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label class="form-label">Chart Style</label>
-                    <select name="chart_style" class="form-control">
-                        <option value="bar">Bar</option>
-                        <option value="column">Column (Horizontal)</option>
-                        <option value="line">Line</option>
-                        <option value="donut">Donut</option>
-                        <option value="number">Number</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label class="form-label">Group By (X Axis)</label>
-                    <select name="x_axis" class="form-control">
-                        <option value="assignee">Assignee</option>
-                        <option value="project">Project</option>
-                        <option value="status">Status</option>
-                        <option value="priority">Priority</option>
-                        <option value="due_date">Due Date</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label class="form-label">Filter by Project</label>
-                    <select name="project_filter" class="form-control">
-                        <option value="all">All Projects</option>
-                        @foreach($projects as $proj)
-                        <option value="{{ $proj->id }}">{{ $proj->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label class="form-label">Filter by Status</label>
-                    <select name="status_filter" class="form-control">
-                        <option value="all">All Statuses</option>
-                        <option value="todo">Todo</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="in_review">In Review</option>
-                        <option value="done">Done</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-grid-2">
-                <div class="form-row">
-                    <label class="form-label">Filter by Priority</label>
-                    <select name="priority_filter" class="form-control">
-                        <option value="all">All Priorities</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label class="form-label">Date Range</label>
-                    <select name="date_range" class="form-control">
-                        <option value="all">All Time</option>
-                        <option value="7">Last 7 days</option>
-                        <option value="30">Last 30 days</option>
-                        <option value="90">Last 90 days</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
-                <button type="submit" class="btn-save" id="saveWidgetBtn">Add Widget</button>
-            </div>
-        </form>
+        <div class="modal-title">Add text</div>
+        <div class="form-row">
+            <label class="form-label">Title</label>
+            <input type="text" id="textWidgetTitle" class="form-control" placeholder="e.g. Notes">
+        </div>
+        <div class="form-row">
+            <label class="form-label">Content</label>
+            <textarea id="textWidgetContent" class="form-control" rows="6" placeholder="Write a note…" style="resize:vertical;"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeTextWidgetModal()">Cancel</button>
+            <button type="button" class="btn-save" id="saveTextWidgetBtn" onclick="saveTextWidget()">Add widget</button>
+        </div>
     </div>
 </div>
 
@@ -389,31 +370,59 @@ function widgetDestroyUrl(widgetId) {
     return '{{ url("/{$slug}/admin/insights/dashboards/{$dashboard->id}/widgets") }}/' + widgetId;
 }
 
-function openModal() {
-    document.getElementById('addWidgetModal').classList.add('open');
+// Add-widget dropdown menu
+function toggleAddWidgetMenu(e) {
+    e.stopPropagation();
+    document.getElementById('addWidgetMenu').classList.toggle('open');
 }
-function closeModal() {
-    document.getElementById('addWidgetModal').classList.remove('open');
-    document.getElementById('addWidgetForm').reset();
+function closeAddWidgetMenu() {
+    document.getElementById('addWidgetMenu').classList.remove('open');
 }
-
-document.getElementById('addWidgetModal').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-});
-
-document.getElementById('addWidgetForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('saveWidgetBtn');
-    btn.disabled = true; btn.textContent = 'Saving…';
-    const data = new FormData(this);
-    const res = await fetch(STORE_URL, { method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body:data });
-    if (res.ok) {
-        window.location.reload();
-    } else {
-        btn.disabled = false; btn.textContent = 'Add Widget';
-        alert('Failed to save widget.');
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('addWidgetMenu');
+    if (menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('.btn-add-widget')) {
+        closeAddWidgetMenu();
     }
 });
+
+// Text area widget modal
+function openTextWidgetModal() {
+    document.getElementById('textWidgetModal').classList.add('open');
+}
+function closeTextWidgetModal() {
+    document.getElementById('textWidgetModal').classList.remove('open');
+    document.getElementById('textWidgetTitle').value = '';
+    document.getElementById('textWidgetContent').value = '';
+}
+document.getElementById('textWidgetModal').addEventListener('click', function(e) {
+    if (e.target === this) closeTextWidgetModal();
+});
+
+function saveTextWidget() {
+    const content = document.getElementById('textWidgetContent').value.trim();
+    if (!content) { document.getElementById('textWidgetContent').focus(); return; }
+
+    const btn = document.getElementById('saveTextWidgetBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    fetch(STORE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({
+            title: document.getElementById('textWidgetTitle').value.trim() || 'Note',
+            chart_style: 'text',
+            content: content,
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) { window.location.reload(); return; }
+        btn.disabled = false; btn.textContent = 'Add widget';
+    })
+    .catch(() => {
+        btn.disabled = false; btn.textContent = 'Add widget';
+    });
+}
 
 async function deleteWidget(widgetId) {
     if (!confirm('Remove this widget?')) return;

@@ -11,7 +11,12 @@
       "PowerShell(php -l app/Http/Controllers/Company/TeamFieldController.php)",
       "PowerShell(php -l app/Http/Controllers/Company/TeamController.php)",
       "Bash(php -l app/Http/Controllers/Company/TeamController.php)",
-      "Bash(php -v)"
+      "Bash(php -v)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/)",
+      "Bash(grep -n 'protected $fillable\\\\|function status\\\\|'\\\\''status'\\\\''' app/Models/Project.php)",
+      "Bash(php -l app/Http/Controllers/Company/InsightController.php)",
+      "Bash(grep -n \"Add Chart Modal\\\\|^</x-company-layout>\\\\|^</script>$\" resources/views/company/insights/index.blade.php)",
+      "Read(//c/Users/HP/AppData/Local/Temp/**)"
     ]
   }
 }
