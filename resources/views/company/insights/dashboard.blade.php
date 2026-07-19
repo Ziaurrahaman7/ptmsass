@@ -106,12 +106,51 @@ function renderChart(canvasId, style, cd) {
 .add-widget-menu-item svg { flex-shrink: 0; color: var(--muted); }
 .add-widget-menu-item-title { font-size: 13px; font-weight: 600; color: var(--text); }
 .add-widget-menu-item-desc { font-size: 11px; color: var(--muted); margin-top: 1px; }
-.btn-delete-db {
-    background: none; border: 1px solid var(--border2); color: var(--muted);
-    border-radius: 8px; padding: 7px 12px; font-size: 12px;
-    cursor: pointer; font-family: var(--font); transition: color .15s, border-color .15s;
+
+.btn-share {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #4573d2; color: #fff; border: none; border-radius: 8px;
+    padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: var(--font); transition: background .15s;
 }
-.btn-delete-db:hover { color: var(--danger); border-color: var(--danger); }
+.btn-share:hover { background: #3a62bb; }
+
+/* Title dropdown (Edit details / Set color / Copy link / Duplicate / Delete) */
+.db-chevron-btn {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    padding: 4px; border-radius: 6px; display: flex; transition: background .12s, color .12s;
+}
+.db-chevron-btn:hover { background: var(--surface2); color: var(--text); }
+.db-star-btn {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    padding: 4px; border-radius: 6px; display: flex; transition: background .12s, color .12s;
+}
+.db-star-btn:hover { background: var(--surface2); color: var(--text); }
+.db-star-btn.active { color: #fbbf24; }
+.db-options-menu {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
+    padding: 6px; width: 240px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.db-options-menu.open { display: block; }
+.db-options-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; text-align: left; cursor: pointer;
+    padding: 8px 10px; border-radius: 8px; color: var(--text); font-size: 13px; font-family: var(--font);
+    transition: background .12s;
+}
+.db-options-item:hover { background: var(--surface2); }
+.db-options-item svg { flex-shrink: 0; color: var(--muted); }
+.db-options-divider { border-top: 1px solid var(--border); margin: 6px 2px; }
+.db-options-danger { color: var(--danger) !important; }
+.db-options-danger svg { color: var(--danger) !important; }
+.db-color-flyout {
+    display: none; flex-wrap: wrap; gap: 8px;
+    padding: 10px 10px 6px;
+}
+.db-color-flyout.open { display: flex; }
+.db-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; box-sizing: border-box; }
+.db-swatch.selected { border-color: var(--text); }
 
 /* Widget grid */
 .widget-grid {
@@ -188,13 +227,57 @@ function renderChart(canvasId, style, cd) {
     Reporting
 </a>
 
+@php
+    $DB_COLORS = ['#6b7385', '#f87171', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#22d3ee', '#38bdf8', '#2dd4bf', '#60a5fa', '#a78bfa', '#e879f9', '#ec4899', '#f472b6', '#94a3b8'];
+@endphp
+
 {{-- Top bar --}}
 <div class="db-topbar">
     <div class="db-title-row">
-        <div class="db-title-icon">
+        <div class="db-title-icon" id="dbTitleIcon" style="{{ $dashboard->color ? 'background:'.$dashboard->color.';' : '' }}">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         </div>
         <span class="db-title-text">{{ $dashboard->title }}</span>
+
+        <div style="position:relative;">
+            <button class="db-chevron-btn" onclick="toggleDashOptionsMenu(event)" title="Dashboard options">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div id="dashOptionsMenu" class="db-options-menu">
+                <button type="button" class="db-options-item" onclick="closeDashOptionsMenu(); openEditDashDetailsModal();">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit dashboard details
+                </button>
+                <button type="button" class="db-options-item" onclick="toggleColorFlyout(event)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2a10 10 0 100 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3c1.8 0 3.2-1.4 3.2-3.2C20.5 7.1 16.7 2 12 2z"/></svg>
+                    <span style="flex:1;">Set color</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="db-color-flyout" id="dbColorFlyout">
+                    @foreach($DB_COLORS as $c)
+                    <button type="button" class="db-swatch {{ $dashboard->color === $c ? 'selected' : '' }}" style="background:{{ $c }};" onclick="pickDashboardColor('{{ $c }}')"></button>
+                    @endforeach
+                </div>
+                <div class="db-options-divider"></div>
+                <button type="button" class="db-options-item" onclick="closeDashOptionsMenu(); copyDashboardLink();">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.5.5l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7.5-.5l-2 2a5 5 0 007 7l1-1"/></svg>
+                    Copy dashboard link
+                </button>
+                <button type="button" class="db-options-item" onclick="closeDashOptionsMenu(); duplicateThisDashboard();">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    Duplicate
+                </button>
+                <div class="db-options-divider"></div>
+                <button type="button" class="db-options-item db-options-danger" onclick="closeDashOptionsMenu(); deleteThisDashboard();">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    Delete dashboard
+                </button>
+            </div>
+        </div>
+
+        <button class="db-star-btn {{ $dashboard->is_favorite ? 'active' : '' }}" id="dbStarBtn" onclick="toggleThisDashboardFavorite()" title="{{ $dashboard->is_favorite ? 'Remove from favorites' : 'Add to favorites' }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="{{ $dashboard->is_favorite ? '#fbbf24' : 'none' }}" stroke="{{ $dashboard->is_favorite ? '#fbbf24' : 'currentColor' }}" stroke-width="1.8"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6L12 16.8 6.3 19.5l1.2-6L3 9.3l6.4-.7L12 3z"/></svg>
+        </button>
     </div>
     <div class="db-actions">
         <div style="position:relative;">
@@ -218,11 +301,40 @@ function renderChart(canvasId, style, cd) {
                 </button>
             </div>
         </div>
-        <form method="POST" action="{{ route('company.insights.dashboards.destroy', [$slug, $dashboard->id]) }}"
-              onsubmit="return confirm('Delete this dashboard?')" style="margin:0;">
-            @csrf @method('DELETE')
-            <button type="submit" class="btn-delete-db">Delete</button>
-        </form>
+        <button class="btn-share" onclick="openShareModal()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+            Share
+        </button>
+    </div>
+</div>
+
+{{-- Edit dashboard details modal --}}
+<div class="modal-overlay" id="editDashDetailsModal">
+    <div class="modal-box" style="width:420px;">
+        <div class="modal-title">Edit dashboard details</div>
+        <div class="form-row">
+            <label class="form-label">Title</label>
+            <input type="text" id="dbEditTitleInput" class="form-control" maxlength="255" value="{{ $dashboard->title }}">
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeEditDashDetailsModal()">Cancel</button>
+            <button type="button" class="btn-save" id="dbEditTitleSaveBtn" onclick="saveDashDetailsTitle()">Save</button>
+        </div>
+    </div>
+</div>
+
+{{-- Share modal --}}
+<div class="modal-overlay" id="shareDashModal">
+    <div class="modal-box" style="width:460px;">
+        <div class="modal-title">Share dashboard</div>
+        <p style="font-size:13px; color:var(--muted); margin:-10px 0 16px;">Anyone at your company with this link can open this dashboard.</p>
+        <div class="form-row" style="display:flex; gap:8px; margin-bottom:0;">
+            <input type="text" id="dbShareLinkInput" class="form-control" readonly value="{{ route('company.insights.dashboards.show', [$slug, $dashboard->id]) }}">
+            <button type="button" class="btn-save" style="flex-shrink:0; white-space:nowrap;" onclick="copyDashboardLink(this)">Copy link</button>
+        </div>
+        <div class="modal-footer" style="margin-top:20px;">
+            <button type="button" class="btn-cancel" onclick="closeShareModal()">Close</button>
+        </div>
     </div>
 </div>
 
@@ -431,6 +543,121 @@ async function deleteWidget(widgetId) {
         document.getElementById('wcard_' + widgetId)?.remove();
         if (!document.querySelector('.widget-card')) window.location.reload();
     }
+}
+
+// Dashboard title dropdown: Edit details / Set color / Copy link / Duplicate / Delete
+const DASH_ID = {{ $dashboard->id }};
+function dashApiUrl(suffix) {
+    return '{{ url("/{$slug}/admin/insights/dashboards/{$dashboard->id}") }}' + (suffix || '');
+}
+
+function toggleDashOptionsMenu(e) {
+    e.stopPropagation();
+    document.getElementById('dashOptionsMenu').classList.toggle('open');
+    document.getElementById('dbColorFlyout').classList.remove('open');
+}
+function closeDashOptionsMenu() {
+    document.getElementById('dashOptionsMenu').classList.remove('open');
+    document.getElementById('dbColorFlyout').classList.remove('open');
+}
+document.addEventListener('click', function (e) {
+    const menu = document.getElementById('dashOptionsMenu');
+    if (menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('.db-chevron-btn')) {
+        closeDashOptionsMenu();
+    }
+});
+
+function toggleColorFlyout(e) {
+    e.stopPropagation();
+    document.getElementById('dbColorFlyout').classList.toggle('open');
+}
+
+function pickDashboardColor(color) {
+    fetch(dashApiUrl(), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({ color: color })
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) window.location.reload(); });
+}
+
+function openEditDashDetailsModal() {
+    document.getElementById('editDashDetailsModal').classList.add('open');
+}
+function closeEditDashDetailsModal() {
+    document.getElementById('editDashDetailsModal').classList.remove('open');
+}
+document.getElementById('editDashDetailsModal').addEventListener('click', function (e) {
+    if (e.target === this) closeEditDashDetailsModal();
+});
+function saveDashDetailsTitle() {
+    const title = document.getElementById('dbEditTitleInput').value.trim();
+    if (!title) return;
+    const btn = document.getElementById('dbEditTitleSaveBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    fetch(dashApiUrl(), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        body: JSON.stringify({ title: title })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) { window.location.reload(); return; }
+        btn.disabled = false; btn.textContent = 'Save';
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = 'Save'; });
+}
+
+function duplicateThisDashboard() {
+    fetch(dashApiUrl('/duplicate'), {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => { if (data.url) window.location.href = data.url; });
+}
+
+function deleteThisDashboard() {
+    if (!confirm('Delete this dashboard? This cannot be undone.')) return;
+    fetch(dashApiUrl(), {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+    }).then(() => { window.location.href = '{{ route('company.insights.index', $slug) }}'; });
+}
+
+function toggleThisDashboardFavorite() {
+    fetch(dashApiUrl('/favorite'), {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) window.location.reload(); });
+}
+
+// Share modal
+function openShareModal() {
+    document.getElementById('shareDashModal').classList.add('open');
+}
+function closeShareModal() {
+    document.getElementById('shareDashModal').classList.remove('open');
+}
+document.getElementById('shareDashModal').addEventListener('click', function (e) {
+    if (e.target === this) closeShareModal();
+});
+function copyDashboardLink(btn) {
+    const link = document.getElementById('dbShareLinkInput')?.value
+        || '{{ route('company.insights.dashboards.show', [$slug, $dashboard->id]) }}';
+    navigator.clipboard.writeText(link).then(() => {
+        if (btn) {
+            const original = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = original; }, 1500);
+        }
+    }).catch(() => {
+        const input = document.getElementById('dbShareLinkInput');
+        if (input) { input.select(); document.execCommand('copy'); }
+    });
 }
 </script>
 

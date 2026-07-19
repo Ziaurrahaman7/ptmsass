@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\Dashboard;
+use App\Models\DashboardPref;
 use App\Models\DashboardWidget;
 use App\Models\Project;
 use App\Models\Task;
@@ -48,9 +49,13 @@ class InsightController extends Controller
 
         $projects = Project::where('company_id', $companyId)->orderBy('name')->get();
 
+        $builtinPrefs = DashboardPref::where('company_id', $companyId)
+            ->where('user_id', auth()->id())
+            ->get()->keyBy('type');
+
         return view('company.insights.index', array_merge(
             $this->chartGalleryContext($companyId),
-            compact('slug', 'userDashboards', 'projects')
+            compact('slug', 'userDashboards', 'projects', 'builtinPrefs')
         ));
     }
 
@@ -167,6 +172,110 @@ class InsightController extends Controller
         abort_if($dashboard->company_id !== $this->companyId(), 403);
         $dashboard->delete();
         return redirect()->route('company.insights.index', $slug);
+    }
+
+    // Rename a dashboard and/or set its color & icon
+    public function updateDashboard(Request $request, string $slug, Dashboard $dashboard)
+    {
+        abort_if($dashboard->company_id !== $this->companyId(), 403);
+
+        $data = [];
+        if ($request->has('title')) $data['title'] = trim($request->title) ?: $dashboard->title;
+        if ($request->has('color')) $data['color'] = $request->color ?: null;
+        if ($request->has('icon'))  $data['icon']  = $request->icon ?: null;
+        $dashboard->update($data);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function toggleFavoriteDashboard(string $slug, Dashboard $dashboard)
+    {
+        abort_if($dashboard->company_id !== $this->companyId(), 403);
+        $dashboard->update(['is_favorite' => !$dashboard->is_favorite]);
+        return response()->json(['success' => true, 'is_favorite' => $dashboard->is_favorite]);
+    }
+
+    public function duplicateDashboard(string $slug, Dashboard $dashboard)
+    {
+        abort_if($dashboard->company_id !== $this->companyId(), 403);
+
+        $copy = $dashboard->replicate();
+        $copy->title = $dashboard->title . ' (copy)';
+        $copy->is_favorite = false;
+        $copy->user_id = auth()->id();
+        $copy->save();
+
+        foreach ($dashboard->widgets as $widget) {
+            $widgetCopy = $widget->replicate();
+            $widgetCopy->dashboard_id = $copy->id;
+            $widgetCopy->save();
+        }
+
+        return response()->json(['success' => true, 'url' => route('company.insights.dashboards.show', [$slug, $copy->id])]);
+    }
+
+    // Built-in dashboards (My impact / My organization / per-project) aren't real rows,
+    // so their rename/color/icon/favorite/hidden state lives in a lightweight pref record instead.
+    private function findOrNewPref(string $type): DashboardPref
+    {
+        return DashboardPref::firstOrNew([
+            'company_id' => $this->companyId(),
+            'user_id'    => auth()->id(),
+            'type'       => $type,
+        ]);
+    }
+
+    public function updateDashboardPref(Request $request, string $slug)
+    {
+        abort_if(!$request->type, 422);
+
+        $pref = $this->findOrNewPref($request->type);
+        if ($request->has('title')) $pref->title_override = trim($request->title) ?: null;
+        if ($request->has('color')) $pref->color = $request->color ?: null;
+        if ($request->has('icon'))  $pref->icon  = $request->icon ?: null;
+        $pref->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function toggleFavoritePref(Request $request, string $slug)
+    {
+        abort_if(!$request->type, 422);
+
+        $pref = $this->findOrNewPref($request->type);
+        if (!$pref->exists && $request->title) $pref->title_override = $request->title;
+        $pref->is_favorite = !$pref->is_favorite;
+        $pref->save();
+
+        return response()->json(['success' => true, 'is_favorite' => $pref->is_favorite]);
+    }
+
+    // "Delete" for a built-in dashboard just hides it from this user's Recents — it isn't a real row to destroy.
+    public function hideDashboardPref(Request $request, string $slug)
+    {
+        abort_if(!$request->type, 422);
+
+        $pref = $this->findOrNewPref($request->type);
+        $pref->is_hidden = true;
+        $pref->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    // "Duplicate" for a built-in seeds a real, configurable custom dashboard from it.
+    public function duplicateBuiltin(Request $request, string $slug)
+    {
+        $dashboard = Dashboard::create([
+            'company_id'  => $this->companyId(),
+            'user_id'     => auth()->id(),
+            'title'       => (trim($request->title ?? '') ?: 'Dashboard') . ' (copy)',
+            'chart_style' => 'bar',
+            'x_axis'      => 'assignee',
+            'report_on'   => 'tasks',
+            'project_filter' => $request->project_filter ?: null,
+        ]);
+
+        return response()->json(['success' => true, 'url' => route('company.insights.dashboards.show', [$slug, $dashboard->id])]);
     }
 
     // $filters: ['project' => ?, 'status' => ?, 'priority' => ?, 'date_range' => ?]

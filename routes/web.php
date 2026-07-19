@@ -14,6 +14,7 @@ use App\Http\Controllers\Company\TeamFieldController as CompanyTeamFieldControll
 use App\Http\Controllers\Company\NotificationController as CompanyNotificationController;
 use App\Http\Controllers\Company\InsightController as CompanyInsightController;
 use App\Http\Controllers\Company\PortfolioController as CompanyPortfolioController;
+use App\Http\Controllers\Company\GoalController as CompanyGoalController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
@@ -103,6 +104,13 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('insights/chart-preview', [CompanyInsightController::class, 'chartPreview'])->name('insights.chart-preview');
     Route::get('insights/dashboards/{dashboard}', [CompanyInsightController::class, 'showDashboard'])->name('insights.dashboards.show');
     Route::delete('insights/dashboards/{dashboard}', [CompanyInsightController::class, 'destroyDashboard'])->name('insights.dashboards.destroy');
+    Route::patch('insights/dashboards/{dashboard}', [CompanyInsightController::class, 'updateDashboard'])->name('insights.dashboards.update');
+    Route::post('insights/dashboards/{dashboard}/favorite', [CompanyInsightController::class, 'toggleFavoriteDashboard'])->name('insights.dashboards.favorite');
+    Route::post('insights/dashboards/{dashboard}/duplicate', [CompanyInsightController::class, 'duplicateDashboard'])->name('insights.dashboards.duplicate');
+    Route::post('insights/dashboard-prefs', [CompanyInsightController::class, 'updateDashboardPref'])->name('insights.prefs.update');
+    Route::post('insights/dashboard-prefs/favorite', [CompanyInsightController::class, 'toggleFavoritePref'])->name('insights.prefs.favorite');
+    Route::post('insights/dashboard-prefs/hide', [CompanyInsightController::class, 'hideDashboardPref'])->name('insights.prefs.hide');
+    Route::post('insights/dashboard-prefs/duplicate', [CompanyInsightController::class, 'duplicateBuiltin'])->name('insights.prefs.duplicate');
     Route::post('insights/dashboards/{dashboard}/widgets', [CompanyInsightController::class, 'storeWidget'])->name('insights.widgets.store');
     Route::delete('insights/dashboards/{dashboard}/widgets/{widget}', [CompanyInsightController::class, 'destroyWidget'])->name('insights.widgets.destroy');
     Route::get('insights/{type}', [CompanyInsightController::class, 'show'])->name('insights.show');
@@ -115,6 +123,12 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::delete('portfolios/{portfolio}', [CompanyPortfolioController::class, 'destroy'])->name('portfolios.destroy');
     Route::post('portfolios/{portfolio}/projects', [CompanyPortfolioController::class, 'addProject'])->name('portfolios.projects.add');
     Route::delete('portfolios/{portfolio}/projects/{project}', [CompanyPortfolioController::class, 'removeProject'])->name('portfolios.projects.remove');
+
+    // Goals
+    Route::get('goals', [CompanyGoalController::class, 'index'])->name('goals.index');
+    Route::post('goals', [CompanyGoalController::class, 'store'])->name('goals.store');
+    Route::patch('goals/{goal}', [CompanyGoalController::class, 'update'])->name('goals.update');
+    Route::delete('goals/{goal}', [CompanyGoalController::class, 'destroy'])->name('goals.destroy');
 });
 
 // Employee routes — /{slug}/...

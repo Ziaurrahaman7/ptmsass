@@ -149,6 +149,16 @@
                 ->get(['id', 'name']);
             $activeTeam = request()->route('team');
             $activeTeamId = is_object($activeTeam) ? $activeTeam->id : (int) $activeTeam;
+            $starredDashboards = \App\Models\Dashboard::where('company_id', auth()->user()->company_id)
+                ->where('user_id', auth()->id())
+                ->where('is_favorite', true)
+                ->orderBy('title')
+                ->get(['id', 'title', 'icon']);
+            $starredPrefs = \App\Models\DashboardPref::where('company_id', auth()->user()->company_id)
+                ->where('user_id', auth()->id())
+                ->where('is_favorite', true)
+                ->orderBy('title_override')
+                ->get(['type', 'title_override']);
         @endphp
         <nav style="flex:1; padding:10px 8px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
             <a href="{{ route('company.dashboard', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.dashboard') ? 'active' : '' }}">
@@ -176,6 +186,29 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
                 Portfolios
             </a>
+            <a href="{{ route('company.goals.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.goals.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+                Goals
+            </a>
+
+            @if($starredDashboards->isNotEmpty() || $starredPrefs->isNotEmpty())
+            {{-- Starred --}}
+            <div style="padding:14px 12px 6px;">
+                <span class="ptm-section-title">Starred</span>
+            </div>
+            @foreach($starredDashboards as $sd)
+            <a href="{{ route('company.insights.dashboards.show', [$slug, $sd->id]) }}" class="ptm-nav-link {{ request()->route('dashboard') && request()->route('dashboard')->id === $sd->id ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6L12 16.8 6.3 19.5l1.2-6L3 9.3l6.4-.7L12 3z"/></svg>
+                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $sd->title }}</span>
+            </a>
+            @endforeach
+            @foreach($starredPrefs as $sp)
+            <a href="{{ route('company.insights.show', [$slug, $sp->type]) }}" class="ptm-nav-link {{ request()->route('type') === $sp->type ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6L12 16.8 6.3 19.5l1.2-6L3 9.3l6.4-.7L12 3z"/></svg>
+                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $sp->title_override ?: $sp->type }}</span>
+            </a>
+            @endforeach
+            @endif
 
             {{-- Teams Dropdown --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">

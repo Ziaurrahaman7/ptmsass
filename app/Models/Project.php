@@ -48,6 +48,11 @@ class Project extends Model
         return $this->belongsToMany(Portfolio::class);
     }
 
+    public function goals()
+    {
+        return $this->belongsToMany(Goal::class, 'goal_project')->withTimestamps();
+    }
+
     public function progressPercentage(): int
     {
         $total = $this->tasks()->count();

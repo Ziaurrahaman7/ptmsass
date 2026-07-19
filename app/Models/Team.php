@@ -44,4 +44,9 @@ class Team extends Model
     {
         return $this->hasMany(TeamNote::class)->orderBy('id');
     }
+
+    public function goals()
+    {
+        return $this->hasMany(Goal::class);
+    }
 }
