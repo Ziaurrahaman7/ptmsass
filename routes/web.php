@@ -13,6 +13,7 @@ use App\Http\Controllers\Company\TeamController as CompanyTeamController;
 use App\Http\Controllers\Company\TeamFieldController as CompanyTeamFieldController;
 use App\Http\Controllers\Company\NotificationController as CompanyNotificationController;
 use App\Http\Controllers\Company\InsightController as CompanyInsightController;
+use App\Http\Controllers\Company\PortfolioController as CompanyPortfolioController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
@@ -105,6 +106,15 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('insights/dashboards/{dashboard}/widgets', [CompanyInsightController::class, 'storeWidget'])->name('insights.widgets.store');
     Route::delete('insights/dashboards/{dashboard}/widgets/{widget}', [CompanyInsightController::class, 'destroyWidget'])->name('insights.widgets.destroy');
     Route::get('insights/{type}', [CompanyInsightController::class, 'show'])->name('insights.show');
+
+    // Portfolios
+    Route::get('portfolios', [CompanyPortfolioController::class, 'index'])->name('portfolios.index');
+    Route::post('portfolios', [CompanyPortfolioController::class, 'store'])->name('portfolios.store');
+    Route::get('portfolios/{portfolio}', [CompanyPortfolioController::class, 'show'])->name('portfolios.show');
+    Route::patch('portfolios/{portfolio}', [CompanyPortfolioController::class, 'update'])->name('portfolios.update');
+    Route::delete('portfolios/{portfolio}', [CompanyPortfolioController::class, 'destroy'])->name('portfolios.destroy');
+    Route::post('portfolios/{portfolio}/projects', [CompanyPortfolioController::class, 'addProject'])->name('portfolios.projects.add');
+    Route::delete('portfolios/{portfolio}/projects/{project}', [CompanyPortfolioController::class, 'removeProject'])->name('portfolios.projects.remove');
 });
 
 // Employee routes — /{slug}/...

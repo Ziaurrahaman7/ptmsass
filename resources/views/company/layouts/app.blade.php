@@ -172,6 +172,10 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 Reporting
             </a>
+            <a href="{{ route('company.portfolios.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.portfolios.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                Portfolios
+            </a>
 
             {{-- Teams Dropdown --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">

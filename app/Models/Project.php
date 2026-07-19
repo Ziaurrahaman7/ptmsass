@@ -43,6 +43,11 @@ class Project extends Model
         return $this->hasMany(CustomField::class)->orderBy('position')->orderBy('id');
     }
 
+    public function portfolios()
+    {
+        return $this->belongsToMany(Portfolio::class);
+    }
+
     public function progressPercentage(): int
     {
         $total = $this->tasks()->count();
