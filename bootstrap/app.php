@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'employee'      => \App\Http\Middleware\EmployeeMiddleware::class,
             'company_slug'  => \App\Http\Middleware\CompanySlugMiddleware::class,
         ]);
+
+        // Behind a reverse proxy / CDN (e.g. Cloudflare, Nginx SSL termination) in production,
+        // Laravel otherwise can't tell the original request was HTTPS — it then can't reliably
+        // decide whether to mark the session cookie Secure, which causes the cookie (and the
+        // CSRF token stored in the session) to get dropped/mismatched, surfacing as 419 errors.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
