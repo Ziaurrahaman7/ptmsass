@@ -690,8 +690,6 @@
                             <span style="font-size:13px; font-weight:600; color:var(--muted);">{{ $group['name'] }}</span>
                         @endif
 
-                        <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $group['tasks']->count() }}</span>
-
                         @if($group['id'])
                         <div class="sec-actions" style="display:flex; align-items:center; gap:2px;">
                             <button type="button" class="sa-btn" onclick="event.stopPropagation(); focusSectionAdd(this)" title="Add task to section">
@@ -979,20 +977,215 @@
 
         {{-- ============================ OVERVIEW TAB ============================ --}}
         <div x-show="tab==='overview'" x-cloak>
-            <div class="ptm-card" style="padding:18px 22px; max-width:640px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                    <span style="font-size:13px; font-weight:600; color:var(--text);">Overall Progress</span>
-                    <span style="font-size:14px; font-weight:600; font-family:var(--mono); color:#4ade80;">{{ $project->progressPercentage() }}%</span>
+            <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap;">
+
+                <div style="flex:1; min-width:320px; display:flex; flex-direction:column; gap:20px;">
+
+                    {{-- What's the status? --}}
+                    <div class="ptm-card" style="padding:18px 22px;">
+                        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:12px;">What's the status?</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button onclick="quickSetStatus('on_track')" class="ov-status-btn" style="border-color:rgba(74,222,128,.35);"><span style="background:#4ade80;"></span>On track</button>
+                            <button onclick="quickSetStatus('at_risk')" class="ov-status-btn" style="border-color:rgba(251,191,36,.35);"><span style="background:#fbbf24;"></span>At risk</button>
+                            <button onclick="quickSetStatus('off_track')" class="ov-status-btn" style="border-color:rgba(248,113,113,.35);"><span style="background:#f87171;"></span>Off track</button>
+                        </div>
+                    </div>
+
+                    {{-- Overall Progress --}}
+                    <div class="ptm-card" style="padding:18px 22px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                            <span style="font-size:13px; font-weight:600; color:var(--text);">Overall Progress</span>
+                            <span style="font-size:14px; font-weight:600; font-family:var(--mono); color:#4ade80;">{{ $project->progressPercentage() }}%</span>
+                        </div>
+                        <div class="ptm-progress-track"><div class="ptm-progress-fill" style="width:{{ $project->progressPercentage() }}%;"></div></div>
+                        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:18px;">
+                            <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">TOTAL TASKS</div><div style="font-size:20px; font-weight:600; color:var(--text);">{{ $tasks->count() }}</div></div>
+                            <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">SECTIONS</div><div style="font-size:20px; font-weight:600; color:var(--text);">{{ $sections->count() }}</div></div>
+                            <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">IN PROGRESS</div><div style="font-size:20px; font-weight:600; color:#22d3ee;">{{ $tasks->where('status','in_progress')->count() }}</div></div>
+                            <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">DONE</div><div style="font-size:20px; font-weight:600; color:#4ade80;">{{ $tasks->where('status','done')->count() }}</div></div>
+                        </div>
+                        @if($project->description)<div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--border); font-size:13px; color:var(--muted); line-height:1.6;">{{ $project->description }}</div>@endif
+                        @if($project->due_date)<div style="margin-top:12px; font-size:12px; font-family:var(--mono); {{ $project->due_date->isPast() && $project->status !== 'completed' ? 'color:#f87171;' : 'color:var(--muted);' }}">Due {{ $project->due_date->format('d M Y') }}</div>@endif
+                    </div>
+
+                    {{-- Project roles --}}
+                    <div class="ptm-card" style="padding:18px 22px;">
+                        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:14px;">Project roles</div>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px;">
+                            <button onclick="openAddMemberModal()" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; font-family:var(--font); padding:2px; text-align:left;">
+                                <span style="width:28px; height:28px; border-radius:50%; border:1px dashed var(--border2); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </span>
+                                Add member
+                            </button>
+                            @foreach($projectMembers as $pm)
+                            <div style="display:flex; align-items:center; gap:8px; position:relative;" class="ov-member-row">
+                                <span style="width:28px; height:28px; border-radius:50%; background:#7c3aed; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ strtoupper(substr($pm->name,0,2)) }}</span>
+                                <div style="min-width:0; flex:1;">
+                                    <div style="font-size:13px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $pm->name }}</div>
+                                    @if($pm->pivot->role === 'owner')<div style="font-size:11px; color:var(--muted);">Project owner</div>@endif
+                                </div>
+                                @if($pm->pivot->role !== 'owner')
+                                <button onclick="removeProjectMember({{ $pm->id }})" title="Remove from project" class="ov-member-remove">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                </button>
+                                @endif
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Key resources --}}
+                    <div class="ptm-card" style="padding:18px 22px;">
+                        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:14px;">Key resources</div>
+                        @if($resources->isEmpty())
+                        <div style="text-align:center; padding:24px 16px; border:1px dashed var(--border2); border-radius:10px;">
+                            <div style="font-size:13px; color:var(--muted); margin-bottom:14px;">Align your team around a shared vision with a project brief and supporting resources.</div>
+                            <div style="display:flex; gap:20px; justify-content:center;">
+                                <button onclick="openResourceModal('brief')" class="al-tool" style="padding:6px 10px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    Create project brief
+                                </button>
+                                <button onclick="openResourceModal('link')" class="al-tool" style="padding:6px 10px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.5.5l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7.5-.5l-2 2a5 5 0 007 7l1-1"/></svg>
+                                    Add links & files
+                                </button>
+                            </div>
+                        </div>
+                        @else
+                        @foreach($resources as $r)
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border);">
+                            <div style="min-width:0;">
+                                <a href="{{ $r->url ?: '#' }}" target="_blank" style="font-size:13px; color:var(--text); text-decoration:none; font-weight:500;">{{ $r->title }}</a>
+                                @if($r->type === 'brief' && $r->content)<div style="font-size:12px; color:var(--muted); margin-top:2px; max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $r->content }}</div>@endif
+                            </div>
+                            <button onclick="deleteResource({{ $r->id }})" class="ov-member-remove" title="Remove">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
+                        @endforeach
+                        <button onclick="openResourceModal('link')" class="al-tool" style="margin-top:10px; padding:6px 10px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add resource
+                        </button>
+                        @endif
+                    </div>
+
+                    {{-- Milestones --}}
+                    <div class="ptm-card" style="padding:18px 22px;">
+                        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:14px;">Milestones</div>
+                        <div id="milestoneList">
+                        @forelse($milestones as $m)
+                        <div style="display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border);">
+                            <input type="checkbox" {{ $m->status==='done'?'checked':'' }} onchange="toggleMilestoneStatus({{ $m->id }})" style="width:15px; height:15px; cursor:pointer;">
+                            <span style="font-size:13px; color:var(--text); flex:1; {{ $m->status==='done' ? 'text-decoration:line-through; color:var(--muted);' : '' }}">{{ $m->title }}</span>
+                            @if($m->due_date)<span style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ $m->due_date->format('d M') }}</span>@endif
+                        </div>
+                        @empty
+                        <div style="font-size:12px; color:var(--muted); padding:6px 0 12px;">No milestones yet.</div>
+                        @endforelse
+                        </div>
+                        <div style="display:flex; gap:8px; margin-top:12px;">
+                            <input type="text" id="newMilestoneTitle" placeholder="Add milestone" class="ptm-input" style="font-size:13px; flex:1;">
+                            <input type="date" id="newMilestoneDate" class="ptm-input" style="width:150px; font-size:13px;">
+                            <button onclick="addMilestone()" class="ptm-btn-ghost" style="flex-shrink:0;">Add</button>
+                        </div>
+                    </div>
+
                 </div>
-                <div class="ptm-progress-track"><div class="ptm-progress-fill" style="width:{{ $project->progressPercentage() }}%;"></div></div>
-                <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:18px;">
-                    <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">TOTAL TASKS</div><div style="font-size:20px; font-weight:600; color:var(--text);">{{ $tasks->count() }}</div></div>
-                    <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">SECTIONS</div><div style="font-size:20px; font-weight:600; color:var(--text);">{{ $sections->count() }}</div></div>
-                    <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">IN PROGRESS</div><div style="font-size:20px; font-weight:600; color:#22d3ee;">{{ $tasks->where('status','in_progress')->count() }}</div></div>
-                    <div><div style="font-size:11px; color:var(--muted); font-family:var(--mono);">DONE</div><div style="font-size:20px; font-weight:600; color:#4ade80;">{{ $tasks->where('status','done')->count() }}</div></div>
+
+                {{-- Right: Activity feed --}}
+                <div style="width:300px; flex-shrink:0;">
+                    <div class="ptm-card" style="padding:16px 18px;">
+                        <button onclick="openSendMessageModal()" style="display:flex; align-items:center; gap:8px; background:none; border:none; color:var(--accent2); cursor:pointer; font-size:13px; font-family:var(--font); margin-bottom:16px; padding:0;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                            Send message to members
+                        </button>
+                        <div style="display:flex; flex-direction:column; gap:16px; max-height:600px; overflow-y:auto;">
+                            @forelse($activity as $ev)
+                            <div style="display:flex; gap:10px;">
+                                <span style="width:26px; height:26px; border-radius:50%; background:#7c3aed; color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ strtoupper(substr($ev['user']->name,0,2)) }}</span>
+                                <div style="min-width:0;">
+                                    @if($ev['type'] === 'joined')
+                                    <div style="font-size:13px; color:var(--text);">{{ $ev['user']->id === auth()->id() ? 'You' : $ev['user']->name }} joined</div>
+                                    @else
+                                    <div style="font-size:13px; color:var(--text);"><strong>{{ $ev['user']->name }}</strong>: {{ \Illuminate\Support\Str::limit($ev['body'], 80) }}</div>
+                                    @endif
+                                    <div style="font-size:11px; color:var(--muted); margin-top:2px;">{{ $ev['at']->diffForHumans() }}</div>
+                                </div>
+                            </div>
+                            @empty
+                            <div style="font-size:12px; color:var(--muted);">No activity yet.</div>
+                            @endforelse
+                        </div>
+                    </div>
                 </div>
-                @if($project->description)<div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--border); font-size:13px; color:var(--muted); line-height:1.6;">{{ $project->description }}</div>@endif
-                @if($project->due_date)<div style="margin-top:12px; font-size:12px; font-family:var(--mono); {{ $project->due_date->isPast() && $project->status !== 'completed' ? 'color:#f87171;' : 'color:var(--muted);' }}">Due {{ $project->due_date->format('d M Y') }}</div>@endif
+            </div>
+        </div>
+
+        <style>
+        .ov-status-btn { display:inline-flex; align-items:center; gap:8px; background:none; border:1px solid var(--border2); border-radius:8px; padding:8px 14px; font-size:13px; color:var(--text); font-family:var(--font); cursor:pointer; transition:background .12s; }
+        .ov-status-btn:hover { background:var(--surface2); }
+        .ov-status-btn span { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+        .ov-member-remove { background:none; border:none; color:var(--muted); cursor:pointer; padding:3px; border-radius:6px; flex-shrink:0; }
+        .ov-member-remove:hover { color:var(--danger); background:rgba(248,113,113,.1); }
+        </style>
+
+        {{-- Add member modal --}}
+        <div id="addMemberModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; width:400px; max-width:95vw;">
+                <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:16px;">Add member</div>
+                @if($availableMembers->isEmpty())
+                <div style="font-size:13px; color:var(--muted);">Everyone in your company is already on this project.</div>
+                @else
+                <select id="addMemberSelect" class="ptm-select" style="width:100%; margin-bottom:16px;">
+                    @foreach($availableMembers as $am)
+                    <option value="{{ $am->id }}">{{ $am->name }}</option>
+                    @endforeach
+                </select>
+                @endif
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeAddMemberModal()" class="ptm-btn-ghost">Cancel</button>
+                    @if($availableMembers->isNotEmpty())
+                    <button type="button" id="addMemberSaveBtn" onclick="submitAddMember()" class="ptm-btn-primary">Add</button>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Resource modal (brief / link) --}}
+        <div id="resourceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; width:440px; max-width:95vw;">
+                <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:16px;" id="resourceModalTitle">Add resource</div>
+                <input type="hidden" id="resourceType" value="link">
+                <div style="margin-bottom:12px;">
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TITLE</label>
+                    <input type="text" id="resourceTitle" class="ptm-input" style="width:100%;">
+                </div>
+                <div id="resourceUrlRow" style="margin-bottom:12px;">
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">URL</label>
+                    <input type="text" id="resourceUrl" class="ptm-input" style="width:100%;" placeholder="https://">
+                </div>
+                <div id="resourceContentRow" style="display:none; margin-bottom:12px;">
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">BRIEF</label>
+                    <textarea id="resourceContent" rows="4" class="ptm-input" style="width:100%; resize:vertical;"></textarea>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeResourceModal()" class="ptm-btn-ghost">Cancel</button>
+                    <button type="button" id="resourceSaveBtn" onclick="submitResource()" class="ptm-btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Send message modal --}}
+        <div id="sendMessageModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; width:440px; max-width:95vw;">
+                <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:16px;">Send message to members</div>
+                <textarea id="messageBody" rows="4" class="ptm-input" style="width:100%; resize:vertical; margin-bottom:16px;" placeholder="Write an update for the project team…"></textarea>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeSendMessageModal()" class="ptm-btn-ghost">Cancel</button>
+                    <button type="button" id="sendMessageSaveBtn" onclick="submitSendMessage()" class="ptm-btn-primary">Send</button>
+                </div>
             </div>
         </div>
 
@@ -1747,6 +1940,128 @@
             btn.disabled = false; btn.textContent = 'Post update';
         })
         .catch(() => { btn.disabled = false; btn.textContent = 'Post update'; });
+    }
+
+    function quickSetStatus(status) {
+        fetch(projectUrl('/status-updates'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ status: status, message: '' })
+        })
+        .then(r => r.json())
+        .then(data => { if (data.success) location.reload(); });
+    }
+
+    /* Project roles / members */
+    function openAddMemberModal() { document.getElementById('addMemberModal').style.display = 'flex'; }
+    function closeAddMemberModal() { document.getElementById('addMemberModal').style.display = 'none'; }
+    function submitAddMember() {
+        const select = document.getElementById('addMemberSelect');
+        if (!select) return;
+        const btn = document.getElementById('addMemberSaveBtn');
+        btn.disabled = true; btn.textContent = 'Adding…';
+        fetch(projectUrl('/members'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ user_id: select.value })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); return; }
+            btn.disabled = false; btn.textContent = 'Add';
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Add'; });
+    }
+    function removeProjectMember(userId) {
+        if (!confirm('Remove this person from the project?')) return;
+        fetch(`/${slug}/admin/projects/${PROJECT_ID}/members/${userId}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+        }).then(() => location.reload());
+    }
+
+    /* Key resources */
+    function openResourceModal(type) {
+        document.getElementById('resourceType').value = type;
+        document.getElementById('resourceModalTitle').textContent = type === 'brief' ? 'Create project brief' : 'Add resource';
+        document.getElementById('resourceContentRow').style.display = type === 'brief' ? 'block' : 'none';
+        document.getElementById('resourceUrlRow').style.display = type === 'brief' ? 'none' : 'block';
+        document.getElementById('resourceModal').style.display = 'flex';
+    }
+    function closeResourceModal() {
+        document.getElementById('resourceModal').style.display = 'none';
+        document.getElementById('resourceTitle').value = '';
+        document.getElementById('resourceUrl').value = '';
+        document.getElementById('resourceContent').value = '';
+    }
+    function submitResource() {
+        const title = document.getElementById('resourceTitle').value.trim();
+        if (!title) return;
+        const btn = document.getElementById('resourceSaveBtn');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        fetch(projectUrl('/resources'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({
+                type: document.getElementById('resourceType').value,
+                title: title,
+                url: document.getElementById('resourceUrl').value.trim(),
+                content: document.getElementById('resourceContent').value.trim(),
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); return; }
+            btn.disabled = false; btn.textContent = 'Save';
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Save'; });
+    }
+    function deleteResource(id) {
+        if (!confirm('Remove this resource?')) return;
+        fetch(`/${slug}/admin/projects/${PROJECT_ID}/resources/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+        }).then(() => location.reload());
+    }
+
+    /* Milestones */
+    function addMilestone() {
+        const title = document.getElementById('newMilestoneTitle').value.trim();
+        if (!title) return;
+        fetch(projectUrl('/milestones'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ title: title, due_date: document.getElementById('newMilestoneDate').value })
+        })
+        .then(r => r.json())
+        .then(data => { if (data.success) location.reload(); });
+    }
+    function toggleMilestoneStatus(taskId) {
+        fetch(`/${slug}/admin/projects/${PROJECT_ID}/milestones/${taskId}/toggle`, {
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+        }).then(() => location.reload());
+    }
+
+    /* Send message to members */
+    function openSendMessageModal() { document.getElementById('sendMessageModal').style.display = 'flex'; }
+    function closeSendMessageModal() { document.getElementById('sendMessageModal').style.display = 'none'; }
+    function submitSendMessage() {
+        const body = document.getElementById('messageBody').value.trim();
+        if (!body) return;
+        const btn = document.getElementById('sendMessageSaveBtn');
+        btn.disabled = true; btn.textContent = 'Sending…';
+        fetch(projectUrl('/messages'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ body: body })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); return; }
+            btn.disabled = false; btn.textContent = 'Send';
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Send'; });
     }
     </script>
 

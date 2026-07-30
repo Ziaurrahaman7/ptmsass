@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Models\ProjectResource;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ProjectController extends Controller
@@ -51,6 +53,7 @@ class ProjectController extends Controller
             'company_id' => $this->companyId(),
             'created_by' => auth()->id(),
         ]);
+        $project->members()->attach(auth()->id(), ['role' => 'owner']);
 
         if ($template) $this->cloneProjectContents($template, $project);
 
@@ -73,7 +76,29 @@ class ProjectController extends Controller
         $statusUpdates = $project->statusUpdates()->with('user')->take(10)->get();
         $portfolios = \App\Models\Portfolio::where('company_id', $this->companyId())->orderBy('title')->get();
 
-        return view('company.projects.show', compact('project', 'tasks', 'sections', 'customFields', 'members', 'statusUpdates', 'portfolios'));
+        // Backfill: projects created before the project-members feature existed have no owner row yet
+        if ($project->members()->count() === 0) {
+            $project->members()->attach($project->created_by, ['role' => 'owner']);
+        }
+
+        $projectMembers = $project->members()->orderByDesc('project_user.created_at')->get();
+        $availableMembers = $members->whereNotIn('id', $projectMembers->pluck('id'))->values();
+        $resources = $project->resources;
+        $milestones = $project->milestones()->with('assignee')->get();
+
+        $activity = collect()
+            ->concat($projectMembers->map(fn ($u) => [
+                'type' => 'joined', 'at' => $u->pivot->created_at, 'user' => $u,
+            ]))
+            ->concat($project->messages()->with('user')->latest()->take(20)->get()->map(fn ($m) => [
+                'type' => 'message', 'at' => $m->created_at, 'user' => $m->user, 'body' => $m->body,
+            ]))
+            ->sortByDesc('at')->values();
+
+        return view('company.projects.show', compact(
+            'project', 'tasks', 'sections', 'customFields', 'members', 'statusUpdates', 'portfolios',
+            'projectMembers', 'availableMembers', 'resources', 'milestones', 'activity'
+        ));
     }
 
     public function edit(string $slug, Project $project)
@@ -157,6 +182,7 @@ class ProjectController extends Controller
         $copy->is_template = false;
         $copy->created_by = auth()->id();
         $copy->save();
+        $copy->members()->attach(auth()->id(), ['role' => 'owner']);
 
         $this->cloneProjectContents($project, $copy);
 
@@ -174,6 +200,7 @@ class ProjectController extends Controller
         $copy->is_template = true;
         $copy->created_by = auth()->id();
         $copy->save();
+        $copy->members()->attach(auth()->id(), ['role' => 'owner']);
 
         $this->cloneProjectContents($project, $copy);
 
@@ -330,6 +357,105 @@ class ProjectController extends Controller
         ]);
 
         return response()->json(['success' => true]);
+    }
+
+    // Project roles/members
+    public function addMember(Request $request, string $slug, Project $project)
+    {
+        $this->authorizeProject($project);
+
+        $data = $request->validate(['user_id' => 'required|exists:users,id']);
+        $user = auth()->user()->company->users()->where('is_active', true)->findOrFail($data['user_id']);
+
+        $project->members()->syncWithoutDetaching([$user->id => ['role' => 'member']]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function removeMember(string $slug, Project $project, User $user)
+    {
+        $this->authorizeProject($project);
+        $project->members()->detach($user->id);
+        return response()->json(['success' => true]);
+    }
+
+    // Key resources (project brief / links)
+    public function storeResource(Request $request, string $slug, Project $project)
+    {
+        $this->authorizeProject($project);
+
+        $data = $request->validate([
+            'type'    => 'required|in:brief,link',
+            'title'   => 'required|string|max:255',
+            'url'     => 'nullable|url|max:2000',
+            'content' => 'nullable|string|max:5000',
+        ]);
+
+        $project->resources()->create([...$data,
+            'company_id' => $this->companyId(),
+            'user_id'    => auth()->id(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function destroyResource(string $slug, Project $project, ProjectResource $resource)
+    {
+        $this->authorizeProject($project);
+        abort_if($resource->project_id !== $project->id, 403);
+        $resource->delete();
+        return response()->json(['success' => true]);
+    }
+
+    // Send a message to project members (feeds the activity log)
+    public function storeMessage(Request $request, string $slug, Project $project)
+    {
+        $this->authorizeProject($project);
+
+        $data = $request->validate(['body' => 'required|string|max:4000']);
+
+        $project->messages()->create([
+            'company_id' => $this->companyId(),
+            'user_id'    => auth()->id(),
+            'body'       => $data['body'],
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    // Milestones (tasks flagged is_milestone)
+    public function storeMilestone(Request $request, string $slug, Project $project)
+    {
+        $this->authorizeProject($project);
+
+        $data = $request->validate([
+            'title'    => 'required|string|max:255',
+            'due_date' => 'nullable|date',
+        ]);
+
+        $position = (int) $project->tasks()->max('position');
+
+        $task = Task::create([
+            'company_id'   => $this->companyId(),
+            'project_id'   => $project->id,
+            'created_by'   => auth()->id(),
+            'title'        => $data['title'],
+            'due_date'     => $data['due_date'] ?? null,
+            'is_milestone' => true,
+            'position'     => $position + 1,
+        ]);
+
+        return response()->json(['success' => true, 'id' => $task->id]);
+    }
+
+    public function toggleMilestone(string $slug, Project $project, Task $task)
+    {
+        $this->authorizeProject($project);
+        abort_if($task->project_id !== $project->id || !$task->is_milestone, 403);
+
+        $task->update(['status' => $task->status === 'done' ? 'todo' : 'done']);
+
+        return response()->json(['success' => true, 'status' => $task->status]);
     }
 
     private function authorizeProject(Project $project): void

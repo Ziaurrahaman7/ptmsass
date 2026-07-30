@@ -66,6 +66,26 @@ class Project extends Model
         return $this->hasOne(ProjectStatusUpdate::class)->latestOfMany();
     }
 
+    public function members()
+    {
+        return $this->belongsToMany(User::class, 'project_user')->withPivot('role')->withTimestamps();
+    }
+
+    public function resources()
+    {
+        return $this->hasMany(ProjectResource::class)->latest();
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(ProjectMessage::class);
+    }
+
+    public function milestones()
+    {
+        return $this->hasMany(Task::class)->where('is_milestone', true)->orderBy('due_date');
+    }
+
     public function progressPercentage(): int
     {
         $total = $this->tasks()->count();

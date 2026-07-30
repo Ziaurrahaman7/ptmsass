@@ -64,6 +64,13 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::get('projects/{project}/export', [CompanyProjectController::class, 'exportTasksCsv'])->name('projects.export');
     Route::post('projects/{project}/import', [CompanyProjectController::class, 'importTasksCsv'])->name('projects.import');
     Route::post('projects/{project}/status-updates', [CompanyProjectController::class, 'storeStatusUpdate'])->name('projects.status-updates.store');
+    Route::post('projects/{project}/members', [CompanyProjectController::class, 'addMember'])->name('projects.members.add');
+    Route::delete('projects/{project}/members/{user}', [CompanyProjectController::class, 'removeMember'])->name('projects.members.remove');
+    Route::post('projects/{project}/resources', [CompanyProjectController::class, 'storeResource'])->name('projects.resources.store');
+    Route::delete('projects/{project}/resources/{resource}', [CompanyProjectController::class, 'destroyResource'])->name('projects.resources.destroy');
+    Route::post('projects/{project}/messages', [CompanyProjectController::class, 'storeMessage'])->name('projects.messages.store');
+    Route::post('projects/{project}/milestones', [CompanyProjectController::class, 'storeMilestone'])->name('projects.milestones.store');
+    Route::patch('projects/{project}/milestones/{task}/toggle', [CompanyProjectController::class, 'toggleMilestone'])->name('projects.milestones.toggle');
     Route::resource('projects', CompanyProjectController::class);
     
     // Tasks GET/PUT/PATCH/DELETE routes
