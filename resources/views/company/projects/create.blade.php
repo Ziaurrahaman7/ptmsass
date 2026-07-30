@@ -21,6 +21,18 @@
                     <textarea name="description" rows="3" class="ptm-input" style="resize:vertical;">{{ old('description') }}</textarea>
                 </div>
 
+                @if($templates->isNotEmpty())
+                <div>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">START FROM A TEMPLATE (OPTIONAL)</label>
+                    <select name="template_id" class="ptm-select">
+                        <option value="">Don't use a template</option>
+                        @foreach($templates as $t)
+                        <option value="{{ $t->id }}" {{ old('template_id') == $t->id ? 'selected' : '' }}>{{ $t->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
+
                 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
                     <div>
                         <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">STATUS *</label>

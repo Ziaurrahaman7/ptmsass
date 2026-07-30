@@ -99,19 +99,144 @@
         .al-avatar { width:24px; height:24px; border-radius:6px; background:rgba(74,222,128,0.2); color:#4ade80; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         .al-addrow input { background:transparent; border:none; color:var(--text); font-size:13px; padding:7px 8px; width:100%; font-family:var(--font); }
         .al-addrow input:focus { outline:none; }
+        [x-cloak] { display:none !important; }
+        .proj-opt-item { display:flex; align-items:center; gap:10px; width:100%; background:none; border:none; text-align:left; cursor:pointer; padding:8px 10px; border-radius:8px; color:var(--text); font-size:13px; font-family:var(--font); transition:background .12s; }
+        .proj-opt-item:hover { background:var(--surface2); }
+        .proj-opt-item svg { flex-shrink:0; color:var(--muted); }
     </style>
+
+    @php
+        $PROJ_ICONS = [
+            'grid'   => '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+            'chart'  => '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+            'target' => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+            'flag'   => '<path d="M4 3v18"/><path d="M4 4h11l-1.5 4L15 12H4"/>',
+            'folder' => '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>',
+            'star'   => '<path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6L12 16.8 6.3 19.5l1.2-6L3 9.3l6.4-.7L12 3z"/>',
+        ];
+        $PROJ_COLORS = ['#6b7385','#f87171','#fb923c','#fbbf24','#a3e635','#4ade80','#22d3ee','#38bdf8','#2dd4bf','#60a5fa','#a78bfa','#e879f9','#ec4899','#f472b6','#94a3b8'];
+        $projIconKey = $project->icon && isset($PROJ_ICONS[$project->icon]) ? $project->icon : 'grid';
+        $latestStatus = $statusUpdates->first();
+    @endphp
 
     <div x-data="{ tab: 'list' }">
 
         {{-- Header --}}
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:11px;">
-                <div style="width:32px; height:32px; border-radius:8px; background:var(--accent); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="2.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div style="width:32px; height:32px; border-radius:8px; background:{{ $project->color ?: 'var(--accent)' }}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{ $project->color ? 'white' : '#0d0f12' }}" stroke-width="2.5">{!! $PROJ_ICONS[$projIconKey] !!}</svg>
                 </div>
                 <div>
                     <div style="font-size:17px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">{{ $project->name }}</div>
                     @if($project->description)<div style="font-size:12px; color:var(--muted); margin-top:1px;">{{ $project->description }}</div>@endif
+                </div>
+
+                {{-- Title options dropdown --}}
+                <div x-data="{ open: false, colorOpen: false }" style="position:relative;" @click.outside="open=false; colorOpen=false">
+                    <button @click="open = !open" title="Project options" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; border-radius:6px; display:flex;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div x-show="open" x-cloak style="position:absolute; top:calc(100% + 6px); left:0; z-index:60; background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:6px; width:250px; box-shadow:0 8px 24px rgba(0,0,0,.35);">
+                        <a href="{{ route('company.projects.edit', [$slug, $project]) }}" class="proj-opt-item" style="text-decoration:none;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Edit project settings
+                        </a>
+                        <button type="button" @click.stop="colorOpen = !colorOpen" class="proj-opt-item">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2a10 10 0 100 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3c1.8 0 3.2-1.4 3.2-3.2C20.5 7.1 16.7 2 12 2z"/></svg>
+                            <span style="flex:1;">Set color & icon</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <div x-show="colorOpen" x-cloak style="padding:10px 10px 4px;">
+                            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                                @foreach($PROJ_COLORS as $c)
+                                <button type="button" onclick="pickProjectColor('{{ $c }}')" style="width:22px; height:22px; border-radius:50%; border:2px solid {{ $project->color === $c ? 'var(--text)' : 'transparent' }}; background:{{ $c }}; cursor:pointer; padding:0; box-sizing:border-box;"></button>
+                                @endforeach
+                            </div>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                @foreach($PROJ_ICONS as $key => $svg)
+                                <button type="button" onclick="pickProjectIcon('{{ $key }}')" style="width:30px; height:30px; border-radius:8px; background:var(--surface2); border:2px solid {{ $projIconKey === $key ? 'var(--accent)' : 'transparent' }}; color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">{!! $svg !!}</svg>
+                                </button>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div style="border-top:1px solid var(--border); margin:6px 2px;"></div>
+                        <button type="button" class="proj-opt-item" @click="open=false" onclick="copyProjectLink()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.5.5l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7.5-.5l-2 2a5 5 0 007 7l1-1"/></svg>
+                            Copy project link
+                        </button>
+                        <button type="button" class="proj-opt-item" onclick="duplicateThisProject()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            Duplicate
+                        </button>
+                        <button type="button" class="proj-opt-item" onclick="saveProjectAsTemplate()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                            Save as template
+                        </button>
+                        <div x-data="{ portOpen: false }" style="position:relative;">
+                            <button type="button" @click.stop="portOpen = !portOpen" class="proj-opt-item">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                                <span style="flex:1;">Add to portfolio</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
+                            <div x-show="portOpen" x-cloak style="position:absolute; top:0; left:calc(100% + 4px); width:220px; max-height:260px; overflow-y:auto; background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.4); z-index:70;">
+                                @forelse($portfolios as $pf)
+                                <button type="button" class="proj-opt-item" @click="open=false" onclick="addProjectToPortfolio({{ $pf->id }})">{{ $pf->title }}</button>
+                                @empty
+                                <div style="padding:8px 10px; font-size:12px; color:var(--muted);">No portfolios yet</div>
+                                @endforelse
+                            </div>
+                        </div>
+                        <div style="border-top:1px solid var(--border); margin:6px 2px;"></div>
+                        <button type="button" class="proj-opt-item" @click="open=false" onclick="openImportModal()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Import
+                        </button>
+                        <a href="{{ route('company.projects.export', [$slug, $project]) }}" class="proj-opt-item" style="text-decoration:none;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Export tasks (CSV)
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Star / favorite --}}
+                <button onclick="toggleProjectFavorite()" title="{{ $project->is_favorite ? 'Remove from favorites' : 'Add to favorites' }}" style="background:none; border:none; color:{{ $project->is_favorite ? '#fbbf24' : 'var(--muted)' }}; cursor:pointer; padding:4px; border-radius:6px; display:flex;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="{{ $project->is_favorite ? '#fbbf24' : 'none' }}" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6L12 16.8 6.3 19.5l1.2-6L3 9.3l6.4-.7L12 3z"/></svg>
+                </button>
+
+                {{-- Set status pill (narrative status-update feed, separate from the lifecycle status badge) --}}
+                <div x-data="{ open: false }" style="position:relative;" @click.outside="open=false">
+                    <button @click="open = !open" style="display:inline-flex; align-items:center; gap:6px; background:none; border:1px solid var(--border2); border-radius:20px; padding:5px 12px; cursor:pointer; font-size:12px; color:var(--text); font-family:var(--font);">
+                        <span style="width:8px; height:8px; border-radius:50%; background:{{ $latestStatus?->color ?? 'transparent' }}; border:{{ $latestStatus ? 'none' : '1px solid var(--muted)' }};"></span>
+                        {{ $latestStatus?->label ?? 'Set status' }}
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div x-show="open" x-cloak style="position:absolute; top:calc(100% + 6px); left:0; z-index:60; background:var(--surface); border:1px solid var(--border2); border-radius:12px; padding:14px; width:320px; box-shadow:0 10px 30px rgba(0,0,0,.4);">
+                        <div style="font-size:12px; font-weight:600; color:var(--text); margin-bottom:10px;">Post status update</div>
+                        <select id="statusUpdateSelect" style="width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; font-family:var(--font); margin-bottom:8px; box-sizing:border-box;">
+                            <option value="on_track">On track</option>
+                            <option value="at_risk">At risk</option>
+                            <option value="off_track">Off track</option>
+                            <option value="on_hold">On hold</option>
+                        </select>
+                        <textarea id="statusUpdateMessage" rows="3" placeholder="What's the update?" style="width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; font-family:var(--font); resize:vertical; margin-bottom:10px; box-sizing:border-box;"></textarea>
+                        <button type="button" onclick="postStatusUpdate()" id="postStatusBtn" style="width:100%; background:var(--accent); border:none; color:#0a0f1a; border-radius:8px; padding:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font);">Post update</button>
+
+                        @if($statusUpdates->isNotEmpty())
+                        <div style="border-top:1px solid var(--border); margin-top:14px; padding-top:10px; max-height:200px; overflow-y:auto;">
+                            @foreach($statusUpdates as $su)
+                            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                                <span style="width:8px; height:8px; border-radius:50%; background:{{ $su->color }}; margin-top:5px; flex-shrink:0;"></span>
+                                <div style="min-width:0;">
+                                    <div style="font-size:12px; color:var(--text);"><strong>{{ $su->label }}</strong> · {{ $su->user->name }} · <span style="color:var(--muted);">{{ $su->created_at->diffForHumans() }}</span></div>
+                                    @if($su->message)<div style="font-size:12px; color:var(--muted); margin-top:2px;">{{ $su->message }}</div>@endif
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
@@ -121,7 +246,19 @@
                        ($project->status === 'on_hold' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
                     {{ ucfirst(str_replace('_',' ',$project->status)) }}
                 </span>
-                <a href="{{ route('company.projects.edit', [$slug, $project]) }}" class="ptm-btn-ghost" style="text-decoration:none; font-size:12px; padding:6px 14px;">Edit Project</a>
+            </div>
+        </div>
+
+        {{-- Import tasks CSV modal --}}
+        <div id="importTasksModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; width:420px; max-width:95vw;">
+                <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:16px;">Import tasks from CSV</div>
+                <p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Columns: Title, Section, Status, Priority, Due date, Assignee, Description. Only Title is required.</p>
+                <input type="file" id="importFileInput" accept=".csv,text/csv" style="width:100%; margin-bottom:16px; color:var(--text); font-size:13px;">
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeImportModal()" style="background:none; border:1px solid var(--border2); color:var(--muted); border-radius:8px; padding:8px 16px; font-size:13px; cursor:pointer; font-family:var(--font);">Cancel</button>
+                    <button type="button" id="importSaveBtn" onclick="submitImportCsv()" style="background:var(--accent); border:none; color:#0a0f1a; border-radius:8px; padding:8px 20px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font);">Import</button>
+                </div>
             </div>
         </div>
 
@@ -1508,6 +1645,109 @@
     });
     /* ESC closes panel */
     document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ const d=document.getElementById('taskDrawer'); if(d.classList.contains('open')) closePanel(); } });
+
+    /* Title dropdown: color/icon, copy link, duplicate, save-as-template, add-to-portfolio, import/export */
+    const PROJECT_ID = {{ $project->id }};
+    function projectUrl(suffix) {
+        return `/${slug}/admin/projects/${PROJECT_ID}${suffix || ''}`;
+    }
+
+    function pickProjectColor(color) {
+        fetch(projectUrl('/color-icon'), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ color: color })
+        }).then(r => r.json()).then(data => { if (data.success) location.reload(); });
+    }
+    function pickProjectIcon(icon) {
+        fetch(projectUrl('/color-icon'), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ icon: icon })
+        }).then(r => r.json()).then(data => { if (data.success) location.reload(); });
+    }
+
+    function toggleProjectFavorite() {
+        fetch(projectUrl('/favorite'), {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+        }).then(r => r.json()).then(data => { if (data.success) location.reload(); });
+    }
+
+    function copyProjectLink() {
+        navigator.clipboard.writeText(window.location.href).catch(() => {});
+    }
+
+    function duplicateThisProject() {
+        fetch(projectUrl('/duplicate'), {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+        }).then(r => r.json()).then(data => { if (data.url) window.location.href = data.url; });
+    }
+
+    function saveProjectAsTemplate() {
+        fetch(projectUrl('/save-as-template'), {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+        }).then(r => r.json()).then(data => { if (data.success) alert('Saved as a template. Pick it from "Start from a template" next time you create a project.'); });
+    }
+
+    function addProjectToPortfolio(portfolioId) {
+        fetch(`/${slug}/admin/portfolios/${portfolioId}/projects`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ project_id: PROJECT_ID })
+        }).then(r => r.json()).then(data => { if (data.success) alert('Added to portfolio.'); });
+    }
+
+    function openImportModal() {
+        document.getElementById('importTasksModal').style.display = 'flex';
+    }
+    function closeImportModal() {
+        document.getElementById('importTasksModal').style.display = 'none';
+        document.getElementById('importFileInput').value = '';
+    }
+    function submitImportCsv() {
+        const file = document.getElementById('importFileInput').files[0];
+        if (!file) return;
+        const btn = document.getElementById('importSaveBtn');
+        btn.disabled = true; btn.textContent = 'Importing…';
+
+        const data = new FormData();
+        data.append('file', file);
+
+        fetch(projectUrl('/import'), {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: data
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); return; }
+            btn.disabled = false; btn.textContent = 'Import';
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Import'; });
+    }
+
+    /* Set-status pill */
+    function postStatusUpdate() {
+        const status = document.getElementById('statusUpdateSelect').value;
+        const message = document.getElementById('statusUpdateMessage').value.trim();
+        const btn = document.getElementById('postStatusBtn');
+        btn.disabled = true; btn.textContent = 'Posting…';
+
+        fetch(projectUrl('/status-updates'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ status: status, message: message })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); return; }
+            btn.disabled = false; btn.textContent = 'Post update';
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Post update'; });
+    }
     </script>
 
     {{-- Move-to-section menu --}}

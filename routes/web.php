@@ -57,6 +57,13 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     
     // Projects resource
     Route::patch('projects/{project}/goal', [CompanyProjectController::class, 'updateGoal'])->name('projects.goal');
+    Route::patch('projects/{project}/color-icon', [CompanyProjectController::class, 'updateColorIcon'])->name('projects.color-icon');
+    Route::post('projects/{project}/favorite', [CompanyProjectController::class, 'toggleFavorite'])->name('projects.favorite');
+    Route::post('projects/{project}/duplicate', [CompanyProjectController::class, 'duplicateProject'])->name('projects.duplicate');
+    Route::post('projects/{project}/save-as-template', [CompanyProjectController::class, 'saveAsTemplate'])->name('projects.save-as-template');
+    Route::get('projects/{project}/export', [CompanyProjectController::class, 'exportTasksCsv'])->name('projects.export');
+    Route::post('projects/{project}/import', [CompanyProjectController::class, 'importTasksCsv'])->name('projects.import');
+    Route::post('projects/{project}/status-updates', [CompanyProjectController::class, 'storeStatusUpdate'])->name('projects.status-updates.store');
     Route::resource('projects', CompanyProjectController::class);
     
     // Tasks GET/PUT/PATCH/DELETE routes

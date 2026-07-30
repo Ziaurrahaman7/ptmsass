@@ -140,6 +140,7 @@
         @php
             $slug = auth()->user()->company->slug;
             $sidebarProjects = \App\Models\Project::where('company_id', auth()->user()->company_id)
+                ->where('is_template', false)
                 ->orderBy('name')
                 ->get(['id', 'name']);
             $activeProject = request()->route('project');

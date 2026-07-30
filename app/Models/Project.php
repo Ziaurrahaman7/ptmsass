@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Project extends Model
 {
     protected $fillable = [
-        'company_id', 'created_by', 'name', 'description', 'status', 'start_date', 'due_date', 'month_goals',
+        'company_id', 'created_by', 'name', 'description', 'color', 'icon', 'is_favorite', 'is_template',
+        'status', 'start_date', 'due_date', 'month_goals',
     ];
 
     protected $casts = [
@@ -16,6 +17,8 @@ class Project extends Model
         'month_goals' => 'array',
         'company_id'  => 'integer',
         'created_by'  => 'integer',
+        'is_favorite' => 'boolean',
+        'is_template' => 'boolean',
     ];
 
     public function company()
@@ -51,6 +54,16 @@ class Project extends Model
     public function goals()
     {
         return $this->belongsToMany(Goal::class, 'goal_project')->withTimestamps();
+    }
+
+    public function statusUpdates()
+    {
+        return $this->hasMany(ProjectStatusUpdate::class)->latest();
+    }
+
+    public function latestStatusUpdate()
+    {
+        return $this->hasOne(ProjectStatusUpdate::class)->latestOfMany();
     }
 
     public function progressPercentage(): int
