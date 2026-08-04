@@ -1016,6 +1016,20 @@
     function empMarkComplete(current){
         empPanelStatus(current==='done' ? 'todo' : 'done');
     }
+    function empPanelDescription(value){
+        panelDirty = true;
+        fetch(`/${slug}/tasks/${panelTaskId}/inline`, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
+            body: JSON.stringify({description:value})
+        });
+    }
+    function empAddSubtask(form){
+        panelDirty = true;
+        fetch(form.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:new FormData(form) })
+            .then(r=>r.json()).then(()=>reloadPanel());
+        return false;
+    }
     function empAddComment(form){
         panelDirty = true;
         fetch(form.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:new FormData(form) })

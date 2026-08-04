@@ -11,7 +11,15 @@
             <div style="flex:1;">
                 <div style="font-size:18px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">{{ $task->title }}</div>
                 <div style="font-size:12px; color:var(--muted); margin-top:4px; font-family:var(--mono);">{{ $task->project->name }}</div>
-                @if($task->description)
+                @if($isMine)
+                <form method="POST" action="{{ route('employee.tasks.inline', [$slug, $task]) }}" style="margin-top:10px;">
+                    @csrf @method('PATCH')
+                    <textarea name="description" rows="2" placeholder="Add a description..."
+                        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';"
+                        class="ptm-input" style="width:100%; resize:none; font-size:13px;">{{ $task->description }}</textarea>
+                    <button type="submit" class="ptm-btn-ghost" style="margin-top:6px; font-size:11px; padding:5px 12px;">Save description</button>
+                </form>
+                @elseif($task->description)
                 <div style="font-size:13px; color:var(--muted); margin-top:8px; line-height:1.6;">{{ $task->description }}</div>
                 @endif
             </div>
@@ -29,6 +37,7 @@
                 <div style="padding:18px; display:grid; grid-template-columns:repeat(2,1fr); gap:16px;">
                     <div>
                         <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Status</div>
+                        @if($isMine)
                         <form method="POST" action="{{ route('employee.tasks.status', [auth()->user()->company->slug, $task]) }}" style="display:inline;">
                             @csrf @method('PATCH')
                             <select name="status" onchange="this.form.submit()" class="ptm-select" style="font-size:12px; padding:5px 10px;">
@@ -37,6 +46,9 @@
                                 @endforeach
                             </select>
                         </form>
+                        @else
+                        <span style="font-size:12px; color:var(--muted);">{{ ucfirst(str_replace('_',' ',$task->status)) }} <span style="font-family:var(--mono); font-size:10px;">(not assigned to you)</span></span>
+                        @endif
                     </div>
                     <div>
                         <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Priority</div>
@@ -69,8 +81,8 @@
                 </div>
             </div>
 
-            @if($task->subtasks->count() > 0)
-            {{-- Subtasks Section (View Only) --}}
+            @if($task->subtasks->count() > 0 || $isMine)
+            {{-- Subtasks Section --}}
             <div class="ptm-card" style="margin-bottom:16px;">
                 <div style="padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
                     <div style="display:flex; align-items:center; gap:8px;">
@@ -128,6 +140,14 @@
                         </a>
                         @endforeach
                     </div>
+
+                    @if($isMine)
+                    <form method="POST" action="{{ route('employee.tasks.subtasks.store', [$slug, $task]) }}" style="margin-top:10px; display:flex; gap:8px;">
+                        @csrf
+                        <input type="text" name="title" required placeholder="Add a subtask..." class="ptm-input" style="flex:1; font-size:13px;">
+                        <button type="submit" class="ptm-btn-ghost" style="font-size:12px; padding:6px 14px;">Add</button>
+                    </form>
+                    @endif
                 </div>
             </div>
             @endif

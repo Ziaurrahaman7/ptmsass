@@ -84,11 +84,19 @@
 {{-- Description --}}
 <div style="margin-bottom:22px;">
     <div style="font-size:12px; color:var(--muted); font-weight:500; margin-bottom:6px;">Description</div>
-    <div style="font-size:13px; color:{{ $task->description ? 'var(--text)' : 'var(--muted)' }}; line-height:1.5; white-space:pre-wrap; padding:10px 12px; background:var(--surface2); border-radius:8px;">{{ $task->description ?: 'No description.' }}</div>
+    @if($isMine)
+        <textarea id="panelDescription" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';" onblur="empPanelDescription(this.value)"
+            placeholder="Add a description..." rows="1"
+            style="width:100%; font-size:13px; color:var(--text); line-height:1.5; padding:10px 12px; background:var(--surface2); border:1px solid transparent; border-radius:8px; font-family:var(--font); resize:none; min-height:60px;"
+            onfocus="this.style.borderColor='var(--border2)'" onmouseover="if(document.activeElement!==this)this.style.background='rgba(255,255,255,0.04)'" onmouseout="if(document.activeElement!==this)this.style.background='var(--surface2)'"
+        >{{ $task->description }}</textarea>
+    @else
+        <div style="font-size:13px; color:{{ $task->description ? 'var(--text)' : 'var(--muted)' }}; line-height:1.5; white-space:pre-wrap; padding:10px 12px; background:var(--surface2); border-radius:8px;">{{ $task->description ?: 'No description.' }}</div>
+    @endif
 </div>
 
 {{-- Subtasks --}}
-@if($task->subtasks->count() > 0)
+@if($task->subtasks->count() > 0 || $isMine)
 <div style="margin-bottom:22px;">
     <div style="font-size:12px; color:var(--text); font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
         Subtasks <span style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ $task->subtasks->count() }}</span>
@@ -103,6 +111,12 @@
         </div>
         @endforeach
     </div>
+    @if($isMine)
+    <form onsubmit="return empAddSubtask(this)" action="{{ route('employee.tasks.subtasks.store', [$slug, $task]) }}" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" style="flex-shrink:0;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <input type="text" name="title" required placeholder="Add a subtask..." style="flex:1; background:none; border:none; color:var(--text); font-size:13px; font-family:var(--font); padding:6px 0;">
+    </form>
+    @endif
 </div>
 @endif
 

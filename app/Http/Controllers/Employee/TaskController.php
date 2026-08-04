@@ -78,7 +78,59 @@ class TaskController extends Controller
 
         $task->load(['project', 'assignee', 'assignees', 'comments.user', 'attachments.uploader', 'activities.user', 'subtasks.assignees']);
 
-        return view('employee.tasks.show', compact('task'));
+        $userId = auth()->id();
+        $isMine = $task->assigned_to === $userId || $task->assignees->contains('id', $userId);
+
+        return view('employee.tasks.show', compact('task', 'isMine', 'slug'));
+    }
+
+    /**
+     * Update a field an employee is allowed to edit on their own assigned task (currently: description only).
+     */
+    public function inlineUpdate(Request $request, string $slug, Task $task)
+    {
+        $this->authorizeMine($task);
+
+        $data = $request->validate(['description' => 'nullable|string']);
+        $task->update(['description' => $data['description'] ?? null]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Description updated.');
+    }
+
+    public function storeSubtask(Request $request, string $slug, Task $task)
+    {
+        $this->authorizeMine($task);
+
+        $data = $request->validate(['title' => 'required|string|max:255']);
+
+        Task::create([
+            'parent_task_id' => $task->id,
+            'project_id'     => $task->project_id,
+            'section_id'     => $task->section_id,
+            'title'          => $data['title'],
+            'status'         => 'todo',
+            'priority'       => 'medium',
+            'company_id'     => $task->company_id,
+            'created_by'     => auth()->id(),
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back()->with('success', 'Subtask added.');
+    }
+
+    private function authorizeMine(Task $task): void
+    {
+        abort_if($task->company_id !== auth()->user()->company_id, 403);
+        $userId = auth()->id();
+        $isMine = $task->assigned_to === $userId || $task->assignees->contains('id', $userId);
+        abort_if(!$isMine, 403);
     }
 
     /**
