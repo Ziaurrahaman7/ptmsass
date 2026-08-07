@@ -5,13 +5,8 @@
         'in_review'   => ['label' => 'In Review',   'color' => '#a78bfa'],
         'done'        => ['label' => 'Done',        'color' => '#4ade80'],
     ];
-    $priorityStyles = [
-        'urgent' => 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);',
-        'high'   => 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);',
-        'medium' => 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);',
-        'low'    => 'color:var(--muted); border-color:var(--border2); background:transparent;',
-    ];
     $sm = $statusMeta[$task->status] ?? $statusMeta['todo'];
+    $taskPriorityObj = $companyPriorities->firstWhere('slug', $task->priority);
 @endphp
 
 {{-- Actions --}}
@@ -71,7 +66,7 @@
     {{-- Priority --}}
     <div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:10px; padding:8px 0;">
         <span style="font-size:12px; color:var(--muted); font-weight:500;">Priority</span>
-        <span class="al-badge" style="{{ $priorityStyles[$task->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($task->priority) }}</span>
+        <span class="al-badge" style="color:{{ $taskPriorityObj->color ?? 'var(--muted)' }}; border-color:{{ $taskPriorityObj->color ?? 'var(--border2)' }}4d; background:{{ $taskPriorityObj->color ?? 'transparent' }}14;">{{ $taskPriorityObj->name ?? ucfirst($task->priority) }}</span>
     </div>
 
     {{-- Section --}}

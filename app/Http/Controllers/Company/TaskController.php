@@ -36,6 +36,16 @@ class TaskController extends Controller
         return auth()->user()->company_id;
     }
 
+    private function priorityRule(): string
+    {
+        return 'in:' . \App\Models\Priority::forCompany($this->companyId())->pluck('slug')->implode(',');
+    }
+
+    private function defaultPriority(): string
+    {
+        return \App\Models\Priority::defaultSlugFor($this->companyId());
+    }
+
     public function index(Request $request, string $slug)
     {
         $query = Task::where('company_id', $this->companyId())
@@ -72,7 +82,7 @@ class TaskController extends Controller
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'status'      => 'required|in:todo,in_progress,in_review,done',
-            'priority'    => 'required|in:low,medium,high,urgent',
+            'priority'    => 'required|' . $this->priorityRule(),
             'assigned_to' => 'nullable|exists:users,id',
             'assignees'   => 'nullable|array',
             'assignees.*' => 'exists:users,id',
@@ -141,7 +151,7 @@ class TaskController extends Controller
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'status'      => 'required|in:todo,in_progress,in_review,done',
-            'priority'    => 'required|in:low,medium,high,urgent',
+            'priority'    => 'required|' . $this->priorityRule(),
             'assigned_to' => 'nullable|exists:users,id',
             'assignees'   => 'nullable|array',
             'assignees.*' => 'exists:users,id',
@@ -205,7 +215,7 @@ class TaskController extends Controller
             'description' => 'nullable|string',
             'section_id'  => 'nullable|exists:sections,id',
             'status'      => 'required|in:todo,in_progress,in_review,done',
-            'priority'    => 'required|in:low,medium,high,urgent',
+            'priority'    => 'required|' . $this->priorityRule(),
             'assigned_to' => 'nullable|exists:users,id',
             'assignees'   => 'nullable|array',
             'assignees.*' => 'exists:users,id',
@@ -353,7 +363,7 @@ class TaskController extends Controller
             'section_id' => $this->validSectionId($data['section_id'] ?? null, $project->id),
             'title'      => $data['title'],
             'status'     => 'todo',
-            'priority'   => 'medium',
+            'priority'   => $this->defaultPriority(),
             'company_id' => $this->companyId(),
             'created_by' => auth()->id(),
         ]);
@@ -425,7 +435,7 @@ class TaskController extends Controller
             'title'       => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
             'status'      => 'sometimes|required|in:todo,in_progress,in_review,done',
-            'priority'    => 'sometimes|required|in:low,medium,high,urgent',
+            'priority'    => 'sometimes|required|' . $this->priorityRule(),
             'due_date'    => 'sometimes|nullable|date',
             'section_id'  => 'sometimes|nullable|exists:sections,id',
             'assignees'   => 'sometimes|array',
@@ -636,7 +646,7 @@ class TaskController extends Controller
             'section_id'     => $task->section_id,
             'title'          => $data['title'],
             'status'         => 'todo',
-            'priority'       => 'medium',
+            'priority'       => $this->defaultPriority(),
             'company_id'     => $this->companyId(),
             'created_by'     => auth()->id(),
         ]);

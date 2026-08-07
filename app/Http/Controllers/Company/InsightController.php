@@ -325,12 +325,10 @@ class InsightController extends Controller
                 ];
 
             case 'priority':
-                return [
-                    ['label' => 'Urgent', 'value' => $apply(Task::where('company_id', $companyId), ['priority'])->where('priority', 'urgent')->count()],
-                    ['label' => 'High',   'value' => $apply(Task::where('company_id', $companyId), ['priority'])->where('priority', 'high')->count()],
-                    ['label' => 'Medium', 'value' => $apply(Task::where('company_id', $companyId), ['priority'])->where('priority', 'medium')->count()],
-                    ['label' => 'Low',    'value' => $apply(Task::where('company_id', $companyId), ['priority'])->where('priority', 'low')->count()],
-                ];
+                return \App\Models\Priority::forCompany($companyId)->map(fn ($p) => [
+                    'label' => $p->name,
+                    'value' => $apply(Task::where('company_id', $companyId), ['priority'])->where('priority', $p->slug)->count(),
+                ])->values()->all();
 
             case 'due_date':
                 return [
@@ -406,12 +404,14 @@ class InsightController extends Controller
             'done'        => Task::where('company_id', $companyId)->where('status', 'done')->count(),
         ];
 
-        $priorityStats = [
-            'urgent' => Task::where('company_id', $companyId)->where('priority', 'urgent')->where('status', '!=', 'done')->count(),
-            'high'   => Task::where('company_id', $companyId)->where('priority', 'high')->where('status', '!=', 'done')->count(),
-            'medium' => Task::where('company_id', $companyId)->where('priority', 'medium')->where('status', '!=', 'done')->count(),
-            'low'    => Task::where('company_id', $companyId)->where('priority', 'low')->where('status', '!=', 'done')->count(),
-        ];
+        // Ordered low → high by position; the last 1-2 entries are the "most urgent" ones.
+        $priorityStats = \App\Models\Priority::forCompany($companyId)->map(fn ($p) => [
+            'name'  => $p->name,
+            'slug'  => $p->slug,
+            'color' => $p->color,
+            'count' => Task::where('company_id', $companyId)->where('priority', $p->slug)->where('status', '!=', 'done')->count(),
+        ]);
+        $topPriorityStats = $priorityStats->slice($priorityStats->count() > 1 ? -2 : -1)->values();
 
         $projects = Project::where('company_id', $companyId)
             ->withCount(['tasks', 'tasks as done_tasks_count' => fn($q) => $q->where('status', 'done')])
@@ -454,7 +454,7 @@ class InsightController extends Controller
         $dashboard = $dashboardTitles[$type] ?? ['title' => 'Dashboard', 'desc' => ''];
 
         return view('company.insights.show', compact(
-            'taskStats', 'priorityStats', 'projects', 'overdueTasks',
+            'taskStats', 'priorityStats', 'topPriorityStats', 'projects', 'overdueTasks',
             'members', 'completedByDay', 'completionRate', 'slug', 'type', 'dashboard'
         ));
     }

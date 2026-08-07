@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -30,11 +31,12 @@ class DashboardController extends Controller
         // Task completion rate
         $completionRate = $totalTasks > 0 ? round(($doneTasks / $totalTasks) * 100, 1) : 0;
         
-        // Priority breakdown
-        $urgentTasks = Task::where('company_id', $companyId)->where('priority', 'urgent')->whereNot('status', 'done')->count();
-        $highPriorityTasks = Task::where('company_id', $companyId)->where('priority', 'high')->whereNot('status', 'done')->count();
-        $mediumPriorityTasks = Task::where('company_id', $companyId)->where('priority', 'medium')->whereNot('status', 'done')->count();
-        $lowPriorityTasks = Task::where('company_id', $companyId)->where('priority', 'low')->whereNot('status', 'done')->count();
+        // Priority breakdown (ordered highest-urgency first, for the dashboard widget)
+        $priorityBreakdown = Priority::forCompany($companyId)->reverse()->values()->map(fn ($p) => [
+            'label' => $p->name,
+            'value' => Task::where('company_id', $companyId)->where('priority', $p->slug)->whereNot('status', 'done')->count(),
+            'color' => $p->color,
+        ]);
         
         // Deadline stats
         $overdueTasks = Task::where('company_id', $companyId)
@@ -100,7 +102,7 @@ class DashboardController extends Controller
             'totalProjects', 'activeProjects', 'completedProjects', 'onHoldProjects',
             'totalTasks', 'doneTasks', 'inProgressTasks', 'todoTasks', 'inReviewTasks',
             'completionRate',
-            'urgentTasks', 'highPriorityTasks', 'mediumPriorityTasks', 'lowPriorityTasks',
+            'priorityBreakdown',
             'overdueTasks', 'dueTodayTasks', 'upcomingTasks',
             'totalMembers', 'activeMembers', 'topPerformers',
             'recentActivities', 'recentProjects', 'recentTasks'

@@ -78,16 +78,6 @@ class Task extends Model
         return $this->hasMany(Task::class, 'parent_task_id');
     }
 
-    public function priorityColor(): string
-    {
-        return match($this->priority) {
-            'urgent' => 'red',
-            'high'   => 'orange',
-            'medium' => 'yellow',
-            default  => 'gray',
-        };
-    }
-
     public function statusColor(): string
     {
         return match($this->status) {

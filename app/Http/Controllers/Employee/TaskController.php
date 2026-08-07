@@ -113,7 +113,7 @@ class TaskController extends Controller
             'section_id'     => $task->section_id,
             'title'          => $data['title'],
             'status'         => 'todo',
-            'priority'       => 'medium',
+            'priority'       => \App\Models\Priority::defaultSlugFor($task->company_id),
             'company_id'     => $task->company_id,
             'created_by'     => auth()->id(),
         ]);

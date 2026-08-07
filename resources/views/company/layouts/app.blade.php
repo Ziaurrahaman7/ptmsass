@@ -175,6 +175,15 @@
                 Members
             </a>
 
+            {{-- Settings --}}
+            <div style="padding:14px 12px 6px;">
+                <span class="ptm-section-title">Settings</span>
+            </div>
+            <a href="{{ route('company.priorities.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.priorities.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9 12 2"/></svg>
+                Priorities
+            </a>
+
             {{-- Insights --}}
             <div style="padding:14px 12px 6px;">
                 <span class="ptm-section-title">Insights</span>

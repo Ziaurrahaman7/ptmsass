@@ -624,7 +624,8 @@
                 $pillPalette = ['#4a8f6a','#9c6b4a','#c96b98','#4a7fc0','#8b6fc0','#c08348','#3f9a9a','#b39240','#a05a6f','#5f7d9c','#6a8f4a','#b3563c'];
                 $pillColor = fn($t) => $pillPalette[(($t->project_id ?? $t->id)) % count($pillPalette)];
                 $statusHex = ['done'=>'#4ade80','in_progress'=>'#22d3ee','in_review'=>'#a78bfa'];
-                $prioHex   = ['urgent'=>'#f87171','high'=>'#fb923c','medium'=>'#fbbf24'];
+                // Skip the lowest-position priority (e.g. "Low") — only elevated priorities get a dot.
+                $prioHex   = $companyPriorities->count() > 1 ? $companyPriorities->skip(1)->pluck('color', 'slug') : collect();
 
                 $gridCols = $weekendsOn
                     ? 'repeat(7, minmax(150px, 1fr))'

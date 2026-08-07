@@ -5,12 +5,6 @@
         'in_review'   => ['label' => 'In Review',   'color' => '#a78bfa'],
         'done'        => ['label' => 'Done',        'color' => '#4ade80'],
     ];
-    $priorityStyles = [
-        'urgent' => 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);',
-        'high'   => 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);',
-        'medium' => 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);',
-        'low'    => 'color:var(--muted); border-color:var(--border2); background:transparent;',
-    ];
 @endphp
 
 {{-- Actions --}}
@@ -86,8 +80,8 @@
     <div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:10px; padding:8px 0;">
         <span style="font-size:12px; color:var(--muted); font-weight:500;">Priority</span>
         <select class="al-pill al-pri" style="width:170px;" onchange="applyPri(this); panelPatch('priority', this.value)">
-            @foreach(['low'=>'Low','medium'=>'Medium','high'=>'High','urgent'=>'Urgent'] as $val=>$lbl)
-            <option value="{{ $val }}" {{ $task->priority===$val?'selected':'' }}>{{ $lbl }}</option>
+            @foreach($companyPriorities as $p)
+            <option value="{{ $p->slug }}" {{ $task->priority===$p->slug?'selected':'' }}>{{ $p->name }}</option>
             @endforeach
         </select>
     </div>

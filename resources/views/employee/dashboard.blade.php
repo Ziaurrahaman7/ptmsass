@@ -103,57 +103,21 @@
                 <span class="ptm-section-title">Active Tasks by Priority</span>
             </div>
             <div style="padding:18px; display:flex; flex-direction:column; gap:12px;">
+                @php $totalPriorityTasks = max($priorityBreakdown->sum('value'), 0); @endphp
+                @foreach($priorityBreakdown as $priority)
                 <div style="display:flex; align-items:center; justify-content:space-between;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="width:8px; height:8px; border-radius:50%; background:#f87171;"></div>
-                        <span style="font-size:13px; color:var(--text);">Urgent</span>
+                        <div style="width:8px; height:8px; border-radius:50%; background:{{ $priority['color'] }};"></div>
+                        <span style="font-size:13px; color:var(--text);">{{ $priority['label'] }}</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <div style="height:6px; background:var(--border); border-radius:3px; width:120px;">
-                            <div style="height:100%; background:#f87171; border-radius:3px; width:{{ ($urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks) > 0 ? ($urgentTasks / ($urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks) * 100) : 0 }}%;"></div>
+                            <div style="height:100%; background:{{ $priority['color'] }}; border-radius:3px; width:{{ $totalPriorityTasks > 0 ? ($priority['value'] / $totalPriorityTasks * 100) : 0 }}%;"></div>
                         </div>
-                        <span style="font-size:13px; font-weight:600; font-family:var(--mono); color:var(--text); min-width:30px; text-align:right;">{{ $urgentTasks }}</span>
+                        <span style="font-size:13px; font-weight:600; font-family:var(--mono); color:var(--text); min-width:30px; text-align:right;">{{ $priority['value'] }}</span>
                     </div>
                 </div>
-
-                <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="width:8px; height:8px; border-radius:50%; background:#fb923c;"></div>
-                        <span style="font-size:13px; color:var(--text);">High</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="height:6px; background:var(--border); border-radius:3px; width:120px;">
-                            <div style="height:100%; background:#fb923c; border-radius:3px; width:{{ ($urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks) > 0 ? ($highPriorityTasks / ($urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks) * 100) : 0 }}%;"></div>
-                        </div>
-                        <span style="font-size:13px; font-weight:600; font-family:var(--mono); color:var(--text); min-width:30px; text-align:right;">{{ $highPriorityTasks }}</span>
-                    </div>
-                </div>
-
-                <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="width:8px; height:8px; border-radius:50%; background:#fbbf24;"></div>
-                        <span style="font-size:13px; color:var(--text);">Medium</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="height:6px; background:var(--border); border-radius:3px; width:120px;">
-                            <div style="height:100%; background:#fbbf24; border-radius:3px; width:{{ ($urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks) > 0 ? ($mediumPriorityTasks / ($urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks) * 100) : 0 }}%;"></div>
-                        </div>
-                        <span style="font-size:13px; font-weight:600; font-family:var(--mono); color:var(--text); min-width:30px; text-align:right;">{{ $mediumPriorityTasks }}</span>
-                    </div>
-                </div>
-
-                <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="width:8px; height:8px; border-radius:50%; background:#6b7385;"></div>
-                        <span style="font-size:13px; color:var(--text);">Low</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="height:6px; background:var(--border); border-radius:3px; width:120px;">
-                            <div style="height:100%; background:#6b7385; border-radius:3px; width:{{ ($urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks) > 0 ? ($lowPriorityTasks / ($urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks) * 100) : 0 }}%;"></div>
-                        </div>
-                        <span style="font-size:13px; font-weight:600; font-family:var(--mono); color:var(--text); min-width:30px; text-align:right;">{{ $lowPriorityTasks }}</span>
-                    </div>
-                </div>
+                @endforeach
             </div>
         </div>
     </div>
@@ -232,11 +196,9 @@
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
-                    <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
-                        {{ $task->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
-                           ($task->priority === 'high' ? 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
-                           ($task->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
-                        {{ ucfirst($task->priority) }}
+                    @php $rowPriorityObj = $companyPriorities->firstWhere('slug', $task->priority); @endphp
+                    <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid; color:{{ $rowPriorityObj->color ?? 'var(--muted)' }}; border-color:{{ $rowPriorityObj->color ?? 'var(--border2)' }}4d; background:{{ $rowPriorityObj->color ?? 'transparent' }}14;">
+                        {{ $rowPriorityObj->name ?? ucfirst($task->priority) }}
                     </span>
                     <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
                         {{ $task->status === 'done' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :

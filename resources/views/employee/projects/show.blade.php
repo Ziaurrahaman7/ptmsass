@@ -2,12 +2,8 @@
 
     @php
         $myId = auth()->id();
-        $priorityStyles = [
-            'urgent' => 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);',
-            'high'   => 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);',
-            'medium' => 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);',
-            'low'    => 'color:var(--muted); border-color:var(--border2); background:transparent;',
-        ];
+        $priorityStyles = $companyPriorities->mapWithKeys(fn($p) => [$p->slug => "color:{$p->color}; border-color:{$p->color}4d; background:{$p->color}14;"]);
+        $defaultPriorityStyle = 'color:var(--muted); border-color:var(--border2); background:transparent;';
         $statusMeta = [
             'todo'        => ['label' => 'To Do',       'color' => '#6b7385'],
             'in_progress' => ['label' => 'In Progress', 'color' => '#22d3ee'],
@@ -542,7 +538,8 @@
 
                                 {{-- Priority (read-only) --}}
                                 <div class="al-cell c-priority">
-                                    <span class="al-badge" style="{{ $priorityStyles[$task->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($task->priority) }}</span>
+                                    @php $taskPriorityObj = $companyPriorities->firstWhere('slug', $task->priority); @endphp
+                                    <span class="al-badge" style="{{ $priorityStyles[$task->priority] ?? $defaultPriorityStyle }}">{{ $taskPriorityObj->name ?? ucfirst($task->priority) }}</span>
                                 </div>
 
                                 {{-- Custom fields (read-only) --}}
@@ -596,7 +593,8 @@
                                             @endif
                                         </div>
                                         <div class="al-cell c-priority">
-                                            <span class="al-badge" style="{{ $priorityStyles[$sub->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($sub->priority) }}</span>
+                                            @php $subPriorityObj = $companyPriorities->firstWhere('slug', $sub->priority); @endphp
+                                            <span class="al-badge" style="{{ $priorityStyles[$sub->priority] ?? $defaultPriorityStyle }}">{{ $subPriorityObj->name ?? ucfirst($sub->priority) }}</span>
                                         </div>
                                         @foreach($customFields as $cf)
                                             @php $scval = ($sub->custom_values[$cf->id] ?? '') ?: (($sub->custom_values[(string)$cf->id] ?? '')); @endphp
@@ -633,7 +631,8 @@
                             <div style="font-size:13px; font-weight:500; color:var(--text); line-height:1.4;">{{ $task->title }}</div>
                             @if($task->section)<div style="font-size:10px; font-family:var(--mono); color:var(--muted); margin-top:5px;">▸ {{ $task->section->name }}</div>@endif
                             <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
-                                <span class="al-badge" style="font-size:10px; padding:2px 7px; {{ $priorityStyles[$task->priority] ?? $priorityStyles['low'] }}">{{ ucfirst($task->priority) }}</span>
+                                @php $cardPriorityObj = $companyPriorities->firstWhere('slug', $task->priority); @endphp
+                                <span class="al-badge" style="font-size:10px; padding:2px 7px; {{ $priorityStyles[$task->priority] ?? $defaultPriorityStyle }}">{{ $cardPriorityObj->name ?? ucfirst($task->priority) }}</span>
                                 <div style="display:flex; align-items:center; gap:6px;">
                                     @if($task->due_date)<span style="font-size:11px; font-family:var(--mono); {{ $task->due_date->isPast() && $task->status !== 'done' ? 'color:#f87171;' : 'color:var(--muted);' }}">{{ $task->due_date->format('d M') }}</span>@endif
                                     @foreach($task->assignees->take(2) as $a)<div class="al-avatar" style="width:20px; height:20px; font-size:9px;" title="{{ $a->name }}">{{ strtoupper(substr($a->name,0,1)) }}</div>@endforeach
@@ -678,11 +677,11 @@
                 </div>
                 @endforeach
             </div>
-            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px;">
-                @foreach(['urgent'=>'#f87171','high'=>'#fb923c','medium'=>'#fbbf24','low'=>'#6b7385'] as $pr=>$clr)
+            <div style="display:grid; grid-template-columns:repeat({{ max($companyPriorities->count(), 1) }},1fr); gap:12px; margin-top:12px;">
+                @foreach($companyPriorities as $p)
                 <div class="ptm-card" style="padding:16px 18px;">
-                    <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; margin-bottom:10px;">{{ ucfirst($pr) }} priority</div>
-                    <div style="font-size:28px; font-weight:600; color:{{ $clr }};">{{ $tasks->where('priority',$pr)->count() }}</div>
+                    <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; margin-bottom:10px;">{{ $p->name }} priority</div>
+                    <div style="font-size:28px; font-weight:600; color:{{ $p->color }};">{{ $tasks->where('priority',$p->slug)->count() }}</div>
                 </div>
                 @endforeach
             </div>
@@ -702,6 +701,10 @@
     const MY_ID = {{ auth()->id() }};
     const MEMBERS = @json($members->map(fn($m)=>['id'=>$m->id,'name'=>$m->name])->values());
     const MEMBER_NAME = {}; MEMBERS.forEach(m=> MEMBER_NAME[String(m.id)] = m.name);
+    const PRIORITIES = @json($companyPriorities->map(fn($p)=>['slug'=>$p->slug,'name'=>$p->name,'color'=>$p->color])->values());
+    const PRIORITY_NAME = {}; PRIORITIES.forEach(p=> PRIORITY_NAME[p.slug] = p.name);
+    const PRIORITY_ORDER_DESC = PRIORITIES.slice().reverse().map(p=>p.slug); // most urgent (highest position) first
+    const PRIO_ORDER = {}; PRIORITY_ORDER_DESC.forEach((s,i)=> PRIO_ORDER[s] = i);
     let TB = { q:'', status:new Set(), priority:new Set(), qf:new Set(), assignee:new Set(), createdby:new Set(), created:new Set(), modified:new Set(), hideDone:false, fields:new Set() };
 
     function tbToggle(e, id){
@@ -769,7 +772,7 @@
         created:    { label:'Created on', target:'created', opts:[['today','Today'],['this_week','This week'],['this_month','This month'],['older','Older']] },
         modified:   { label:'Last modified on', target:'modified', opts:[['today','Today'],['this_week','This week'],['this_month','This month'],['older','Older']] },
         status:     { label:'Status', target:'status', opts:[['todo','To Do'],['in_progress','In Progress'],['in_review','In Review'],['done','Done']] },
-        priority:   { label:'Priority', target:'priority', opts:[['urgent','Urgent'],['high','High'],['medium','Medium'],['low','Low']] },
+        priority:   { label:'Priority', target:'priority', opts: PRIORITIES.map(p=>[p.slug, p.name]) },
     };
     function tbSetForTarget(t){ return TB[t]; }
     function tbToggleAddFields(e){ e.stopPropagation(); const m=document.getElementById('tbAddFields'); m.style.display = m.style.display==='block'?'none':'block'; }
@@ -809,7 +812,7 @@
     function dueBucket(due, status){ if(!due) return {k:'zzz_none', l:'No due date'}; const today=fmtDate(new Date()); if(due<today && status!=='done') return {k:'0_over', l:'Overdue'}; if(dueInWeek(due,0)) return {k:'1_week', l:'This week'}; if(dueInWeek(due,1)) return {k:'2_next', l:'Next week'}; return {k:'3_later', l:'Later'}; }
     function groupInfo(row, key){
         if(key==='status') return [row.dataset.status||'todo', STATUS_LABEL[row.dataset.status]||row.dataset.status];
-        if(key==='priority') return [row.dataset.priority||'low', cap(row.dataset.priority)];
+        if(key==='priority') return [row.dataset.priority||'zzz_none', PRIORITY_NAME[row.dataset.priority]||cap(row.dataset.priority)];
         if(key==='assignee'){ const id=(row.dataset.assignees||'').split(',')[0]; return id ? [id, MEMBER_NAME[id]||('User '+id)] : ['zzz_none','Unassigned']; }
         if(key==='createdby'){ const id=row.dataset.createdby; return id ? [id, MEMBER_NAME[id]||('User '+id)] : ['zzz_none','Unknown']; }
         if(key==='created'){ const b=dateBucket(row.dataset.created); return [b.k,b.l]; }
@@ -818,7 +821,7 @@
         return [row.dataset.section||'', row.dataset.sectionname||'(No section)'];
     }
     function orderGroupKeys(key, keys){
-        const fixed = { status:['todo','in_progress','in_review','done'], priority:['urgent','high','medium','low'] };
+        const fixed = { status:['todo','in_progress','in_review','done'], priority: PRIORITY_ORDER_DESC };
         if(fixed[key]){ return keys.slice().sort((a,b)=> ((fixed[key].indexOf(a)+1)||99)-((fixed[key].indexOf(b)+1)||99)); }
         return keys.slice().sort();
     }
@@ -879,7 +882,7 @@
         if(key==='none'){ inner.classList.add('group-none'); return; }
         buildGrouped(key);
     }
-    const PRIO_ORDER={urgent:0,high:1,medium:2,low:3}, STAT_ORDER={todo:0,in_progress:1,in_review:2,done:3};
+    const STAT_ORDER={todo:0,in_progress:1,in_review:2,done:3};
     function tbSetSort(key){
         document.querySelectorAll('.al-tasklist').forEach(list=>{
             const rows=[...list.querySelectorAll(':scope > .al-row')];

@@ -371,10 +371,9 @@
                     <label class="cfg-label">Filter by priority</label>
                     <select id="cfgPriority" class="cfg-select" onchange="updatePreview()">
                         <option value="all">All priorities</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
+                        @foreach($companyPriorities as $p)
+                        <option value="{{ $p->slug }}">{{ $p->name }}</option>
+                        @endforeach
                     </select>
                 </div>
 

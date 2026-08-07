@@ -166,15 +166,9 @@
             </div>
             <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
                 @php
-                    $priorities = [
-                        ['label' => 'Urgent', 'value' => $urgentTasks, 'color' => '#f87171'],
-                        ['label' => 'High', 'value' => $highPriorityTasks, 'color' => '#fb923c'],
-                        ['label' => 'Medium', 'value' => $mediumPriorityTasks, 'color' => '#fbbf24'],
-                        ['label' => 'Low', 'value' => $lowPriorityTasks, 'color' => '#6b7385'],
-                    ];
-                    $totalActiveTasks = $urgentTasks + $highPriorityTasks + $mediumPriorityTasks + $lowPriorityTasks;
+                    $totalActiveTasks = max($priorityBreakdown->sum('value'), 0);
                 @endphp
-                @foreach($priorities as $priority)
+                @foreach($priorityBreakdown as $priority)
                 <div style="display:flex; align-items:center; justify-content:space-between;">
                     <div style="display:flex; align-items:center; gap:10px; flex:1;">
                         <div style="width:10px; height:10px; border-radius:50%; background:{{ $priority['color'] }}; flex-shrink:0;"></div>

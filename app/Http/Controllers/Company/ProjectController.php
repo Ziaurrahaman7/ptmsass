@@ -253,6 +253,7 @@ class ProjectController extends Controller
         $this->authorizeProject($project);
 
         $tasks = $project->tasks()->with(['assignee', 'section'])->orderBy('position')->get();
+        $priorityNames = \App\Models\Priority::forCompany($this->companyId())->pluck('name', 'slug');
 
         $filename = \Illuminate\Support\Str::slug($project->name) . '-tasks.csv';
         $headers = [
@@ -260,7 +261,7 @@ class ProjectController extends Controller
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function () use ($tasks) {
+        $callback = function () use ($tasks, $priorityNames) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['Title', 'Section', 'Status', 'Priority', 'Due date', 'Assignee', 'Description']);
             foreach ($tasks as $t) {
@@ -268,7 +269,7 @@ class ProjectController extends Controller
                     $t->title,
                     $t->section?->name,
                     $t->status,
-                    $t->priority,
+                    $priorityNames->get($t->priority, $t->priority),
                     $t->due_date?->format('Y-m-d'),
                     $t->assignee?->name,
                     $t->description,
@@ -291,7 +292,12 @@ class ProjectController extends Controller
         $header = array_map(fn ($h) => strtolower(trim($h)), array_shift($rows));
 
         $validStatuses = ['todo', 'in_progress', 'in_review', 'done'];
-        $validPriorities = ['low', 'medium', 'high', 'urgent'];
+        $companyPriorities = \App\Models\Priority::forCompany($this->companyId());
+        $priorityByNameOrSlug = $companyPriorities->flatMap(fn ($p) => [
+            strtolower($p->slug) => $p->slug,
+            strtolower($p->name) => $p->slug,
+        ]);
+        $defaultPrioritySlug = \App\Models\Priority::defaultSlugFor($this->companyId());
         $sectionCache = [];
         $memberByName = auth()->user()->company->users()->where('is_active', true)->get()->keyBy(fn ($u) => strtolower($u->name));
         $position = (int) $project->tasks()->max('position');
@@ -315,8 +321,7 @@ class ProjectController extends Controller
 
             $status = strtolower(trim($r['status'] ?? ''));
             $status = in_array($status, $validStatuses) ? $status : 'todo';
-            $priority = strtolower(trim($r['priority'] ?? ''));
-            $priority = in_array($priority, $validPriorities) ? $priority : 'medium';
+            $priority = $priorityByNameOrSlug->get(strtolower(trim($r['priority'] ?? '')), $defaultPrioritySlug);
             $assigneeName = strtolower(trim($r['assignee'] ?? ''));
             $assignedTo = $memberByName->get($assigneeName)?->id;
 

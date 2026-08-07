@@ -37,11 +37,9 @@
                     </div>
                     <div>
                         <div style="font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Priority</div>
-                        <span style="font-size:12px; font-family:var(--mono); padding:4px 10px; border-radius:6px; border:1px solid; display:inline-block;
-                            {{ $task->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
-                               ($task->priority === 'high' ? 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
-                               ($task->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
-                            {{ ucfirst($task->priority) }}
+                        @php $taskPriorityObj = $companyPriorities->firstWhere('slug', $task->priority); @endphp
+                        <span style="font-size:12px; font-family:var(--mono); padding:4px 10px; border-radius:6px; border:1px solid; display:inline-block; color:{{ $taskPriorityObj->color ?? 'var(--muted)' }}; border-color:{{ $taskPriorityObj->color ?? 'var(--border2)' }}4d; background:{{ $taskPriorityObj->color ?? 'transparent' }}14;">
+                            {{ $taskPriorityObj->name ?? ucfirst($task->priority) }}
                         </span>
                     </div>
                     <div style="grid-column:span 2;">
@@ -114,11 +112,9 @@
                             <div style="flex:1; min-width:0;">
                                 <a href="{{ route('company.tasks.show', [$slug, $subtask]) }}" style="font-size:13px; font-weight:500; color:var(--text); text-decoration:none; display:block; {{ $subtask->status === 'done' ? 'text-decoration:line-through; opacity:0.6;' : '' }}" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text)'">{{ $subtask->title }}</a>
                                 <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
-                                    <span style="font-size:10px; font-family:var(--mono); padding:2px 6px; border-radius:4px; border:1px solid;
-                                        {{ $subtask->priority === 'urgent' ? 'color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);' :
-                                           ($subtask->priority === 'high' ? 'color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);' :
-                                           ($subtask->priority === 'medium' ? 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;')) }}">
-                                        {{ ucfirst($subtask->priority) }}
+                                    @php $subPriorityObj = $companyPriorities->firstWhere('slug', $subtask->priority); @endphp
+                                    <span style="font-size:10px; font-family:var(--mono); padding:2px 6px; border-radius:4px; border:1px solid; color:{{ $subPriorityObj->color ?? 'var(--muted)' }}; border-color:{{ $subPriorityObj->color ?? 'var(--border2)' }}4d; background:{{ $subPriorityObj->color ?? 'transparent' }}14;">
+                                        {{ $subPriorityObj->name ?? ucfirst($subtask->priority) }}
                                     </span>
                                     @if($subtask->assignees->count() > 0)
                                     <div style="display:flex; align-items:center; gap:3px;">
@@ -287,7 +283,9 @@
                     <div>
                         <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PRIORITY</label>
                         <select name="priority" class="ptm-select" style="width:100%;">
-                            <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
+                            @foreach($companyPriorities as $p)
+                            <option value="{{ $p->slug }}" {{ $p->is_default ? 'selected' : '' }}>{{ $p->name }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>

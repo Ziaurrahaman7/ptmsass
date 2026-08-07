@@ -15,6 +15,7 @@ use App\Http\Controllers\Company\NotificationController as CompanyNotificationCo
 use App\Http\Controllers\Company\InsightController as CompanyInsightController;
 use App\Http\Controllers\Company\PortfolioController as CompanyPortfolioController;
 use App\Http\Controllers\Company\GoalController as CompanyGoalController;
+use App\Http\Controllers\Company\PriorityController as CompanyPriorityController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
@@ -143,6 +144,13 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('goals', [CompanyGoalController::class, 'store'])->name('goals.store');
     Route::patch('goals/{goal}', [CompanyGoalController::class, 'update'])->name('goals.update');
     Route::delete('goals/{goal}', [CompanyGoalController::class, 'destroy'])->name('goals.destroy');
+
+    // Priorities
+    Route::get('priorities', [CompanyPriorityController::class, 'index'])->name('priorities.index');
+    Route::post('priorities', [CompanyPriorityController::class, 'store'])->name('priorities.store');
+    Route::patch('priorities/reorder', [CompanyPriorityController::class, 'reorder'])->name('priorities.reorder');
+    Route::patch('priorities/{priority}', [CompanyPriorityController::class, 'update'])->name('priorities.update');
+    Route::delete('priorities/{priority}', [CompanyPriorityController::class, 'destroy'])->name('priorities.destroy');
 });
 
 // Employee routes — /{slug}/...

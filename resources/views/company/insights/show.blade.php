@@ -94,13 +94,14 @@
         <div class="ins-stat-sub">{{ $overdueTasks->count() > 0 ? 'Need attention' : 'All on track 🎉' }}</div>
     </div>
 
-    {{-- Urgent/High --}}
+    {{-- Highest-priority open tasks --}}
     <div class="ins-card">
-        <div class="ins-card-title">Urgent / High</div>
-        <div class="ins-stat-big" style="color:var(--warn);">{{ $priorityStats['urgent'] + $priorityStats['high'] }}</div>
-        <div style="display:flex; gap:6px; margin-top:10px;">
-            <span style="font-size:11px; background:rgba(248,113,113,.1); color:var(--danger); border-radius:5px; padding:2px 7px; font-family:var(--mono);">{{ $priorityStats['urgent'] }} urgent</span>
-            <span style="font-size:11px; background:rgba(251,191,36,.1); color:var(--warn); border-radius:5px; padding:2px 7px; font-family:var(--mono);">{{ $priorityStats['high'] }} high</span>
+        <div class="ins-card-title">{{ $topPriorityStats->pluck('name')->implode(' / ') }}</div>
+        <div class="ins-stat-big" style="color:var(--warn);">{{ $topPriorityStats->sum('count') }}</div>
+        <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
+            @foreach($topPriorityStats as $tp)
+            <span style="font-size:11px; background:{{ $tp['color'] }}1a; color:{{ $tp['color'] }}; border-radius:5px; padding:2px 7px; font-family:var(--mono);">{{ $tp['count'] }} {{ strtolower($tp['name']) }}</span>
+            @endforeach
         </div>
     </div>
 </div>
@@ -156,20 +157,12 @@
     {{-- Priority breakdown --}}
     <div class="ins-card">
         <div class="ins-card-title">Priority (Open Tasks)</div>
-        @php
-            $priorities = [
-                ['label'=>'Urgent', 'count'=>$priorityStats['urgent'], 'color'=>'#f87171'],
-                ['label'=>'High',   'count'=>$priorityStats['high'],   'color'=>'#fbbf24'],
-                ['label'=>'Medium', 'count'=>$priorityStats['medium'], 'color'=>'#22d3ee'],
-                ['label'=>'Low',    'count'=>$priorityStats['low'],    'color'=>'#6b7385'],
-            ];
-            $openTotal = max(array_sum(array_column($priorities, 'count')), 1);
-        @endphp
+        @php $openTotal = max($priorityStats->sum('count'), 1); @endphp
         <div style="display:flex; flex-direction:column; gap:10px;">
-            @foreach($priorities as $p)
+            @foreach($priorityStats->reverse() as $p)
             <div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                    <span style="font-size:12px; color:var(--text);">{{ $p['label'] }}</span>
+                    <span style="font-size:12px; color:var(--text);">{{ $p['name'] }}</span>
                     <span style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ $p['count'] }}</span>
                 </div>
                 <div class="prog-bar-track">
@@ -276,11 +269,8 @@
                     </span>
                 </td>
                 <td style="padding:10px 0;">
-                    @php
-                        $pc=['urgent'=>'var(--danger)','high'=>'var(--warn)','medium'=>'var(--accent2)','low'=>'var(--muted)'];
-                        $pb=['urgent'=>'rgba(248,113,113,.1)','high'=>'rgba(251,191,36,.1)','medium'=>'rgba(34,211,238,.1)','low'=>'rgba(107,115,133,.1)'];
-                    @endphp
-                    <span style="font-size:11px; color:{{ $pc[$task->priority] }}; background:{{ $pb[$task->priority] }}; border-radius:5px; padding:2px 8px; font-family:var(--mono);">{{ $task->priority }}</span>
+                    @php $taskPriority = $companyPriorities->firstWhere('slug', $task->priority); @endphp
+                    <span style="font-size:11px; color:{{ $taskPriority->color ?? 'var(--muted)' }}; background:{{ $taskPriority->color ?? '#6b7385' }}1a; border-radius:5px; padding:2px 8px; font-family:var(--mono);">{{ $taskPriority->name ?? $task->priority }}</span>
                 </td>
             </tr>
             @endforeach

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Priority;
 use App\Models\Task;
 
 class DashboardController extends Controller
@@ -11,6 +12,7 @@ class DashboardController extends Controller
     public function index(string $slug)
     {
         $userId = auth()->id();
+        $companyId = auth()->user()->company_id;
 
         // Basic stats
         $totalAssigned = Task::where('assigned_to', $userId)->count();
@@ -22,11 +24,12 @@ class DashboardController extends Controller
         // Completion rate
         $completionRate = $totalAssigned > 0 ? round(($done / $totalAssigned) * 100, 1) : 0;
         
-        // Priority breakdown
-        $urgentTasks = Task::where('assigned_to', $userId)->where('priority', 'urgent')->whereNot('status', 'done')->count();
-        $highPriorityTasks = Task::where('assigned_to', $userId)->where('priority', 'high')->whereNot('status', 'done')->count();
-        $mediumPriorityTasks = Task::where('assigned_to', $userId)->where('priority', 'medium')->whereNot('status', 'done')->count();
-        $lowPriorityTasks = Task::where('assigned_to', $userId)->where('priority', 'low')->whereNot('status', 'done')->count();
+        // Priority breakdown (ordered highest-urgency first, for the dashboard widget)
+        $priorityBreakdown = Priority::forCompany($companyId)->reverse()->values()->map(fn ($p) => [
+            'label' => $p->name,
+            'value' => Task::where('assigned_to', $userId)->where('priority', $p->slug)->whereNot('status', 'done')->count(),
+            'color' => $p->color,
+        ]);
         
         // Deadline stats
         $overdue = Task::where('assigned_to', $userId)
@@ -70,7 +73,7 @@ class DashboardController extends Controller
         return view('employee.dashboard', compact(
             'totalAssigned', 'todoTasks', 'inProgress', 'inReview', 'done',
             'completionRate',
-            'urgentTasks', 'highPriorityTasks', 'mediumPriorityTasks', 'lowPriorityTasks',
+            'priorityBreakdown',
             'overdue', 'dueToday', 'upcomingTasks',
             'recentActivities', 'myTasks'
         ));

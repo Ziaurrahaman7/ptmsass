@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Superadmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\Priority;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -52,6 +53,8 @@ class CompanyController extends Controller
             'is_active'         => true,
             'email_verified_at' => now(),
         ]);
+
+        Priority::seedDefaults($company->id);
 
         return redirect()->route('superadmin.companies.index')
             ->with('success', "Company \"{$company->name}\" created successfully.");

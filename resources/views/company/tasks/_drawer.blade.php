@@ -35,8 +35,9 @@
         let panelTaskId = null;
         let panelDirty = false;
 
+        const PRIORITY_COLORS = @json(($companyPriorities ?? \App\Models\Priority::forCompany(auth()->user()->company_id))->pluck('color', 'slug'));
         function statusStyle(v){ const m={todo:['#9aa3b2','rgba(154,163,178,0.12)'],in_progress:['#22d3ee','rgba(34,211,238,0.12)'],in_review:['#a78bfa','rgba(167,139,250,0.12)'],done:['#4ade80','rgba(74,222,128,0.12)']}; return m[v]||m.todo; }
-        function priStyle(v){ const m={urgent:['#f87171','rgba(248,113,113,0.12)'],high:['#fb923c','rgba(251,146,60,0.12)'],medium:['#fbbf24','rgba(251,191,36,0.12)'],low:['#9aa3b2','transparent']}; return m[v]||m.low; }
+        function priStyle(v){ const c = PRIORITY_COLORS[v] || '#9aa3b2'; return [c, c + '1f']; }
         function applyStatus(sel){ const [c,b]=statusStyle(sel.value); sel.style.color=c; sel.style.background=b; }
         function applyPri(sel){ const [c,b]=priStyle(sel.value); sel.style.color=c; sel.style.background=b; }
 
