@@ -1048,6 +1048,35 @@
                         </div>
                     </div>
 
+                    {{-- Client access --}}
+                    <div class="ptm-card" style="padding:18px 22px;">
+                        <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px;">Client access</div>
+                        <div style="font-size:12px; color:var(--muted); margin-bottom:14px;">Clients you add here can view this project's status, progress, and tasks in review from their own portal.</div>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px;">
+                            <button onclick="openAddClientModal()" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; color:var(--muted); font-size:13px; font-family:var(--font); padding:2px; text-align:left;">
+                                <span style="width:28px; height:28px; border-radius:50%; border:1px dashed var(--border2); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </span>
+                                Add client
+                            </button>
+                            @foreach($projectClients as $pc)
+                            <div style="display:flex; align-items:center; gap:8px; position:relative;" class="ov-member-row">
+                                <span style="width:28px; height:28px; border-radius:50%; background:#d97706; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ strtoupper(substr($pc->name,0,2)) }}</span>
+                                <div style="min-width:0; flex:1;">
+                                    <div style="font-size:13px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $pc->name }}</div>
+                                    <div style="font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $pc->email }}</div>
+                                </div>
+                                <button onclick="removeProjectClient({{ $pc->id }})" title="Remove access" class="ov-member-remove">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                </button>
+                            </div>
+                            @endforeach
+                        </div>
+                        @if($projectClients->isEmpty())
+                        <div style="font-size:11px; color:var(--muted); margin-top:10px;">No clients have access to this project yet.</div>
+                        @endif
+                    </div>
+
                     {{-- Key resources --}}
                     <div class="ptm-card" style="padding:18px 22px;">
                         <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:14px;">Key resources</div>
@@ -1161,6 +1190,28 @@
                     <button type="button" onclick="closeAddMemberModal()" class="ptm-btn-ghost">Cancel</button>
                     @if($availableMembers->isNotEmpty())
                     <button type="button" id="addMemberSaveBtn" onclick="submitAddMember()" class="ptm-btn-primary">Add</button>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Add client modal --}}
+        <div id="addClientModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; width:400px; max-width:95vw;">
+                <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:16px;">Add client</div>
+                @if($availableClients->isEmpty())
+                <div style="font-size:13px; color:var(--muted);">No client accounts available. Create one from the <a href="{{ route('company.members.index', $slug) }}" style="color:var(--accent2);">Members</a> page first (role: Client).</div>
+                @else
+                <select id="addClientSelect" class="ptm-select" style="width:100%; margin-bottom:16px;">
+                    @foreach($availableClients as $ac)
+                    <option value="{{ $ac->id }}">{{ $ac->name }} ({{ $ac->email }})</option>
+                    @endforeach
+                </select>
+                @endif
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" onclick="closeAddClientModal()" class="ptm-btn-ghost">Cancel</button>
+                    @if($availableClients->isNotEmpty())
+                    <button type="button" id="addClientSaveBtn" onclick="submitAddClient()" class="ptm-btn-primary">Add</button>
                     @endif
                 </div>
             </div>
@@ -1999,6 +2050,34 @@
     function removeProjectMember(userId) {
         if (!confirm('Remove this person from the project?')) return;
         fetch(`/${slug}/admin/projects/${PROJECT_ID}/members/${userId}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+        }).then(() => location.reload());
+    }
+
+    /* Client access */
+    function openAddClientModal() { document.getElementById('addClientModal').style.display = 'flex'; }
+    function closeAddClientModal() { document.getElementById('addClientModal').style.display = 'none'; }
+    function submitAddClient() {
+        const select = document.getElementById('addClientSelect');
+        if (!select) return;
+        const btn = document.getElementById('addClientSaveBtn');
+        btn.disabled = true; btn.textContent = 'Adding…';
+        fetch(projectUrl('/clients'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ user_id: select.value })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); return; }
+            btn.disabled = false; btn.textContent = 'Add';
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Add'; });
+    }
+    function removeProjectClient(userId) {
+        if (!confirm('Remove this client\'s access to the project?')) return;
+        fetch(`/${slug}/admin/projects/${PROJECT_ID}/clients/${userId}`, {
             method: 'DELETE',
             headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
         }).then(() => location.reload());

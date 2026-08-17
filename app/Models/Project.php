@@ -71,6 +71,11 @@ class Project extends Model
         return $this->belongsToMany(User::class, 'project_user')->withPivot('role')->withTimestamps();
     }
 
+    public function clients()
+    {
+        return $this->belongsToMany(User::class, 'project_clients')->withTimestamps();
+    }
+
     public function resources()
     {
         return $this->hasMany(ProjectResource::class)->latest();

@@ -35,9 +35,20 @@
                     </td>
                     <td style="padding:12px 18px; font-size:13px; color:var(--muted); font-family:var(--mono);">{{ $member->email }}</td>
                     <td style="padding:12px 18px;">
-                        <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid;
-                            {{ $member->role === 'company_admin' ? 'color:#a78bfa; border-color:rgba(167,139,250,0.3); background:rgba(167,139,250,0.08);' : 'color:var(--muted); border-color:var(--border2); background:transparent;' }}">
-                            {{ $member->role === 'company_admin' ? 'Admin' : 'Employee' }}
+                        @php
+                            $roleStyle = match($member->role) {
+                                'company_admin' => 'color:#a78bfa; border-color:rgba(167,139,250,0.3); background:rgba(167,139,250,0.08);',
+                                'client'        => 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);',
+                                default         => 'color:var(--muted); border-color:var(--border2); background:transparent;',
+                            };
+                            $roleLabel = match($member->role) {
+                                'company_admin' => 'Admin',
+                                'client'        => 'Client',
+                                default         => 'Employee',
+                            };
+                        @endphp
+                        <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid; {{ $roleStyle }}">
+                            {{ $roleLabel }}
                         </span>
                     </td>
                     <td style="padding:12px 18px;">
@@ -86,6 +97,13 @@
                 <div>
                     <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">PASSWORD *</label>
                     <input type="password" name="password" class="ptm-input" style="width:100%;" required>
+                </div>
+                <div>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ROLE</label>
+                    <select name="role" class="ptm-select" style="width:100%;">
+                        <option value="employee">Employee</option>
+                        <option value="client">Client</option>
+                    </select>
                 </div>
                 <div style="display:flex; gap:10px; padding-top:4px;">
                     <button type="submit" class="ptm-btn-primary">Add Member</button>

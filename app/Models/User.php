@@ -40,6 +40,11 @@ class User extends Authenticatable
         return $this->hasMany(Task::class, 'assigned_to');
     }
 
+    public function clientProjects()
+    {
+        return $this->belongsToMany(Project::class, 'project_clients')->withTimestamps();
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === 'superadmin';
@@ -53,5 +58,10 @@ class User extends Authenticatable
     public function isEmployee(): bool
     {
         return $this->role === 'employee';
+    }
+
+    public function isClient(): bool
+    {
+        return $this->role === 'client';
     }
 }

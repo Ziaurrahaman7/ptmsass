@@ -86,6 +86,10 @@ class ProjectController extends Controller
         $resources = $project->resources;
         $milestones = $project->milestones()->with('assignee')->get();
 
+        $projectClients = $project->clients()->orderByDesc('project_clients.created_at')->get();
+        $availableClients = auth()->user()->company->users()->where('role', 'client')->where('is_active', true)->get()
+            ->whereNotIn('id', $projectClients->pluck('id'))->values();
+
         $activity = collect()
             ->concat($projectMembers->map(fn ($u) => [
                 'type' => 'joined', 'at' => $u->pivot->created_at, 'user' => $u,
@@ -97,7 +101,8 @@ class ProjectController extends Controller
 
         return view('company.projects.show', compact(
             'project', 'tasks', 'sections', 'customFields', 'members', 'statusUpdates', 'portfolios',
-            'projectMembers', 'availableMembers', 'resources', 'milestones', 'activity'
+            'projectMembers', 'availableMembers', 'resources', 'milestones', 'activity',
+            'projectClients', 'availableClients'
         ));
     }
 
@@ -381,6 +386,26 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
         $project->members()->detach($user->id);
+        return response()->json(['success' => true]);
+    }
+
+    // Client access to this project (drives what the client portal shows them)
+    public function addClient(Request $request, string $slug, Project $project)
+    {
+        $this->authorizeProject($project);
+
+        $data = $request->validate(['user_id' => 'required|exists:users,id']);
+        $client = auth()->user()->company->users()->where('role', 'client')->where('is_active', true)->findOrFail($data['user_id']);
+
+        $project->clients()->syncWithoutDetaching([$client->id]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function removeClient(string $slug, Project $project, User $user)
+    {
+        $this->authorizeProject($project);
+        $project->clients()->detach($user->id);
         return response()->json(['success' => true]);
     }
 

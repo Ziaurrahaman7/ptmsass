@@ -20,6 +20,8 @@ use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardContro
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
+use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
+use App\Http\Controllers\Client\ProjectController as ClientProjectController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
@@ -67,6 +69,8 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('projects/{project}/status-updates', [CompanyProjectController::class, 'storeStatusUpdate'])->name('projects.status-updates.store');
     Route::post('projects/{project}/members', [CompanyProjectController::class, 'addMember'])->name('projects.members.add');
     Route::delete('projects/{project}/members/{user}', [CompanyProjectController::class, 'removeMember'])->name('projects.members.remove');
+    Route::post('projects/{project}/clients', [CompanyProjectController::class, 'addClient'])->name('projects.clients.add');
+    Route::delete('projects/{project}/clients/{user}', [CompanyProjectController::class, 'removeClient'])->name('projects.clients.remove');
     Route::post('projects/{project}/resources', [CompanyProjectController::class, 'storeResource'])->name('projects.resources.store');
     Route::delete('projects/{project}/resources/{resource}', [CompanyProjectController::class, 'destroyResource'])->name('projects.resources.destroy');
     Route::post('projects/{project}/messages', [CompanyProjectController::class, 'storeMessage'])->name('projects.messages.store');
@@ -175,6 +179,11 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     Route::post('/notifications/mark-all-read', [EmployeeNotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 });
 
+Route::prefix('{slug}/client')->name('client.')->middleware(['auth', 'client', 'company_slug'])->group(function () {
+    Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/projects/{project}', [ClientProjectController::class, 'show'])->name('projects.show');
+});
+
 // Dashboard redirect
 Route::get('/dashboard', function () {
     $user = auth()->user();
@@ -182,6 +191,7 @@ Route::get('/dashboard', function () {
     if ($user->isSuperAdmin()) return redirect()->route('superadmin.dashboard');
     if ($user->isCompanyAdmin()) return redirect()->route('company.dashboard', $slug);
     if ($user->isEmployee()) return redirect()->route('employee.dashboard', $slug);
+    if ($user->isClient()) return redirect()->route('client.dashboard', $slug);
     abort(403);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

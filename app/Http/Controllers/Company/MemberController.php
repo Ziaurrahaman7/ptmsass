@@ -26,13 +26,14 @@ class MemberController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
+            'role'     => 'nullable|in:employee,client',
         ]);
 
         User::create([
             'name'       => $data['name'],
             'email'      => $data['email'],
             'password'   => Hash::make($data['password']),
-            'role'       => 'employee',
+            'role'       => $data['role'] ?? 'employee',
             'company_id' => $this->company()->id,
             'is_active'  => true,
         ]);
