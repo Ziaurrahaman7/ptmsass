@@ -236,6 +236,25 @@
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
+                {{-- Member avatars --}}
+                <div style="display:flex; align-items:center;">
+                    @foreach($projectMembers->take(4) as $i => $pm)
+                    <div title="{{ $pm->name }}" style="width:30px; height:30px; border-radius:50%; background:#7c3aed; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg); margin-left:{{ $i > 0 ? '-8px' : '0' }}; position:relative; z-index:{{ 10 - $i }}; cursor:default;">{{ strtoupper(substr($pm->name,0,2)) }}</div>
+                    @endforeach
+                    @if($projectMembers->count() > 4)
+                    <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); color:var(--muted); font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg); margin-left:-8px; cursor:pointer;" onclick="openShareModal()">+{{ $projectMembers->count() - 4 }}</div>
+                    @endif
+                    <button onclick="openShareModal()" title="Manage members" style="width:30px; height:30px; border-radius:50%; background:var(--surface2); border:2px dashed var(--border2); color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:-8px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                </div>
+
+                {{-- Share button --}}
+                <button onclick="openShareModal()" style="display:inline-flex; align-items:center; gap:6px; background:#2563eb; border:none; color:#fff; border-radius:8px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    Share
+                </button>
+
                 <span style="font-size:11px; font-family:var(--mono); padding:5px 10px; border-radius:6px; border:1px solid;
                     {{ $project->status === 'in_progress' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
                        ($project->status === 'completed' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
@@ -1173,6 +1192,59 @@
         .ov-member-remove:hover { color:var(--danger); background:rgba(248,113,113,.1); }
         </style>
 
+        {{-- Share / Members modal --}}
+        <div id="shareModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center;" onclick="if(event.target===this) closeShareModal()">
+            <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; width:440px; max-width:95vw;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+                    <div style="font-size:16px; font-weight:700; color:var(--text);">Share project</div>
+                    <button onclick="closeShareModal()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+
+                {{-- Add new member --}}
+                @if($availableMembers->isNotEmpty())
+                <div style="display:flex; gap:8px; margin-bottom:18px;">
+                    <select id="shareMemberSelect" class="ptm-select" style="flex:1;">
+                        @foreach($availableMembers as $am)
+                        <option value="{{ $am->id }}">{{ $am->name }}</option>
+                        @endforeach
+                    </select>
+                    <button id="shareMemberSaveBtn" onclick="submitShareMember()" class="ptm-btn-primary" style="white-space:nowrap;">Invite</button>
+                </div>
+                @endif
+
+                {{-- Current members --}}
+                <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">Members with access</div>
+                <div style="display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto;">
+                    @foreach($projectMembers as $pm)
+                    <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:var(--surface2);">
+                        <div style="width:32px; height:32px; border-radius:50%; background:#7c3aed; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ strtoupper(substr($pm->name,0,2)) }}</div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-size:13px; color:var(--text); font-weight:500;">{{ $pm->name }}</div>
+                            <div style="font-size:11px; color:var(--muted);">{{ $pm->email }}</div>
+                        </div>
+                        <span style="font-size:11px; color:var(--muted); font-family:var(--mono); background:var(--surface); border:1px solid var(--border2); border-radius:6px; padding:3px 8px;">{{ $pm->pivot->role === 'owner' ? 'Owner' : 'Member' }}</span>
+                        @if($pm->pivot->role !== 'owner')
+                        <button onclick="removeProjectMember({{ $pm->id }}); closeShareModal()" title="Remove" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:3px; border-radius:6px; display:flex;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+
+                {{-- Copy link --}}
+                <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:14px; display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:12px; color:var(--muted);">Anyone with the link</span>
+                    <button onclick="copyProjectLink(); this.textContent='Copied!'" style="display:inline-flex; align-items:center; gap:6px; background:none; border:1px solid var(--border2); color:var(--text); border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; font-family:var(--font);">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.5.5l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7.5-.5l-2 2a5 5 0 007 7l1-1"/></svg>
+                        Copy link
+                    </button>
+                </div>
+            </div>
+        </div>
+
         {{-- Add member modal --}}
         <div id="addMemberModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center;">
             <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; width:400px; max-width:95vw;">
@@ -2022,6 +2094,27 @@
         })
         .then(r => r.json())
         .then(data => { if (data.success) location.reload(); });
+    }
+
+    /* Project roles / members */
+    function openShareModal() { document.getElementById('shareModal').style.display = 'flex'; }
+    function closeShareModal() { document.getElementById('shareModal').style.display = 'none'; }
+    function submitShareMember() {
+        const select = document.getElementById('shareMemberSelect');
+        if (!select) return;
+        const btn = document.getElementById('shareMemberSaveBtn');
+        btn.disabled = true; btn.textContent = 'Inviting…';
+        fetch(projectUrl('/members'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ user_id: select.value })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { location.reload(); return; }
+            btn.disabled = false; btn.textContent = 'Invite';
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Invite'; });
     }
 
     /* Project roles / members */
