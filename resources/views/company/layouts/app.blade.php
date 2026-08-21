@@ -150,6 +150,10 @@
                 ->get(['id', 'name']);
             $activeTeam = request()->route('team');
             $activeTeamId = is_object($activeTeam) ? $activeTeam->id : (int) $activeTeam;
+            $starredProjects = \App\Models\Project::where('company_id', auth()->user()->company_id)
+                ->where('is_favorite', true)
+                ->orderBy('name')
+                ->get(['id', 'name']);
             $starredDashboards = \App\Models\Dashboard::where('company_id', auth()->user()->company_id)
                 ->where('user_id', auth()->id())
                 ->where('is_favorite', true)
@@ -201,11 +205,17 @@
                 Goals
             </a>
 
-            @if($starredDashboards->isNotEmpty() || $starredPrefs->isNotEmpty())
+            @if($starredProjects->isNotEmpty() || $starredDashboards->isNotEmpty() || $starredPrefs->isNotEmpty())
             {{-- Starred --}}
             <div style="padding:14px 12px 6px;">
                 <span class="ptm-section-title">Starred</span>
             </div>
+            @foreach($starredProjects as $sproj)
+            <a href="{{ route('company.projects.show', [$slug, $sproj->id]) }}" class="ptm-nav-link {{ $activeProjectId === $sproj->id ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $sproj->name }}</span>
+            </a>
+            @endforeach
             @foreach($starredDashboards as $sd)
             <a href="{{ route('company.insights.dashboards.show', [$slug, $sd->id]) }}" class="ptm-nav-link {{ request()->route('dashboard') && request()->route('dashboard')->id === $sd->id ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6L12 16.8 6.3 19.5l1.2-6L3 9.3l6.4-.7L12 3z"/></svg>

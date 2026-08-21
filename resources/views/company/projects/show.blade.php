@@ -1279,9 +1279,6 @@
     </div>
 
     <script>
-    const slug = '{{ $slug }}';
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
     /* ---- field styling ---- */
     function statusStyle(v){
         const m={todo:['#6b7385','rgba(107,115,133,0.14)'],in_progress:['#22d3ee','rgba(34,211,238,0.14)'],in_review:['#a78bfa','rgba(167,139,250,0.14)'],done:['#4ade80','rgba(74,222,128,0.14)']};
