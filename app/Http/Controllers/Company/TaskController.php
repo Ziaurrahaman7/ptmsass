@@ -436,6 +436,7 @@ class TaskController extends Controller
             'description' => 'sometimes|nullable|string',
             'status'      => 'sometimes|required|in:todo,in_progress,in_review,done',
             'priority'    => 'sometimes|required|' . $this->priorityRule(),
+            'start_date'  => 'sometimes|nullable|date',
             'due_date'    => 'sometimes|nullable|date',
             'section_id'  => 'sometimes|nullable|exists:sections,id',
             'assignees'   => 'sometimes|array',
@@ -443,7 +444,7 @@ class TaskController extends Controller
         ]);
 
         $update = [];
-        foreach (['title', 'description', 'status', 'priority', 'due_date'] as $field) {
+        foreach (['title', 'description', 'status', 'priority', 'start_date', 'due_date'] as $field) {
             if ($request->has($field)) {
                 $update[$field] = $data[$field] ?? null;
             }

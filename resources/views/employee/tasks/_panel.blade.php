@@ -76,17 +76,17 @@
     </div>
 </div>
 
-{{-- Description --}}
+{{-- Notes --}}
 <div style="margin-bottom:22px;">
-    <div style="font-size:12px; color:var(--muted); font-weight:500; margin-bottom:6px;">Description</div>
+    <div style="font-size:12px; color:var(--muted); font-weight:500; margin-bottom:6px;">Notes</div>
     @if($isMine)
         <textarea id="panelDescription" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';" onblur="empPanelDescription(this.value)"
-            placeholder="Add a description..." rows="1"
+            placeholder="Add notes..." rows="1"
             style="width:100%; font-size:13px; color:var(--text); line-height:1.5; padding:10px 12px; background:var(--surface2); border:1px solid transparent; border-radius:8px; font-family:var(--font); resize:none; min-height:60px;"
             onfocus="this.style.borderColor='var(--border2)'" onmouseover="if(document.activeElement!==this)this.style.background='rgba(255,255,255,0.04)'" onmouseout="if(document.activeElement!==this)this.style.background='var(--surface2)'"
         >{{ $task->description }}</textarea>
     @else
-        <div style="font-size:13px; color:{{ $task->description ? 'var(--text)' : 'var(--muted)' }}; line-height:1.5; white-space:pre-wrap; padding:10px 12px; background:var(--surface2); border-radius:8px;">{{ $task->description ?: 'No description.' }}</div>
+        <div style="font-size:13px; color:{{ $task->description ? 'var(--text)' : 'var(--muted)' }}; line-height:1.5; white-space:pre-wrap; padding:10px 12px; background:var(--surface2); border-radius:8px;">{{ $task->description ?: 'No notes.' }}</div>
     @endif
 </div>
 

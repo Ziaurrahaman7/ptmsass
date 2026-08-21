@@ -98,10 +98,10 @@
     </div>
 </div>
 
-{{-- Description --}}
+{{-- Notes --}}
 <div style="margin-bottom:22px;">
-    <div style="font-size:12px; color:var(--muted); font-weight:500; margin-bottom:6px;">Description</div>
-    <textarea onchange="panelPatch('description', this.value)" rows="3" placeholder="Add a description..."
+    <div style="font-size:12px; color:var(--muted); font-weight:500; margin-bottom:6px;">Notes</div>
+    <textarea onchange="panelPatch('description', this.value)" rows="3" placeholder="Add notes..."
         style="width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-size:13px; font-family:var(--font); padding:10px 12px; resize:vertical; line-height:1.5;">{{ $task->description }}</textarea>
 </div>
 

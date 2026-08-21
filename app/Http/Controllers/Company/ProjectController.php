@@ -257,7 +257,10 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
 
-        $tasks = $project->tasks()->with(['assignee', 'section'])->orderBy('position')->get();
+        $tasks = $project->tasks()
+            ->with(['assignees', 'section', 'parentTask'])
+            ->orderBy('position')
+            ->get();
         $priorityNames = \App\Models\Priority::forCompany($this->companyId())->pluck('name', 'slug');
 
         $filename = \Illuminate\Support\Str::slug($project->name) . '-tasks.csv';
@@ -266,18 +269,58 @@ class ProjectController extends Controller
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function () use ($tasks, $priorityNames) {
+        $statusLabels = [
+            'todo'        => 'Not Started',
+            'in_progress' => 'In Progress',
+            'in_review'   => 'In Review',
+            'done'        => 'Completed',
+        ];
+
+        $callback = function () use ($tasks, $priorityNames, $project, $statusLabels) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Title', 'Section', 'Status', 'Priority', 'Due date', 'Assignee', 'Description']);
+            fputcsv($out, [
+                'Task ID',
+                'Created At',
+                'Completed At',
+                'Last Modified',
+                'Name',
+                'Section/Column',
+                'Assignee',
+                'Assignee Email',
+                'Start Date',
+                'Due Date',
+                'Tags',
+                'Notes',
+                'Projects',
+                'Parent Task',
+                'Blocked By',
+                'Blocking (Deps)',
+                'Priority',
+                'Note',
+                'Status',
+            ]);
             foreach ($tasks as $t) {
+                $firstAssignee = $t->assignees->first();
                 fputcsv($out, [
+                    $t->id,
+                    $t->created_at?->format('n/j/Y'),
+                    $t->status === 'done' ? $t->updated_at?->format('n/j/Y') : '',
+                    $t->updated_at?->format('n/j/Y'),
                     $t->title,
                     $t->section?->name,
-                    $t->status,
-                    $priorityNames->get($t->priority, $t->priority),
-                    $t->due_date?->format('Y-m-d'),
-                    $t->assignee?->name,
+                    $firstAssignee?->name,
+                    $firstAssignee?->email,
+                    $t->start_date?->format('n/j/Y') ?? $t->created_at?->format('n/j/Y'),
+                    $t->due_date?->format('n/j/Y'),
+                    '',
                     $t->description,
+                    $project->name,
+                    $t->parentTask?->title,
+                    '',
+                    '',
+                    $priorityNames->get($t->priority, $t->priority),
+                    '',
+                    $statusLabels[$t->status] ?? $t->status,
                 ]);
             }
             fclose($out);
@@ -286,7 +329,7 @@ class ProjectController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    // Import tasks from a CSV (Title, Section, Status, Priority, Due date, Assignee, Description)
+    // Import tasks from CSV — supports both our own format and Asana export format
     public function importTasksCsv(Request $request, string $slug, Project $project)
     {
         $this->authorizeProject($project);
@@ -296,7 +339,18 @@ class ProjectController extends Controller
         $rows = array_map('str_getcsv', file($request->file('file')->getRealPath()));
         $header = array_map(fn ($h) => strtolower(trim($h)), array_shift($rows));
 
-        $validStatuses = ['todo', 'in_progress', 'in_review', 'done'];
+        // Status map: Asana labels → our internal values
+        $statusMap = [
+            'not started' => 'todo',
+            'in progress' => 'in_progress',
+            'in review'   => 'in_review',
+            'completed'   => 'done',
+            'todo'        => 'todo',
+            'in_progress' => 'in_progress',
+            'in_review'   => 'in_review',
+            'done'        => 'done',
+        ];
+
         $companyPriorities = \App\Models\Priority::forCompany($this->companyId());
         $priorityByNameOrSlug = $companyPriorities->flatMap(fn ($p) => [
             strtolower($p->slug) => $p->slug,
@@ -304,16 +358,31 @@ class ProjectController extends Controller
         ]);
         $defaultPrioritySlug = \App\Models\Priority::defaultSlugFor($this->companyId());
         $sectionCache = [];
-        $memberByName = auth()->user()->company->users()->where('is_active', true)->get()->keyBy(fn ($u) => strtolower($u->name));
+        $taskTitleCache = []; // for parent task lookup
+
+        $members = auth()->user()->company->users()->where('is_active', true)->get();
+        $memberByName  = $members->keyBy(fn ($u) => strtolower($u->name));
+        $memberByEmail = $members->keyBy(fn ($u) => strtolower($u->email));
+
         $position = (int) $project->tasks()->max('position');
         $imported = 0;
+
+        // Helper: get field value by multiple possible header names
+        $col = fn ($r, array $keys) => collect($keys)
+            ->map(fn ($k) => trim($r[$k] ?? ''))
+            ->first(fn ($v) => $v !== '') ?? '';
 
         foreach ($rows as $row) {
             if (count($row) < 1 || trim($row[0] ?? '') === '') continue;
             $r = array_combine($header, array_pad($row, count($header), null)) ?: [];
 
+            // Title — "name" (Asana) or "title" (ours)
+            $title = $col($r, ['name', 'title']);
+            if ($title === '') continue;
+
+            // Section — "section/column" (Asana) or "section" (ours)
             $sectionId = null;
-            $sectionName = trim($r['section'] ?? '');
+            $sectionName = $col($r, ['section/column', 'section']);
             if ($sectionName !== '') {
                 if (!isset($sectionCache[$sectionName])) {
                     $sectionCache[$sectionName] = $project->sections()->firstOrCreate(
@@ -324,25 +393,47 @@ class ProjectController extends Controller
                 $sectionId = $sectionCache[$sectionName];
             }
 
-            $status = strtolower(trim($r['status'] ?? ''));
-            $status = in_array($status, $validStatuses) ? $status : 'todo';
-            $priority = $priorityByNameOrSlug->get(strtolower(trim($r['priority'] ?? '')), $defaultPrioritySlug);
-            $assigneeName = strtolower(trim($r['assignee'] ?? ''));
-            $assignedTo = $memberByName->get($assigneeName)?->id;
+            // Status
+            $statusRaw = strtolower($col($r, ['status']));
+            $status = $statusMap[$statusRaw] ?? 'todo';
 
-            Task::create([
-                'company_id'  => $this->companyId(),
-                'project_id'  => $project->id,
-                'section_id'  => $sectionId,
-                'created_by'  => auth()->id(),
-                'assigned_to' => $assignedTo,
-                'title'       => trim($r['title'] ?? 'Untitled task'),
-                'description' => $r['description'] ?? null,
-                'status'      => $status,
-                'priority'    => $priority,
-                'due_date'    => !empty($r['due date']) ? $r['due date'] : (!empty($r['due_date']) ? $r['due_date'] : null),
-                'position'    => ++$position,
+            // Priority
+            $priority = $priorityByNameOrSlug->get(strtolower($col($r, ['priority'])), $defaultPrioritySlug);
+
+            // Assignee — try name first, then email
+            $assigneeName  = strtolower($col($r, ['assignee']));
+            $assigneeEmail = strtolower($col($r, ['assignee email', 'assignee_email']));
+            $assignedTo = $memberByName->get($assigneeName)?->id
+                ?? $memberByEmail->get($assigneeEmail)?->id;
+
+            // Dates
+            $dueDate   = $col($r, ['due date', 'due_date']) ?: null;
+            $startDate = $col($r, ['start date', 'start_date']) ?: null;
+
+            // Notes/Description — "notes" (Asana) or "description" (ours)
+            $description = $col($r, ['notes', 'description']) ?: null;
+
+            // Parent task — by title lookup within this project
+            $parentTaskTitle = $col($r, ['parent task', 'parent_task']);
+            $parentTaskId = $parentTaskTitle !== '' ? ($taskTitleCache[strtolower($parentTaskTitle)] ?? null) : null;
+
+            $task = Task::create([
+                'company_id'     => $this->companyId(),
+                'project_id'     => $project->id,
+                'section_id'     => $sectionId,
+                'parent_task_id' => $parentTaskId,
+                'created_by'     => auth()->id(),
+                'assigned_to'    => $assignedTo,
+                'title'          => $title,
+                'description'    => $description,
+                'status'         => $status,
+                'priority'       => $priority,
+                'start_date'     => $startDate ?: null,
+                'due_date'       => $dueDate ?: null,
+                'position'       => ++$position,
             ]);
+
+            $taskTitleCache[strtolower($title)] = $task->id;
             $imported++;
         }
 
