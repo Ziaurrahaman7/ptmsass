@@ -255,6 +255,12 @@
                     Share
                 </button>
 
+                {{-- Customize button --}}
+                <button onclick="openCustomizePanel()" id="customizeBtn" style="display:inline-flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border2); color:var(--text); border-radius:8px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--font);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    Customize
+                </button>
+
                 <span style="font-size:11px; font-family:var(--mono); padding:5px 10px; border-radius:6px; border:1px solid;
                     {{ $project->status === 'in_progress' ? 'color:#22d3ee; border-color:rgba(34,211,238,0.3); background:rgba(34,211,238,0.08);' :
                        ($project->status === 'completed' ? 'color:#4ade80; border-color:rgba(74,222,128,0.3); background:rgba(74,222,128,0.08);' :
@@ -1192,6 +1198,301 @@
         .ov-member-remove:hover { color:var(--danger); background:rgba(248,113,113,.1); }
         </style>
 
+        {{-- Customize Panel (slide-in from right, with sub-pages) --}}
+        <div id="customizePanel" style="position:fixed; inset:0; z-index:300; pointer-events:none;">
+            <div id="customizeOverlay" onclick="closeCustomizePanel()" style="position:absolute; inset:0; background:rgba(0,0,0,0.45); opacity:0; transition:opacity 0.2s;"></div>
+            <div id="customizePanelInner" style="position:absolute; top:0; right:0; height:100%; width:380px; max-width:95vw; background:var(--surface); border-left:1px solid var(--border2); display:flex; flex-direction:column; transform:translateX(100%); transition:transform 0.25s ease; box-shadow:-10px 0 40px rgba(0,0,0,0.35); overflow:hidden;">
+
+                {{-- PAGE: Main --}}
+                <div id="cz-main" style="display:flex; flex-direction:column; height:100%;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                        <span style="font-size:17px; font-weight:700; color:var(--text);">Customize</span>
+                        <button onclick="closeCustomizePanel()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:5px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; padding:20px;">
+                        <div style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px;">This project</div>
+                        <div style="font-size:12px; color:var(--muted); margin-bottom:18px;">View and edit features on this project</div>
+
+                        <div style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; font-family:var(--mono); margin-bottom:10px;">Workflow features</div>
+
+                        <button onclick="czNav('fields')" class="cz-item">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+                                <div><div style="font-size:14px; font-weight:500; color:var(--text);">Fields</div><div style="font-size:11px; color:var(--muted); margin-top:1px;">{{ $customFields->count() }} custom field{{ $customFields->count() !== 1 ? 's' : '' }}</div></div>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+
+                        <button onclick="czNav('import')" class="cz-item">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <div><div style="font-size:14px; font-weight:500; color:var(--text);">Import</div><div style="font-size:11px; color:var(--muted); margin-top:1px;">Import tasks from CSV</div></div>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+
+                        <button onclick="czNav('export')" class="cz-item">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <div><div style="font-size:14px; font-weight:500; color:var(--text);">Export</div><div style="font-size:11px; color:var(--muted); margin-top:1px;">Download tasks as CSV</div></div>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+
+                        <div style="border-top:1px solid var(--border); margin:16px 0;"></div>
+                        <div style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; font-family:var(--mono); margin-bottom:10px;">Project settings</div>
+
+                        <button onclick="czNav('edit')" class="cz-item">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                <div><div style="font-size:14px; font-weight:500; color:var(--text);">Edit project</div><div style="font-size:11px; color:var(--muted); margin-top:1px;">Name, description, dates, status</div></div>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+
+                        <button onclick="czNav('duplicate')" class="cz-item">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                <div><div style="font-size:14px; font-weight:500; color:var(--text);">Duplicate project</div><div style="font-size:11px; color:var(--muted); margin-top:1px;">Copy all tasks and sections</div></div>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+
+                        <button onclick="czNav('template')" class="cz-item">
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                                <div><div style="font-size:14px; font-weight:500; color:var(--text);">Save as template</div><div style="font-size:11px; color:var(--muted); margin-top:1px;">Reuse this project structure</div></div>
+                            </div>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- PAGE: Fields --}}
+                <div id="cz-fields" style="display:none; flex-direction:column; height:100%;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                        <button onclick="czBack()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                        </button>
+                        <span style="font-size:16px; font-weight:700; color:var(--text);">Fields</span>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; padding:20px;">
+                        <div style="font-size:12px; color:var(--muted); margin-bottom:16px;">Custom fields for this project</div>
+                        @forelse($customFields as $cf)
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--surface2); border-radius:8px; margin-bottom:8px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:11px; color:var(--accent2); font-family:var(--mono); background:rgba(34,211,238,0.1); padding:2px 7px; border-radius:4px;">{{ strtoupper($cf->type) }}</span>
+                                <span style="font-size:13px; color:var(--text); font-weight:500;">{{ $cf->name }}</span>
+                            </div>
+                            <form method="POST" action="{{ route('company.custom_fields.destroy', [$slug, $cf->id]) }}" onsubmit="return confirm('Remove field?')" style="display:flex;">
+                                @csrf @method('DELETE')
+                                <button type="submit" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:3px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </form>
+                        </div>
+                        @empty
+                        <div style="font-size:13px; color:var(--muted); padding:10px 0;">No custom fields yet.</div>
+                        @endforelse
+                        <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:16px;">
+                            <div style="font-size:12px; font-weight:600; color:var(--text); margin-bottom:10px;">Add new field</div>
+                            <form method="POST" action="{{ route('company.custom_fields.store', [$slug, $project]) }}" style="display:flex; flex-direction:column; gap:8px;">
+                                @csrf
+                                <input type="text" name="name" placeholder="Field name" required class="ptm-input" style="font-size:13px;">
+                                <select name="type" class="ptm-select" style="font-size:13px;">
+                                    <option value="text">Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="date">Date</option>
+                                    <option value="select">Dropdown</option>
+                                </select>
+                                <button type="submit" class="ptm-btn-primary" style="font-size:13px;">Add field</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- PAGE: Import --}}
+                <div id="cz-import" style="display:none; flex-direction:column; height:100%;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                        <button onclick="czBack()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                        </button>
+                        <span style="font-size:16px; font-weight:700; color:var(--text);">Import</span>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; padding:20px;">
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.6;">Import tasks from a CSV file. Supports Asana export format and our own format.</div>
+                        <div style="font-size:12px; color:var(--muted); background:var(--surface2); border-radius:8px; padding:12px 14px; margin-bottom:16px; line-height:1.7;">
+                            <strong style="color:var(--text);">Supported columns:</strong><br>
+                            Name / Title, Section/Column, Assignee, Assignee Email, Due Date, Start Date, Notes / Description, Priority, Status, Parent Task
+                        </div>
+                        <input type="file" id="czImportFile" accept=".csv,text/csv" class="ptm-input" style="width:100%; margin-bottom:12px; font-size:13px;">
+                        <button id="czImportBtn" onclick="czSubmitImport()" class="ptm-btn-primary" style="width:100%; font-size:13px;">Import tasks</button>
+                    </div>
+                </div>
+
+                {{-- PAGE: Export --}}
+                <div id="cz-export" style="display:none; flex-direction:column; height:100%;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                        <button onclick="czBack()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                        </button>
+                        <span style="font-size:16px; font-weight:700; color:var(--text);">Export</span>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; padding:20px;">
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.6;">Export all tasks from this project as a CSV file. Compatible with Asana import format.</div>
+                        <div style="background:var(--surface2); border-radius:10px; padding:14px 16px; margin-bottom:16px;">
+                            <div style="font-size:13px; font-weight:500; color:var(--text); margin-bottom:4px;">{{ $project->name }}</div>
+                            <div style="font-size:12px; color:var(--muted);">{{ $tasks->count() }} tasks · {{ $sections->count() }} sections</div>
+                        </div>
+                        <a href="{{ route('company.projects.export', [$slug, $project]) }}" class="ptm-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; font-size:13px; text-decoration:none; padding:10px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Download CSV
+                        </a>
+                    </div>
+                </div>
+
+                {{-- PAGE: Edit --}}
+                <div id="cz-edit" style="display:none; flex-direction:column; height:100%;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                        <button onclick="czBack()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                        </button>
+                        <span style="font-size:16px; font-weight:700; color:var(--text);">Edit project</span>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; padding:20px;">
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:16px;">Go to the full edit page to update project settings.</div>
+                        <a href="{{ route('company.projects.edit', [$slug, $project]) }}" class="ptm-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; font-size:13px; text-decoration:none; padding:10px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Open edit page
+                        </a>
+                    </div>
+                </div>
+
+                {{-- PAGE: Duplicate --}}
+                <div id="cz-duplicate" style="display:none; flex-direction:column; height:100%;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                        <button onclick="czBack()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                        </button>
+                        <span style="font-size:16px; font-weight:700; color:var(--text);">Duplicate project</span>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; padding:20px;">
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.6;">Creates a full copy of this project including all sections and tasks.</div>
+                        <button onclick="closeCustomizePanel(); duplicateThisProject()" class="ptm-btn-primary" style="width:100%; font-size:13px; padding:10px;">Duplicate now</button>
+                    </div>
+                </div>
+
+                {{-- PAGE: Template --}}
+                <div id="cz-template" style="display:none; flex-direction:column; height:100%;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid var(--border); flex-shrink:0;">
+                        <button onclick="czBack()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                        </button>
+                        <span style="font-size:16px; font-weight:700; color:var(--text);">Save as template</span>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; padding:20px;">
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.6;">Save this project as a template so you can reuse its structure when creating new projects.</div>
+                        <button onclick="closeCustomizePanel(); saveProjectAsTemplate()" class="ptm-btn-primary" style="width:100%; font-size:13px; padding:10px;">Save as template</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <style>
+        .cz-item { display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; margin-bottom:8px; text-align:left; transition:border-color 0.12s; }
+        .cz-item:hover { border-color:var(--border2); }
+        </style>
+
+        {{-- Share / Members modal --}}
+
+                    <div style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px;">This project</div>
+                    <div style="font-size:12px; color:var(--muted); margin-bottom:18px;">View and edit features on this project</div>
+
+                    {{-- Workflow features --}}
+                    <div style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; font-family:var(--mono); margin-bottom:10px;">Workflow features</div>
+
+                    {{-- Fields --}}
+                    <button onclick="closeCustomizePanel(); document.getElementById('colMenu').classList.add('show'); document.querySelector('[x-show]')" style="display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; margin-bottom:8px; text-align:left;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+                            <div>
+                                <div style="font-size:14px; font-weight:500; color:var(--text);">Fields</div>
+                                <div style="font-size:11px; color:var(--muted); margin-top:1px;">{{ $customFields->count() }} custom field{{ $customFields->count() !== 1 ? 's' : '' }}</div>
+                            </div>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+
+                    {{-- Forms --}}
+                    <button onclick="closeCustomizePanel(); openImportModal()" style="display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; margin-bottom:8px; text-align:left;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            <div>
+                                <div style="font-size:14px; font-weight:500; color:var(--text);">Import</div>
+                                <div style="font-size:11px; color:var(--muted); margin-top:1px;">Import tasks from CSV</div>
+                            </div>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+
+                    {{-- Export --}}
+                    <a href="{{ route('company.projects.export', [$slug, $project]) }}" onclick="closeCustomizePanel()" style="display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; margin-bottom:8px; text-decoration:none;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <div>
+                                <div style="font-size:14px; font-weight:500; color:var(--text);">Export</div>
+                                <div style="font-size:11px; color:var(--muted); margin-top:1px;">Download tasks as CSV</div>
+                            </div>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                    </a>
+
+                    {{-- Divider --}}
+                    <div style="border-top:1px solid var(--border); margin:16px 0;"></div>
+
+                    {{-- Project settings --}}
+                    <div style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; font-family:var(--mono); margin-bottom:10px;">Project settings</div>
+
+                    <a href="{{ route('company.projects.edit', [$slug, $project]) }}" style="display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; margin-bottom:8px; text-decoration:none;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            <div>
+                                <div style="font-size:14px; font-weight:500; color:var(--text);">Edit project</div>
+                                <div style="font-size:11px; color:var(--muted); margin-top:1px;">Name, description, dates, status</div>
+                            </div>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                    </a>
+
+                    <button onclick="closeCustomizePanel(); duplicateThisProject()" style="display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; margin-bottom:8px; text-align:left;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            <div>
+                                <div style="font-size:14px; font-weight:500; color:var(--text);">Duplicate project</div>
+                                <div style="font-size:11px; color:var(--muted); margin-top:1px;">Copy all tasks and sections</div>
+                            </div>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+
+                    <button onclick="closeCustomizePanel(); saveProjectAsTemplate()" style="display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; cursor:pointer; margin-bottom:8px; text-align:left;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                            <div>
+                                <div style="font-size:14px; font-weight:500; color:var(--text);">Save as template</div>
+                                <div style="font-size:11px; color:var(--muted); margin-top:1px;">Reuse this project structure</div>
+                            </div>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+
         {{-- Share / Members modal --}}
         <div id="shareModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center;" onclick="if(event.target===this) closeShareModal()">
             <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; width:440px; max-width:95vw;">
@@ -2096,7 +2397,54 @@
         .then(data => { if (data.success) location.reload(); });
     }
 
-    /* Project roles / members */
+    /* Customize panel */
+    function openCustomizePanel() {
+        const panel = document.getElementById('customizePanel');
+        const inner = document.getElementById('customizePanelInner');
+        const overlay = document.getElementById('customizeOverlay');
+        czShowPage('main');
+        panel.style.pointerEvents = 'auto';
+        overlay.style.opacity = '1';
+        inner.style.transform = 'translateX(0)';
+        document.getElementById('customizeBtn').style.background = 'var(--surface)';
+    }
+    function closeCustomizePanel() {
+        const panel = document.getElementById('customizePanel');
+        const inner = document.getElementById('customizePanelInner');
+        const overlay = document.getElementById('customizeOverlay');
+        panel.style.pointerEvents = 'none';
+        overlay.style.opacity = '0';
+        inner.style.transform = 'translateX(100%)';
+        document.getElementById('customizeBtn').style.background = 'var(--surface2)';
+    }
+    function czShowPage(name) {
+        ['main','fields','import','export','edit','duplicate','template'].forEach(p => {
+            const el = document.getElementById('cz-'+p);
+            if (el) el.style.display = (p === name) ? 'flex' : 'none';
+        });
+    }
+    function czNav(page) { czShowPage(page); }
+    function czBack() { czShowPage('main'); }
+    function czSubmitImport() {
+        const file = document.getElementById('czImportFile').files[0];
+        if (!file) return;
+        const btn = document.getElementById('czImportBtn');
+        btn.disabled = true; btn.textContent = 'Importing…';
+        const data = new FormData(); data.append('file', file);
+        fetch(projectUrl('/import'), {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: data
+        }).then(r => r.json()).then(d => {
+            if (d.success) { location.reload(); return; }
+            btn.disabled = false; btn.textContent = 'Import tasks';
+        }).catch(() => { btn.disabled = false; btn.textContent = 'Import tasks'; });
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeCustomizePanel();
+    });
+
+    /* Customize panel */
     function openShareModal() { document.getElementById('shareModal').style.display = 'flex'; }
     function closeShareModal() { document.getElementById('shareModal').style.display = 'none'; }
     function submitShareMember() {
