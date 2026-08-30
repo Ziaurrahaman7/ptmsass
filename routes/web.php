@@ -16,6 +16,7 @@ use App\Http\Controllers\Company\InsightController as CompanyInsightController;
 use App\Http\Controllers\Company\PortfolioController as CompanyPortfolioController;
 use App\Http\Controllers\Company\GoalController as CompanyGoalController;
 use App\Http\Controllers\Company\PriorityController as CompanyPriorityController;
+use App\Http\Controllers\Company\MyTaskController as CompanyMyTaskController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
@@ -38,6 +39,12 @@ Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'superadmi
 Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_admin', 'company_slug'])->group(function () {
     Route::get('/dashboard', [CompanyDashboardController::class, 'index'])->name('dashboard');
     
+    // My Tasks
+    Route::get('my-tasks', [CompanyMyTaskController::class, 'index'])->name('my-tasks.index');
+    Route::post('my-tasks', [CompanyMyTaskController::class, 'store'])->name('my-tasks.store');
+    Route::patch('my-tasks/{task}/status', [CompanyMyTaskController::class, 'updateStatus'])->name('my-tasks.status');
+    Route::delete('my-tasks/{task}', [CompanyMyTaskController::class, 'destroy'])->name('my-tasks.destroy');
+
     // Tasks POST routes FIRST
     Route::post('tasks', [CompanyTaskController::class, 'storeFromIndex'])->name('tasks.store_index');
     Route::post('projects/{project}/tasks', [CompanyTaskController::class, 'store'])->name('tasks.store');
