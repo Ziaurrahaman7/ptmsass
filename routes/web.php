@@ -22,6 +22,7 @@ use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardContro
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
 use App\Http\Controllers\Employee\MyTaskController as EmployeeMyTaskController;
+use App\Http\Controllers\Employee\SearchController as EmployeeSearchController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\ProjectController as ClientProjectController;
@@ -173,6 +174,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
 // Employee routes — /{slug}/...
 Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'company_slug'])->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/search', EmployeeSearchController::class)->name('search');
     Route::get('/projects/{project}', [EmployeeProjectController::class, 'show'])->name('projects.show');
     Route::get('/my-tasks', [EmployeeMyTaskController::class, 'index'])->name('my-tasks.index');
     Route::post('/my-tasks', [EmployeeMyTaskController::class, 'store'])->name('my-tasks.store');

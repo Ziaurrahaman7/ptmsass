@@ -143,6 +143,13 @@
         <header class="ptm-topbar" style="padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
             <div style="font-size:15px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">{{ $title ?? 'Dashboard' }}</div>
             <div style="display:flex; align-items:center; gap:16px;">
+                <div style="position:relative;">
+                    <button id="searchBtn" onclick="openSearch()" title="Search (Ctrl+K)" style="background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--muted); cursor:pointer; padding:6px 12px; display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; transition:all 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <span>Search</span>
+                        <span style="font-size:10px; padding:1px 5px; background:var(--border); border-radius:4px;">Ctrl K</span>
+                    </button>
+                </div>
                 {{-- Notification Bell --}}
                 <div style="position:relative;">
                     <button id="notificationBell" onclick="toggleNotifications()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:6px; position:relative; transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
@@ -281,6 +288,11 @@ document.addEventListener('click', function(e) {
 fetchNotifications();
 setInterval(fetchNotifications, 30000);
 </script>
+
+@include('partials.search-panel', [
+    'searchUrl' => route('employee.search', $slug),
+    'isAdmin' => false,
+])
 
 </body>
 </html>

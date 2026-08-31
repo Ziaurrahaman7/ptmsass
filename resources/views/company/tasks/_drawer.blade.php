@@ -123,6 +123,11 @@
         });
 
         // Expose to inline handlers used by the panel partial + callers.
+        const hashMatch = location.hash.match(/^#task-(\d+)$/);
+        if (hashMatch) {
+            setTimeout(() => openPanel(hashMatch[1]), 200);
+        }
+
         Object.assign(window, {
             openPanel, closePanel, reloadPanel, applyStatus, applyPri,
             panelPatch, panelMarkComplete, syncCompleteBtn, panelAssigneeChange,

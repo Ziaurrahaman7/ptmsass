@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Company;
+namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Services\WorkspaceSearch;
@@ -15,7 +15,7 @@ class SearchController extends Controller
         $type = $request->query('type', 'all');
         $preset = $request->query('preset');
 
-        $allowedTypes = ['all', 'tasks', 'projects', 'people', 'portfolios', 'goals', 'comments', 'teams', 'more'];
+        $allowedTypes = ['all', 'tasks', 'projects', 'people', 'comments', 'more'];
         if (! is_string($type) || ! in_array($type, $allowedTypes, true)) {
             $type = 'all';
         }
@@ -29,7 +29,7 @@ class SearchController extends Controller
             slug: $slug,
             companyId: (int) $user->company_id,
             userId: (int) $user->id,
-            isAdmin: true,
+            isAdmin: false,
         );
 
         return response()->json($search->search(
