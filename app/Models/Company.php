@@ -36,6 +36,11 @@ class Company extends Model
         return $this->hasOne(User::class)->where('role', 'company_admin');
     }
 
+    public function invitations()
+    {
+        return $this->hasMany(Invitation::class);
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';

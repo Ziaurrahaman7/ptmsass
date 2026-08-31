@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Priority;
+use App\Services\PlatformMail;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        PlatformMail::apply();
+
         // Share $slug and the company's customizable priority list globally with all views
         // (memoized per-request so partials/@includes don't each re-query it).
         view()->composer('*', function ($view) {

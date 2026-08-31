@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\InviteController;
 use App\Http\Controllers\Superadmin\CompanyController;
 use App\Http\Controllers\Superadmin\DashboardController;
+use App\Http\Controllers\Superadmin\MailSettingController;
 use App\Http\Controllers\Company\DashboardController as CompanyDashboardController;
 use App\Http\Controllers\Company\ProjectController as CompanyProjectController;
 use App\Http\Controllers\Company\CustomFieldController as CompanyCustomFieldController;
@@ -30,12 +32,19 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
 
+Route::middleware('guest')->group(function () {
+    Route::get('/invite/{token}', [InviteController::class, 'show'])->name('invite.show');
+    Route::post('/invite/{token}', [InviteController::class, 'store'])->name('invite.store');
+});
 
 // Superadmin routes
 Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'superadmin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('companies', CompanyController::class)->except(['show']);
     Route::patch('companies/{company}/toggle', [CompanyController::class, 'toggleStatus'])->name('companies.toggle');
+    Route::get('smtp', [MailSettingController::class, 'edit'])->name('smtp.edit');
+    Route::put('smtp', [MailSettingController::class, 'update'])->name('smtp.update');
+    Route::post('smtp/test', [MailSettingController::class, 'test'])->name('smtp.test');
 });
 
 // Company Admin routes — /{slug}/admin/...
@@ -107,6 +116,8 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     
     Route::get('members', [CompanyMemberController::class, 'index'])->name('members.index');
     Route::post('members', [CompanyMemberController::class, 'store'])->name('members.store');
+    Route::post('members/invitations/{invitation}/resend', [CompanyMemberController::class, 'resend'])->name('members.invitations.resend');
+    Route::delete('members/invitations/{invitation}', [CompanyMemberController::class, 'revoke'])->name('members.invitations.revoke');
     Route::patch('members/{user}/toggle', [CompanyMemberController::class, 'toggle'])->name('members.toggle');
 
     // Team
