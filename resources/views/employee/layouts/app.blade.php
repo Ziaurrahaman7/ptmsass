@@ -14,7 +14,7 @@
             --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
             --text: #e8eaf0; --muted: #6b7385;
             --accent: #4ade80; --accent2: #22d3ee;
-            --danger: #f87171;
+            --danger: #f87171; --purple: #a78bfa; --warn: #fbbf24;
             --font: 'DM Sans', sans-serif; --mono: 'DM Mono', monospace;
         }
         *, *::before, *::after { box-sizing: border-box; }
@@ -50,6 +50,15 @@
         }
         .ptm-input:focus, .ptm-select:focus { outline: none; border-color: var(--accent2); }
         .ptm-alert-success { background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); color: var(--accent); border-radius: 8px; }
+        .ptm-btn-primary {
+            background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3);
+            color: var(--accent); border-radius: 8px; padding: 8px 16px;
+            font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer;
+        }
+        .ptm-btn-ghost {
+            background: none; border: 1px solid var(--border2); color: var(--muted);
+            border-radius: 8px; padding: 8px 16px; font-family: var(--font); font-size: 13px; cursor: pointer;
+        }
         .ptm-section-title { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
     </style>
 </head>
@@ -92,7 +101,7 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
             </a>
-            <a href="{{ route('employee.tasks.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('employee.tasks.*') ? 'active' : '' }}">
+            <a href="{{ route('employee.my-tasks.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('employee.my-tasks.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                 My Tasks
             </a>
@@ -170,6 +179,11 @@
         </main>
     </div>
 </div>
+
+@unless(request()->routeIs('employee.projects.show'))
+    @php $taskApiBase = '/' . $slug . '/tasks'; @endphp
+    @include('company.tasks._drawer')
+@endunless
 
 <script>
 const slug = '{{ $slug }}';

@@ -53,16 +53,17 @@ class TaskController extends Controller
         $oldStatus = $task->status;
         $task->update(['status' => $request->status]);
         
-        // Notify company admin about status change
-        $companyAdmins = $task->project->company->users()->where('role', 'company_admin')->get();
-        foreach ($companyAdmins as $admin) {
-            Notification::create([
-                'user_id' => $admin->id,
-                'type' => 'task_status_changed',
-                'title' => 'Task Status Updated',
-                'message' => auth()->user()->name . ' moved "' . $task->title . '" from ' . $oldStatus . ' to ' . $request->status,
-                'link' => route('company.tasks.show', [$slug, $task]),
-            ]);
+        if ($task->project) {
+            $companyAdmins = $task->project->company->users()->where('role', 'company_admin')->get();
+            foreach ($companyAdmins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'task_status_changed',
+                    'title' => 'Task Status Updated',
+                    'message' => auth()->user()->name . ' moved "' . $task->title . '" from ' . $oldStatus . ' to ' . $request->status,
+                    'link' => route('company.tasks.show', [$slug, $task]),
+                ]);
+            }
         }
 
         if ($request->expectsJson()) {
@@ -91,8 +92,14 @@ class TaskController extends Controller
     {
         $this->authorizeMine($task);
 
-        $data = $request->validate(['description' => 'nullable|string']);
-        $task->update(['description' => $data['description'] ?? null]);
+        $data = $request->validate([
+            'title'       => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|nullable|string',
+            'due_date'    => 'sometimes|nullable|date',
+            'list_group'  => 'sometimes|nullable|in:recent,later',
+            'status'      => 'sometimes|in:todo,in_progress,in_review,done',
+        ]);
+        $task->update($data);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true]);
@@ -129,7 +136,9 @@ class TaskController extends Controller
     {
         abort_if($task->company_id !== auth()->user()->company_id, 403);
         $userId = auth()->id();
-        $isMine = $task->assigned_to === $userId || $task->assignees->contains('id', $userId);
+        $isMine = $task->assigned_to === $userId
+            || $task->assignees->contains('id', $userId)
+            || ($task->project_id === null && $task->created_by === $userId);
         abort_if(!$isMine, 403);
     }
 
@@ -143,7 +152,9 @@ class TaskController extends Controller
         $task->load(['project', 'section', 'assignees', 'comments.user', 'attachments.uploader', 'subtasks.assignees']);
 
         $userId = auth()->id();
-        $isMine = $task->assigned_to === $userId || $task->assignees->contains('id', $userId);
+        $isMine = $task->assigned_to === $userId
+            || $task->assignees->contains('id', $userId)
+            || ($task->project_id === null && $task->created_by === $userId);
 
         return view('employee.tasks._panel', compact('task', 'isMine', 'slug'));
     }
@@ -169,16 +180,17 @@ class TaskController extends Controller
             'description' => auth()->user()->name . ' added a comment',
         ]);
         
-        // Notify company admin
-        $companyAdmins = $task->project->company->users()->where('role', 'company_admin')->get();
-        foreach ($companyAdmins as $admin) {
-            Notification::create([
-                'user_id' => $admin->id,
-                'type' => 'task_comment',
-                'title' => 'New Comment',
-                'message' => auth()->user()->name . ' commented on: ' . $task->title,
-                'link' => route('company.tasks.show', [$slug, $task]),
-            ]);
+        if ($task->project) {
+            $companyAdmins = $task->project->company->users()->where('role', 'company_admin')->get();
+            foreach ($companyAdmins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'task_comment',
+                    'title' => 'New Comment',
+                    'message' => auth()->user()->name . ' commented on: ' . $task->title,
+                    'link' => route('company.tasks.show', [$slug, $task]),
+                ]);
+            }
         }
 
         if ($request->expectsJson()) {

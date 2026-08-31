@@ -86,7 +86,17 @@
         </select>
     </div>
 
-    {{-- Section / Project --}}
+    {{-- Project --}}
+    <div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:10px; padding:8px 0;">
+        <span style="font-size:12px; color:var(--muted); font-weight:500;">Project</span>
+        @if($task->project)
+        <a href="{{ route('company.projects.show', [$slug, $task->project]) }}" style="font-size:13px; color:var(--accent2); text-decoration:none;">{{ $task->project->name }}</a>
+        @else
+        <span style="font-size:13px; color:var(--purple); font-family:var(--mono);">Personal</span>
+        @endif
+    </div>
+
+    @if($task->project)
     <div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:10px; padding:8px 0;">
         <span style="font-size:12px; color:var(--muted); font-weight:500;">Section</span>
         <select class="al-pill" style="width:200px; color:var(--text); background:var(--surface2);" onchange="panelPatch('section_id', this.value)">
@@ -96,6 +106,7 @@
             @endforeach
         </select>
     </div>
+    @endif
 </div>
 
 {{-- Notes --}}

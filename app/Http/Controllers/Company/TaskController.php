@@ -17,9 +17,9 @@ class TaskController extends Controller
     /**
      * Return the section id only if it belongs to the given project (and company); else null.
      */
-    private function validSectionId($sectionId, int $projectId): ?int
+    private function validSectionId($sectionId, ?int $projectId): ?int
     {
-        if (empty($sectionId)) {
+        if (empty($sectionId) || ! $projectId) {
             return null;
         }
 
@@ -438,13 +438,14 @@ class TaskController extends Controller
             'priority'    => 'sometimes|required|' . $this->priorityRule(),
             'start_date'  => 'sometimes|nullable|date',
             'due_date'    => 'sometimes|nullable|date',
+            'list_group'  => 'sometimes|nullable|in:recent,later',
             'section_id'  => 'sometimes|nullable|exists:sections,id',
             'assignees'   => 'sometimes|array',
             'assignees.*' => 'exists:users,id',
         ]);
 
         $update = [];
-        foreach (['title', 'description', 'status', 'priority', 'start_date', 'due_date'] as $field) {
+        foreach (['title', 'description', 'status', 'priority', 'start_date', 'due_date', 'list_group'] as $field) {
             if ($request->has($field)) {
                 $update[$field] = $data[$field] ?? null;
             }
@@ -625,7 +626,7 @@ class TaskController extends Controller
             'attachments.uploader', 'subtasks.assignees',
         ]);
         $members  = auth()->user()->company->users()->where('is_active', true)->get();
-        $sections = $task->project->sections()->get();
+        $sections = $task->project?->sections()->get() ?? collect();
 
         return view('company.tasks._panel', compact('task', 'members', 'sections', 'slug'));
     }

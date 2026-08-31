@@ -17,9 +17,11 @@ use App\Http\Controllers\Company\PortfolioController as CompanyPortfolioControll
 use App\Http\Controllers\Company\GoalController as CompanyGoalController;
 use App\Http\Controllers\Company\PriorityController as CompanyPriorityController;
 use App\Http\Controllers\Company\MyTaskController as CompanyMyTaskController;
+use App\Http\Controllers\Company\SearchController as CompanySearchController;
 use App\Http\Controllers\Employee\DashboardController as EmployeeDashboardController;
 use App\Http\Controllers\Employee\ProjectController as EmployeeProjectController;
 use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
+use App\Http\Controllers\Employee\MyTaskController as EmployeeMyTaskController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\ProjectController as ClientProjectController;
@@ -39,10 +41,14 @@ Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'superadmi
 Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_admin', 'company_slug'])->group(function () {
     Route::get('/dashboard', [CompanyDashboardController::class, 'index'])->name('dashboard');
     
+    // Search
+    Route::get('search', CompanySearchController::class)->name('search');
+
     // My Tasks
     Route::get('my-tasks', [CompanyMyTaskController::class, 'index'])->name('my-tasks.index');
     Route::post('my-tasks', [CompanyMyTaskController::class, 'store'])->name('my-tasks.store');
     Route::patch('my-tasks/{task}/status', [CompanyMyTaskController::class, 'updateStatus'])->name('my-tasks.status');
+    Route::patch('my-tasks/{task}/move', [CompanyMyTaskController::class, 'move'])->name('my-tasks.move');
     Route::delete('my-tasks/{task}', [CompanyMyTaskController::class, 'destroy'])->name('my-tasks.destroy');
 
     // Tasks POST routes FIRST
@@ -168,6 +174,11 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
 Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'company_slug'])->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
     Route::get('/projects/{project}', [EmployeeProjectController::class, 'show'])->name('projects.show');
+    Route::get('/my-tasks', [EmployeeMyTaskController::class, 'index'])->name('my-tasks.index');
+    Route::post('/my-tasks', [EmployeeMyTaskController::class, 'store'])->name('my-tasks.store');
+    Route::patch('/my-tasks/{task}/status', [EmployeeMyTaskController::class, 'updateStatus'])->name('my-tasks.status');
+    Route::patch('/my-tasks/{task}/move', [EmployeeMyTaskController::class, 'move'])->name('my-tasks.move');
+    Route::delete('/my-tasks/{task}', [EmployeeMyTaskController::class, 'destroy'])->name('my-tasks.destroy');
     Route::get('/tasks', [EmployeeTaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks/{task}', [EmployeeTaskController::class, 'show'])->name('tasks.show');
     Route::get('/tasks/{task}/panel', [EmployeeTaskController::class, 'panel'])->name('tasks.panel');

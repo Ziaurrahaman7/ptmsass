@@ -1202,7 +1202,4 @@
         </div>
     </div>
 
-    {{-- Task detail slide-in drawer (opened from Calendar) --}}
-    @include('company.tasks._drawer')
-
 </x-company-layout>

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Company;
+namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Concerns\ManagesMyTasks;
 use App\Http\Controllers\Controller;
@@ -18,17 +18,28 @@ class MyTaskController extends Controller
 
     public function index(Request $request, string $slug)
     {
+        $data = $this->myTasksIndexData($request);
+        $userId = auth()->id();
+        $projectIds = Task::query()
+            ->where(function ($q) use ($userId) {
+                $q->where('assigned_to', $userId)
+                  ->orWhereHas('assignees', fn ($q) => $q->where('users.id', $userId));
+            })
+            ->whereNotNull('project_id')
+            ->pluck('project_id');
+        $data['projects'] = $data['projects']->whereIn('id', $projectIds)->values();
+
         return view('my-tasks.index', array_merge(
-            $this->myTasksIndexData($request),
+            $data,
             [
                 'slug' => $slug,
                 'ctx'  => [
-                    'store'     => route('company.my-tasks.store', $slug),
-                    'destroy'   => fn (Task $t) => route('company.my-tasks.destroy', [$slug, $t]),
-                    'status'    => fn (int $id) => "/{$slug}/admin/my-tasks/{$id}/status",
-                    'move'      => fn (int $id) => "/{$slug}/admin/my-tasks/{$id}/move",
-                    'inline'    => fn (int $id) => "/{$slug}/admin/tasks/{$id}/inline",
-                    'listUrl'   => route('company.my-tasks.index', $slug),
+                    'store'     => route('employee.my-tasks.store', $slug),
+                    'destroy'   => fn (Task $t) => route('employee.my-tasks.destroy', [$slug, $t]),
+                    'status'    => fn (int $id) => "/{$slug}/my-tasks/{$id}/status",
+                    'move'      => fn (int $id) => "/{$slug}/my-tasks/{$id}/move",
+                    'inline'    => fn (int $id) => "/{$slug}/tasks/{$id}/inline",
+                    'listUrl'   => route('employee.my-tasks.index', $slug),
                     'canCreate' => true,
                     'canDeletePersonal' => true,
                 ],

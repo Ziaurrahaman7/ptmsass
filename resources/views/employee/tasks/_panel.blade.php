@@ -72,7 +72,7 @@
     {{-- Section --}}
     <div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:10px; padding:8px 0;">
         <span style="font-size:12px; color:var(--muted); font-weight:500;">Section</span>
-        <span style="font-size:13px; color:var(--text);">{{ $task->section?->name ?? '(No section)' }}</span>
+        <span style="font-size:13px; color:{{ $task->project ? 'var(--text)' : 'var(--purple, #a78bfa)' }};">{{ $task->project ? ($task->section?->name ?? 'No section') : 'Personal' }}</span>
     </div>
 </div>
 

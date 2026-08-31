@@ -15,7 +15,7 @@
 </div>
 
 <style>
-    .task-drawer { position:fixed; inset:0; z-index:250; pointer-events:none; }
+    .task-drawer { position:fixed; inset:0; z-index:400; pointer-events:none; }
     .task-drawer .task-drawer-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.5); opacity:0; transition:opacity 0.2s; }
     .task-drawer .task-drawer-panel { position:absolute; top:0; right:0; height:100%; width:560px; max-width:92vw; background:var(--surface); border-left:1px solid var(--border2); display:flex; flex-direction:column; transform:translateX(100%); transition:transform 0.25s ease; box-shadow:-10px 0 40px rgba(0,0,0,0.35); }
     .task-drawer.open { pointer-events:auto; }
@@ -30,8 +30,14 @@
 
 <script>
     (function () {
+        const drawer = document.getElementById('taskDrawer');
+        if (!drawer || drawer.dataset.bound === '1') return;
+        drawer.dataset.bound = '1';
+        document.body.appendChild(drawer);
+
         const slug = '{{ $slug ?? auth()->user()->company->slug }}';
-        const csrfToken = '{{ csrf_token() }}';
+        const taskApiBase = @json($taskApiBase ?? ('/' . ($slug ?? auth()->user()->company->slug) . '/admin/tasks'));
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
         let panelTaskId = null;
         let panelDirty = false;
 
@@ -43,7 +49,7 @@
 
         function patchField(id, field, value){
             const body={}; body[field]=value;
-            return fetch(`/${slug}/admin/tasks/${id}/inline`, {
+            return fetch(`${taskApiBase}/${id}/inline`, {
                 method:'PATCH',
                 headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
                 body:JSON.stringify(body)
@@ -58,22 +64,30 @@
 
         function openPanel(id){
             panelTaskId = id;
-            document.getElementById('taskDrawer').classList.add('open');
+            drawer.classList.add('open');
             reloadPanel();
         }
         function closePanel(){
-            document.getElementById('taskDrawer').classList.remove('open');
+            drawer.classList.remove('open');
             if (panelDirty) { location.reload(); }
             panelTaskId = null;
         }
         function reloadPanel(){
             if (!panelTaskId) return;
             const body = document.getElementById('taskPanelBody');
-            fetch(`/${slug}/admin/tasks/${panelTaskId}/panel`, { headers:{'Accept':'text/html'} })
-                .then(r => r.text()).then(html => {
+            body.innerHTML = '<div style="text-align:center; color:var(--muted); padding:40px; font-size:13px;">Loading…</div>';
+            fetch(`${taskApiBase}/${panelTaskId}/panel`, { headers:{'Accept':'text/html'} })
+                .then(r => {
+                    if (!r.ok) throw new Error('Failed to load task');
+                    return r.text();
+                })
+                .then(html => {
                     body.innerHTML = html;
                     body.querySelectorAll('.al-status').forEach(applyStatus);
                     body.querySelectorAll('.al-pri').forEach(applyPri);
+                })
+                .catch(() => {
+                    body.innerHTML = '<div style="text-align:center; color:var(--danger); padding:40px; font-size:13px;">Could not load this task.</div>';
                 });
         }
 
@@ -96,12 +110,12 @@
         function panelToggleSubtask(id, status){ const next = status==='done'?'todo':'done'; panelDirty=true; patchField(id,'status',next).then(reloadPanel); }
         function panelAddSubtask(form){ panelDirty=true; post(form.action, new FormData(form)).then(r=>r.json()).then(reloadPanel); return false; }
         function panelAddComment(form){ panelDirty=true; post(form.action, new FormData(form)).then(r=>r.json()).then(reloadPanel); return false; }
-        function panelDeleteComment(id){ panelDirty=true; del(`/${slug}/admin/tasks/comments/${id}`).then(reloadPanel); }
+        function panelDeleteComment(id){ panelDirty=true; del(`${taskApiBase}/comments/${id}`).then(reloadPanel); }
         function panelUpload(input){ if(!input.files.length) return; panelDirty=true; const fd=new FormData(); fd.append('file', input.files[0]); post(input.dataset.action, fd).then(r=>r.json()).then(reloadPanel); }
-        function panelDeleteAttachment(id){ panelDirty=true; del(`/${slug}/admin/tasks/attachments/${id}`).then(reloadPanel); }
+        function panelDeleteAttachment(id){ panelDirty=true; del(`${taskApiBase}/attachments/${id}`).then(reloadPanel); }
         function panelDeleteTask(){
             if(!confirm('Delete this task?')) return;
-            del(`/${slug}/admin/tasks/${panelTaskId}`).then(()=>{ panelDirty=false; document.getElementById('taskDrawer').classList.remove('open'); location.reload(); });
+            del(`${taskApiBase}/${panelTaskId}`).then(()=>{ panelDirty=false; drawer.classList.remove('open'); location.reload(); });
         }
 
         document.addEventListener('keydown', function(e){
@@ -114,6 +128,14 @@
             panelPatch, panelMarkComplete, syncCompleteBtn, panelAssigneeChange,
             panelToggleSubtask, panelAddSubtask, panelAddComment, panelDeleteComment,
             panelUpload, panelDeleteAttachment, panelDeleteTask,
+            empMarkComplete: panelMarkComplete,
+            empPanelStatus: (v) => { panelDirty = true; return patchField(panelTaskId, 'status', v).then(reloadPanel); },
+            empPanelDescription: (v) => panelPatch('description', v),
+            empAddSubtask: panelAddSubtask,
+            empAddComment: panelAddComment,
+            empDeleteComment: panelDeleteComment,
+            empUpload: panelUpload,
+            empDeleteAttachment: panelDeleteAttachment,
         });
     })();
 </script>

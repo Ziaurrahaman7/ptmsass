@@ -8,7 +8,7 @@ class Task extends Model
 {
     protected $fillable = [
         'parent_task_id', 'project_id', 'section_id', 'company_id', 'created_by', 'assigned_to',
-        'title', 'description', 'status', 'priority', 'start_date', 'due_date', 'position', 'custom_values', 'is_milestone',
+        'title', 'description', 'status', 'priority', 'start_date', 'due_date', 'list_group', 'position', 'custom_values', 'is_milestone',
     ];
 
     protected $casts = [
