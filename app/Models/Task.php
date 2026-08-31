@@ -79,6 +79,30 @@ class Task extends Model
         return $this->hasMany(Task::class, 'parent_task_id');
     }
 
+    public function blockedByLinks()
+    {
+        return $this->hasMany(TaskDependency::class, 'task_id');
+    }
+
+    public function blockingLinks()
+    {
+        return $this->hasMany(TaskDependency::class, 'depends_on_task_id');
+    }
+
+    public function blockedBy()
+    {
+        return $this->belongsToMany(Task::class, 'task_dependencies', 'task_id', 'depends_on_task_id')
+            ->withPivot('id', 'type')
+            ->withTimestamps();
+    }
+
+    public function blocking()
+    {
+        return $this->belongsToMany(Task::class, 'task_dependencies', 'depends_on_task_id', 'task_id')
+            ->withPivot('id', 'type')
+            ->withTimestamps();
+    }
+
     public function statusColor(): string
     {
         return match($this->status) {

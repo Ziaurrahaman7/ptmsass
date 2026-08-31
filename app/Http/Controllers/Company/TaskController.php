@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskAttachment;
 use App\Models\TaskComment;
+use App\Models\TaskDependency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -658,5 +659,75 @@ class TaskController extends Controller
         }
 
         return back()->with('success', 'Subtask added.');
+    }
+
+    public function storeDependency(Request $request, string $slug, Task $task)
+    {
+        abort_if($task->company_id !== $this->companyId(), 403);
+
+        $data = $request->validate([
+            'depends_on_task_id' => 'required|integer|exists:tasks,id',
+            'type'               => 'sometimes|in:FS,SS,FF,SF',
+        ]);
+
+        $pred = Task::where('id', $data['depends_on_task_id'])
+            ->where('company_id', $this->companyId())
+            ->firstOrFail();
+
+        abort_if($pred->project_id !== $task->project_id, 422, 'Dependency must be in the same project.');
+
+        if ($this->dependencyWouldCycle((int) $task->id, (int) $pred->id)) {
+            return response()->json(['success' => false, 'message' => 'That dependency would create a cycle.'], 422);
+        }
+
+        $link = TaskDependency::firstOrCreate(
+            ['task_id' => $task->id, 'depends_on_task_id' => $pred->id],
+            ['type' => $data['type'] ?? 'FS']
+        );
+
+        return response()->json([
+            'success' => true,
+            'dependency' => [
+                'id'         => $link->id,
+                'depends_on' => $pred->id,
+                'type'       => $link->type,
+            ],
+        ]);
+    }
+
+    public function destroyDependency(string $slug, Task $task, TaskDependency $dependency)
+    {
+        abort_if($task->company_id !== $this->companyId(), 403);
+        abort_if((int) $dependency->task_id !== (int) $task->id, 404);
+
+        $dependency->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    private function dependencyWouldCycle(int $taskId, int $dependsOnId): bool
+    {
+        if ($taskId === $dependsOnId) {
+            return true;
+        }
+
+        $stack = [$dependsOnId];
+        $seen = [];
+
+        while ($stack) {
+            $id = array_pop($stack);
+            if ($id === $taskId) {
+                return true;
+            }
+            if (isset($seen[$id])) {
+                continue;
+            }
+            $seen[$id] = true;
+            foreach (TaskDependency::where('task_id', $id)->pluck('depends_on_task_id') as $next) {
+                $stack[] = (int) $next;
+            }
+        }
+
+        return false;
     }
 }

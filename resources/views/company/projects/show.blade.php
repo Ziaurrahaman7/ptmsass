@@ -115,7 +115,14 @@
         $latestStatus = $statusUpdates->first();
     @endphp
 
-    <div x-data="{ tab: 'list' }">
+    @php
+        $projectTab = request('tab', 'list');
+        if (! in_array($projectTab, ['overview','list','board','calendar','gantt','workload','dashboard'], true)) {
+            $projectTab = 'list';
+        }
+    @endphp
+    <div x-data="{ tab: @js($projectTab) }"
+         x-init="$watch('tab', v => { const u = new URL(location.href); u.searchParams.set('tab', v); if (v !== 'calendar') { u.searchParams.delete('month'); u.searchParams.delete('week'); u.searchParams.delete('scale'); } history.replaceState(null,'', u); })">
 
         {{-- Header --}}
         <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap;">
@@ -475,6 +482,9 @@
             <button class="al-tab" :class="{ 'active': tab==='overview' }" @click="tab='overview'">Overview</button>
             <button class="al-tab" :class="{ 'active': tab==='list' }" @click="tab='list'">List</button>
             <button class="al-tab" :class="{ 'active': tab==='board' }" @click="tab='board'">Board</button>
+            <button class="al-tab" :class="{ 'active': tab==='calendar' }" @click="tab='calendar'">Calendar</button>
+            <button class="al-tab" :class="{ 'active': tab==='gantt' }" @click="tab='gantt'">Timeline</button>
+            <button class="al-tab" :class="{ 'active': tab==='workload' }" @click="tab='workload'">Workload</button>
             <button class="al-tab" :class="{ 'active': tab==='dashboard' }" @click="tab='dashboard'">Dashboard</button>
         </div>
 
@@ -1011,6 +1021,21 @@
                 </div>
                 @endforeach
             </div>
+        </div>
+
+        {{-- ============================ CALENDAR TAB ============================ --}}
+        <div x-show="tab==='calendar'" x-cloak>
+            @include('company.projects._calendar')
+        </div>
+
+        {{-- ============================ TIMELINE / GANTT TAB ============================ --}}
+        <div x-show="tab==='gantt'" x-cloak>
+            @include('company.projects._gantt')
+        </div>
+
+        {{-- ============================ WORKLOAD TAB ============================ --}}
+        <div x-show="tab==='workload'" x-cloak>
+            @include('company.projects._workload')
         </div>
 
         {{-- ============================ OVERVIEW TAB ============================ --}}
@@ -1821,7 +1846,7 @@
         if(!open) m.classList.add('show');
     }
     document.addEventListener('click', function(e){
-        if(!e.target.closest('.al-toolbar')) document.querySelectorAll('.tb-menu').forEach(x=>x.classList.remove('show'));
+        if(!e.target.closest('.al-toolbar') && !e.target.closest('.pj-cal-toolbar')) document.querySelectorAll('.tb-menu').forEach(x=>x.classList.remove('show'));
     });
 
     function fmtDate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -1885,7 +1910,7 @@
             if(key==='completed') TB.qf.delete('incomplete');
             TB.qf.add(key);
         }
-        document.querySelectorAll('#tbFilter .qf-pill').forEach(p=> p.classList.toggle('active', TB.qf.has(p.dataset.qf)));
+        document.querySelectorAll('#tbFilter .qf-pill, #calFilter .qf-pill').forEach(p=> p.classList.toggle('active', TB.qf.has(p.dataset.qf)));
         if(typeof renderFilterGroups==='function') renderFilterGroups();
         tbFilterCount(); applyRowVisibility();
     }
@@ -1914,7 +1939,7 @@
         if(on){ if(key==='completion' && val==='incomplete') set.delete('completed'); if(key==='completion' && val==='completed') set.delete('incomplete'); set.add(val); }
         else set.delete(val);
         // keep quick pills in sync for qf
-        document.querySelectorAll('#tbFilter .qf-pill').forEach(p=> p.classList.toggle('active', TB.qf.has(p.dataset.qf)));
+        document.querySelectorAll('#tbFilter .qf-pill, #calFilter .qf-pill').forEach(p=> p.classList.toggle('active', TB.qf.has(p.dataset.qf)));
         renderFilterGroups(); tbFilterCount(); applyRowVisibility();
     }
     function renderFilterGroups(){
@@ -1932,6 +1957,16 @@
             const subs=document.getElementById('subs-'+row.id.replace('row-',''));
             if(subs){ if(!vis) subs.style.display='none'; else if(subs.getAttribute('data-open')==='1') subs.style.display='block'; }
         });
+        document.querySelectorAll('.pj-cal-pill').forEach(el=>{
+            el.style.display = rowVisible(el) ? '' : 'none';
+        });
+        const calCount = document.getElementById('calFilterCount');
+        const calBtn = document.getElementById('calFilterBtn');
+        if (calCount && calBtn) {
+            const n = TB.status.size + TB.priority.size + TB.qf.size + TB.assignee.size + TB.createdby.size + TB.created.size + TB.modified.size + (TB.hideDone ? 1 : 0);
+            if (n) { calCount.textContent = n; calCount.style.display = 'inline'; calBtn.classList.add('active'); }
+            else { calCount.style.display = 'none'; calBtn.classList.remove('active'); }
+        }
     }
     function filterTasks(q){ TB.q=(q||'').trim().toLowerCase(); applyRowVisibility(); }
 
@@ -1942,7 +1977,7 @@
     }
     function tbClearFilters(){
         TB.status.clear(); TB.priority.clear(); TB.qf.clear(); TB.assignee.clear(); TB.createdby.clear(); TB.created.clear(); TB.modified.clear(); TB.fields.clear();
-        document.querySelectorAll('#tbFilter .qf-pill').forEach(p=>p.classList.remove('active'));
+        document.querySelectorAll('#tbFilter .qf-pill, #calFilter .qf-pill').forEach(p=>p.classList.remove('active'));
         renderFilterGroups(); tbFilterCount(); applyRowVisibility();
     }
     function tbHideCompleted(on){ TB.hideDone=on; applyRowVisibility(); }

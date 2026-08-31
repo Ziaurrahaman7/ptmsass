@@ -98,6 +98,8 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::get('tasks/{task}/panel', [CompanyTaskController::class, 'panel'])->name('tasks.panel');
     Route::patch('tasks/{task}/status', [CompanyTaskController::class, 'updateStatus'])->name('tasks.updateStatus');
     Route::patch('tasks/{task}/inline', [CompanyTaskController::class, 'inlineUpdate'])->name('tasks.inline');
+    Route::post('tasks/{task}/dependencies', [CompanyTaskController::class, 'storeDependency'])->name('tasks.dependencies.store');
+    Route::delete('tasks/{task}/dependencies/{dependency}', [CompanyTaskController::class, 'destroyDependency'])->name('tasks.dependencies.destroy');
     Route::put('tasks/{task}', [CompanyTaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{task}', [CompanyTaskController::class, 'destroy'])->name('tasks.destroy');
     Route::delete('tasks/comments/{comment}', [CompanyTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');

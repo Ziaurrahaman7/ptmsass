@@ -70,6 +70,14 @@ class ProjectController extends Controller
             ->with(['assignee', 'assignees', 'section', 'subtasks' => fn($q) => $q->with('assignees')->orderBy('position')->orderByDesc('created_at')])
             ->withCount(['comments', 'subtasks', 'attachments'])
             ->orderBy('position')->orderByDesc('created_at')->get();
+
+        $scheduleTasks = $project->tasks()
+            ->with(['assignee', 'assignees', 'section', 'blockedByLinks.dependsOn'])
+            ->orderBy('position')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $workloadRows = $this->projectWorkload($scheduleTasks);
         $sections = $project->sections()->get();
         $customFields = $project->customFields()->get();
         $members = auth()->user()->company->users()->where('is_active', true)->get();
@@ -102,7 +110,7 @@ class ProjectController extends Controller
         return view('company.projects.show', compact(
             'project', 'tasks', 'sections', 'customFields', 'members', 'statusUpdates', 'portfolios',
             'projectMembers', 'availableMembers', 'resources', 'milestones', 'activity',
-            'projectClients', 'availableClients'
+            'projectClients', 'availableClients', 'scheduleTasks', 'workloadRows'
         ));
     }
 
@@ -258,7 +266,7 @@ class ProjectController extends Controller
         $this->authorizeProject($project);
 
         $tasks = $project->tasks()
-            ->with(['assignees', 'section', 'parentTask'])
+            ->with(['assignees', 'section', 'parentTask', 'blockedBy', 'blocking'])
             ->orderBy('position')
             ->get();
         $priorityNames = \App\Models\Priority::forCompany($this->companyId())->pluck('name', 'slug');
@@ -316,8 +324,8 @@ class ProjectController extends Controller
                     $t->description,
                     $project->name,
                     $t->parentTask?->title,
-                    '',
-                    '',
+                    $t->blockedBy->pluck('title')->implode(', '),
+                    $t->blocking->pluck('title')->implode(', '),
                     $priorityNames->get($t->priority, $t->priority),
                     '',
                     $statusLabels[$t->status] ?? $t->status,
@@ -577,6 +585,56 @@ class ProjectController extends Controller
         $task->update(['status' => $task->status === 'done' ? 'todo' : 'done']);
 
         return response()->json(['success' => true, 'status' => $task->status]);
+    }
+
+    private function projectWorkload($scheduleTasks)
+    {
+        $grouped = [];
+
+        foreach ($scheduleTasks as $task) {
+            $people = $task->assignees->isNotEmpty()
+                ? $task->assignees
+                : collect([$task->assignee])->filter();
+
+            if ($people->isEmpty()) {
+                $grouped[0]['user'] = null;
+                $grouped[0]['tasks'][] = $task;
+                continue;
+            }
+
+            foreach ($people as $user) {
+                $grouped[$user->id]['user'] = $user;
+                $grouped[$user->id]['tasks'][] = $task;
+            }
+        }
+
+        $weekStart = now()->startOfWeek();
+        $weekEnd = now()->endOfWeek();
+
+        return collect($grouped)->map(function (array $row) use ($weekStart, $weekEnd) {
+            $tasks = collect($row['tasks']);
+            $open = $tasks->where('status', '!=', 'done');
+            $overdue = $open->filter(fn ($t) => $t->due_date && $t->due_date->lt(now()->startOfDay()));
+            $thisWeek = $open->filter(fn ($t) => $t->due_date && $t->due_date->between($weekStart, $weekEnd));
+            $openCount = $open->count();
+
+            $weekDays = [];
+            for ($i = 0; $i < 7; $i++) {
+                $day = $weekStart->copy()->addDays($i)->toDateString();
+                $weekDays[$day] = $open->filter(fn ($t) => $t->due_date?->toDateString() === $day)->count();
+            }
+
+            return [
+                'user'       => $row['user'],
+                'open'       => $openCount,
+                'total'      => $tasks->count(),
+                'overdue'    => $overdue->count(),
+                'this_week'  => $thisWeek->count(),
+                'overloaded' => $openCount >= 8 || $overdue->count() >= 3,
+                'week_days'  => $weekDays,
+                'tasks'      => $open->sortBy(fn ($t) => $t->due_date?->timestamp ?? PHP_INT_MAX)->values(),
+            ];
+        })->sortByDesc('open')->values();
     }
 
     private function authorizeProject(Project $project): void

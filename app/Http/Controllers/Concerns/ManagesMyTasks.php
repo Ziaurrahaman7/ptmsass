@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Concerns;
 use App\Models\Priority;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskAttachment;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -101,18 +102,43 @@ trait ManagesMyTasks
         return compact('recently', 'overdue', 'today', 'upcoming', 'later', 'done');
     }
 
-    protected function calendarMyTasks(?string $month): array
+    protected function calendarMyTasks(?string $month, string $scale = 'month', ?string $week = null): array
     {
-        try {
-            $cursor = $month
-                ? Carbon::createFromFormat('Y-m', $month)->startOfMonth()
-                : now()->startOfMonth();
-        } catch (\Exception) {
-            $cursor = now()->startOfMonth();
-        }
+        $scale = $scale === 'week' ? 'week' : 'month';
 
-        $gridStart = $cursor->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
-        $gridEnd = $cursor->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
+        if ($scale === 'week') {
+            try {
+                $weekStart = $week
+                    ? Carbon::parse($week)->startOfWeek(Carbon::MONDAY)
+                    : now()->startOfWeek(Carbon::MONDAY);
+            } catch (\Exception) {
+                $weekStart = now()->startOfWeek(Carbon::MONDAY);
+            }
+            $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+            $gridStart = $weekStart->copy();
+            $gridEnd = $weekEnd->copy();
+            $cursor = $weekStart->copy();
+            $prevKey = $weekStart->copy()->subWeek()->toDateString();
+            $nextKey = $weekStart->copy()->addWeek()->toDateString();
+            $todayKey = now()->startOfWeek(Carbon::MONDAY)->toDateString();
+            $calLabel = $weekStart->month === $weekEnd->month
+                ? $weekStart->format('M j') . ' – ' . $weekEnd->format('j, Y')
+                : $weekStart->format('M j') . ' – ' . $weekEnd->format('M j, Y');
+        } else {
+            try {
+                $cursor = $month
+                    ? Carbon::createFromFormat('Y-m', $month)->startOfMonth()
+                    : now()->startOfMonth();
+            } catch (\Exception) {
+                $cursor = now()->startOfMonth();
+            }
+            $gridStart = $cursor->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
+            $gridEnd = $cursor->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
+            $prevKey = $cursor->copy()->subMonth()->format('Y-m');
+            $nextKey = $cursor->copy()->addMonth()->format('Y-m');
+            $todayKey = now()->format('Y-m');
+            $calLabel = $cursor->format('F Y');
+        }
 
         $tasks = $this->myTasksBaseQuery()
             ->whereNotNull('due_date')
@@ -123,8 +149,13 @@ trait ManagesMyTasks
 
         return [
             'cursor' => $cursor,
-            'prevMonth' => $cursor->copy()->subMonth()->format('Y-m'),
-            'nextMonth' => $cursor->copy()->addMonth()->format('Y-m'),
+            'calScale' => $scale,
+            'calLabel' => $calLabel,
+            'prevKey' => $prevKey,
+            'nextKey' => $nextKey,
+            'todayKey' => $todayKey,
+            'prevMonth' => $scale === 'month' ? $prevKey : $cursor->copy()->subMonth()->format('Y-m'),
+            'nextMonth' => $scale === 'month' ? $nextKey : $cursor->copy()->addMonth()->format('Y-m'),
             'days' => CarbonPeriod::create($gridStart, $gridEnd)->toArray(),
             'tasksByDate' => $tasks->groupBy(fn (Task $t) => $t->due_date->toDateString()),
             'todayStr' => now()->toDateString(),
@@ -135,15 +166,48 @@ trait ManagesMyTasks
     protected function myTasksIndexData(Request $request): array
     {
         $groups = $this->groupedMyTasks();
-        $calendar = $this->calendarMyTasks($request->query('month'));
-        $view = $request->query('view') === 'calendar' ? 'calendar' : 'list';
+        $calendar = $this->calendarMyTasks(
+            $request->query('month'),
+            $request->query('scale') === 'week' ? 'week' : 'month',
+            $request->query('week')
+        );
+        $allowed = ['list', 'board', 'calendar', 'dashboard', 'files'];
+        $view = $request->query('view', 'list');
+        if (! in_array($view, $allowed, true)) {
+            $view = 'list';
+        }
         $priorities = Priority::forCompany($this->companyId());
         $projects = Project::where('company_id', $this->companyId())
             ->where('is_template', false)
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        return array_merge($groups, $calendar, compact('view', 'priorities', 'projects'));
+        $boardTasks = $this->myTasksBaseQuery()
+            ->with(['project', 'assignees'])
+            ->orderBy('position')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $taskIds = $this->myTasksBaseQuery()->pluck('id');
+        $files = TaskAttachment::whereIn('task_id', $taskIds)
+            ->with(['task.project', 'uploader'])
+            ->latest()
+            ->limit(80)
+            ->get();
+
+        $dashboard = [
+            'open'     => $this->myTasksBaseQuery()->where('status', '!=', 'done')->count(),
+            'overdue'  => $this->myTasksBaseQuery()->where('status', '!=', 'done')->whereDate('due_date', '<', today())->count(),
+            'today'    => $this->myTasksBaseQuery()->where('status', '!=', 'done')->whereDate('due_date', today())->count(),
+            'done'     => $this->myTasksBaseQuery()->where('status', 'done')->count(),
+            'statuses' => $this->myTasksBaseQuery()->selectRaw('status, count(*) as c')->groupBy('status')->pluck('c', 'status'),
+            'projects' => $this->myTasksBaseQuery()->where('status', '!=', 'done')->whereNotNull('project_id')
+                ->selectRaw('project_id, count(*) as c')->groupBy('project_id')->pluck('c', 'project_id'),
+        ];
+
+        return array_merge($groups, $calendar, compact(
+            'view', 'priorities', 'projects', 'boardTasks', 'files', 'dashboard'
+        ));
     }
 
     protected function storeMyTask(Request $request)
