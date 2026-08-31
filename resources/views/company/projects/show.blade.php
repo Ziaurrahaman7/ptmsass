@@ -2232,6 +2232,7 @@
                 body.innerHTML = html;
                 body.querySelectorAll('.al-status').forEach(applyStatus);
                 body.querySelectorAll('.al-pri').forEach(applyPri);
+                if (window.Mention) Mention.bindAll(body);
             });
     }
 
@@ -2266,6 +2267,16 @@
         fetch(form.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:new FormData(form) })
             .then(r=>r.json()).then(()=>reloadPanel());
         return false;
+    }
+    function panelFollow(){
+        panelDirty = true;
+        fetch(`/${slug}/admin/tasks/${panelTaskId}/followers`, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'} })
+            .then(()=>reloadPanel());
+    }
+    function panelUnfollow(userId){
+        panelDirty = true;
+        fetch(`/${slug}/admin/tasks/${panelTaskId}/followers/${userId}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'} })
+            .then(()=>reloadPanel());
     }
     function panelDeleteComment(id){
         panelDirty = true;

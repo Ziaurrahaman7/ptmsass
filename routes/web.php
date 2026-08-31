@@ -78,6 +78,8 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('sections/{section}/duplicate', [CompanySectionController::class, 'duplicate'])->name('sections.duplicate');
     Route::delete('sections/{section}', [CompanySectionController::class, 'destroy'])->name('sections.destroy');
     Route::post('tasks/{task}/comments', [CompanyTaskController::class, 'storeComment'])->name('tasks.comments.store');
+    Route::post('tasks/{task}/followers', [CompanyTaskController::class, 'storeFollower'])->name('tasks.followers.store');
+    Route::delete('tasks/{task}/followers/{user}', [CompanyTaskController::class, 'destroyFollower'])->name('tasks.followers.destroy');
     Route::post('tasks/{task}/attachments', [CompanyTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
     Route::post('tasks/{task}/subtasks', [CompanyTaskController::class, 'storeSubtask'])->name('tasks.subtasks.store');
     
@@ -201,6 +203,8 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     Route::patch('/tasks/{task}/inline', [EmployeeTaskController::class, 'inlineUpdate'])->name('tasks.inline');
     Route::post('/tasks/{task}/subtasks', [EmployeeTaskController::class, 'storeSubtask'])->name('tasks.subtasks.store');
     Route::post('/tasks/{task}/comments', [EmployeeTaskController::class, 'storeComment'])->name('tasks.comments.store');
+    Route::post('/tasks/{task}/followers', [EmployeeTaskController::class, 'storeFollower'])->name('tasks.followers.store');
+    Route::delete('/tasks/{task}/followers/{user}', [EmployeeTaskController::class, 'destroyFollower'])->name('tasks.followers.destroy');
     Route::delete('/tasks/comments/{comment}', [EmployeeTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
     Route::post('/tasks/{task}/attachments', [EmployeeTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
     Route::delete('/tasks/attachments/{attachment}', [EmployeeTaskController::class, 'destroyAttachment'])->name('tasks.attachments.destroy');

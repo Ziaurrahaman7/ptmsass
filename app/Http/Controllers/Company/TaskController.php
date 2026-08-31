@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
-use App\Models\Notification;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskAttachment;
 use App\Models\TaskComment;
 use App\Models\TaskDependency;
+use App\Models\User;
+use App\Services\WorkspaceNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -125,19 +126,7 @@ class TaskController extends Controller
         if ($task->assigned_to) {
             $assigneeIds[] = $task->assigned_to;
         }
-        $assigneeIds = array_unique($assigneeIds);
-
-        foreach ($assigneeIds as $userId) {
-            if ($userId !== auth()->id()) {
-                Notification::create([
-                    'user_id' => $userId,
-                    'type' => 'task_assigned',
-                    'title' => 'New Task Assigned',
-                    'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
-                    'link' => route('employee.tasks.show', [$slug, $task]),
-                ]);
-            }
-        }
+        app(WorkspaceNotifier::class)->assigned($task, array_unique($assigneeIds), auth()->user());
 
         return redirect()->route('company.tasks.index', $slug)->with('success', 'Task created.');
     }
@@ -190,19 +179,7 @@ class TaskController extends Controller
         if ($task->assigned_to) {
             $assigneeIds[] = $task->assigned_to;
         }
-        $assigneeIds = array_unique($assigneeIds);
-        
-        foreach ($assigneeIds as $userId) {
-            if ($userId !== auth()->id()) {
-                Notification::create([
-                    'user_id' => $userId,
-                    'type' => 'task_assigned',
-                    'title' => 'New Task Assigned',
-                    'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
-                    'link' => route('employee.tasks.show', [$slug, $task]),
-                ]);
-            }
-        }
+        app(WorkspaceNotifier::class)->assigned($task, array_unique($assigneeIds), auth()->user());
 
         return back()->with('success', 'Task created.');
     }
@@ -274,62 +251,33 @@ class TaskController extends Controller
             ]);
         }
         
-        $allNewAssignees = $newAssigneeIds;
-        if ($task->assigned_to) {
-            $allNewAssignees[] = $task->assigned_to;
+        $notifier = app(WorkspaceNotifier::class);
+        $added = $newAssigneeIds;
+        if ($oldAssignee !== $task->assigned_to && $task->assigned_to) {
+            $added[] = $task->assigned_to;
         }
-        $allNewAssignees = array_unique($allNewAssignees);
-        
-        if ($oldAssignee !== $task->assigned_to && $task->assigned_to && $task->assigned_to !== auth()->id()) {
-            Notification::create([
-                'user_id' => $task->assigned_to,
-                'type' => 'task_assigned',
-                'title' => 'Task Reassigned',
-                'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
-                'link' => route('employee.tasks.show', [$slug, $task]),
-            ]);
+        $added = array_values(array_unique(array_diff($added, $oldAssigneeIds)));
+        if ($added) {
+            $notifier->assigned($task, $added, auth()->user());
         }
-        
-        $addedAssignees = array_diff($newAssigneeIds, $oldAssigneeIds);
-        foreach ($addedAssignees as $userId) {
-            if ($userId !== auth()->id()) {
-                Notification::create([
-                    'user_id' => $userId,
-                    'type' => 'task_assigned',
-                    'title' => 'Task Assigned',
-                    'message' => auth()->user()->name . ' assigned you a task: ' . $task->title,
-                    'link' => route('employee.tasks.show', [$slug, $task]),
-                ]);
-            }
-        }
-        
+
         if ($oldPriority !== $task->priority) {
-            foreach ($allNewAssignees as $userId) {
-                if ($userId !== auth()->id()) {
-                    Notification::create([
-                        'user_id' => $userId,
-                        'type' => 'task_updated',
-                        'title' => 'Task Priority Changed',
-                        'message' => auth()->user()->name . ' changed priority of "' . $task->title . '" from ' . $oldPriority . ' to ' . $task->priority,
-                        'link' => route('employee.tasks.show', [$slug, $task]),
-                    ]);
-                }
-            }
+            $notifier->updated(
+                $task,
+                auth()->user(),
+                'Task priority changed',
+                auth()->user()->name.' changed priority of "'.$task->title.'" from '.$oldPriority.' to '.$task->priority
+            );
         }
-        
+
         if ($oldDueDate !== $newDueDate) {
-            $dueDateMsg = $newDueDate ? 'to ' . date('d M Y', strtotime($newDueDate)) : 'removed';
-            foreach ($allNewAssignees as $userId) {
-                if ($userId !== auth()->id()) {
-                    Notification::create([
-                        'user_id' => $userId,
-                        'type' => 'task_updated',
-                        'title' => 'Task Due Date Changed',
-                        'message' => auth()->user()->name . ' changed due date of "' . $task->title . '" ' . $dueDateMsg,
-                        'link' => route('employee.tasks.show', [$slug, $task]),
-                    ]);
-                }
-            }
+            $dueDateMsg = $newDueDate ? 'to '.date('d M Y', strtotime($newDueDate)) : 'removed';
+            $notifier->updated(
+                $task,
+                auth()->user(),
+                'Task due date changed',
+                auth()->user()->name.' changed due date of "'.$task->title.'" '.$dueDateMsg
+            );
         }
 
         return back()->with('success', 'Task updated.');
@@ -459,7 +407,12 @@ class TaskController extends Controller
         }
 
         if ($request->has('assignees')) {
+            $oldIds = $task->assignees()->pluck('users.id')->all();
             $task->assignees()->sync($data['assignees'] ?? []);
+            $added = array_values(array_diff($data['assignees'] ?? [], $oldIds));
+            if ($added) {
+                app(WorkspaceNotifier::class)->assigned($task, $added, auth()->user());
+            }
         }
 
         $task->load('assignees');
@@ -501,6 +454,10 @@ class TaskController extends Controller
             'action' => 'status_changed',
             'description' => auth()->user()->name . ' moved task from ' . $oldStatus . ' to ' . $request->status,
         ]);
+
+        if ($oldStatus !== $request->status) {
+            app(WorkspaceNotifier::class)->statusChanged($task, auth()->user(), $oldStatus, $request->status);
+        }
         
         return response()->json(['success' => true]);
     }
@@ -509,7 +466,11 @@ class TaskController extends Controller
     {
         abort_if($task->company_id !== $this->companyId(), 403);
         
-        $request->validate(['comment' => 'required|string|max:1000']);
+        $request->validate([
+            'comment' => 'required|string|max:4000',
+            'mentioned_ids' => 'nullable|array',
+            'mentioned_ids.*' => 'integer',
+        ]);
         
         TaskComment::create([
             'task_id' => $task->id,
@@ -517,7 +478,6 @@ class TaskController extends Controller
             'comment' => $request->comment,
         ]);
         
-        // Log activity
         ActivityLog::create([
             'company_id' => $this->companyId(),
             'user_id' => auth()->id(),
@@ -526,17 +486,15 @@ class TaskController extends Controller
             'action' => 'commented',
             'description' => auth()->user()->name . ' added a comment',
         ]);
-        
-        // Notify task assignee
-        if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
-            Notification::create([
-                'user_id' => $task->assigned_to,
-                'type' => 'task_comment',
-                'title' => 'New Comment',
-                'message' => auth()->user()->name . ' commented on: ' . $task->title,
-                'link' => route('employee.tasks.show', [$slug, $task]),
-            ]);
-        }
+
+        $members = User::where('company_id', $task->company_id)->where('is_active', true)->get();
+        app(WorkspaceNotifier::class)->commented(
+            $task,
+            $request->comment,
+            auth()->user(),
+            $members,
+            $request->input('mentioned_ids', [])
+        );
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true]);
@@ -623,7 +581,7 @@ class TaskController extends Controller
         abort_if($task->company_id !== $this->companyId(), 403);
 
         $task->load([
-            'project', 'section', 'assignees', 'comments.user',
+            'project', 'section', 'assignees', 'followers', 'comments.user',
             'attachments.uploader', 'subtasks.assignees',
         ]);
         $members  = auth()->user()->company->users()->where('is_active', true)->get();
@@ -729,5 +687,25 @@ class TaskController extends Controller
         }
 
         return false;
+    }
+
+    public function storeFollower(Request $request, string $slug, Task $task)
+    {
+        abort_if($task->company_id !== $this->companyId(), 403);
+        $data = $request->validate(['user_id' => 'nullable|exists:users,id']);
+        $userId = $data['user_id'] ?? auth()->id();
+        abort_if(! User::where('id', $userId)->where('company_id', $this->companyId())->exists(), 403);
+        $task->followers()->syncWithoutDetaching([$userId]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function destroyFollower(string $slug, Task $task, User $user)
+    {
+        abort_if($task->company_id !== $this->companyId(), 403);
+        abort_if($user->company_id !== $this->companyId(), 403);
+        $task->followers()->detach($user->id);
+
+        return response()->json(['success' => true]);
     }
 }

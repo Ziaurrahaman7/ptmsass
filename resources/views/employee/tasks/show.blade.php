@@ -156,10 +156,11 @@
                 </div>
                 <div style="padding:18px;">
                     {{-- Add Comment Form --}}
-                    <form method="POST" action="{{ route('employee.tasks.comments.store', [auth()->user()->company->slug, $task]) }}" style="margin-bottom:20px;">
+                    <script>window.PTM_MEMBERS = @json(($members ?? collect())->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'email'=>$m->email])->values());</script>
+                    <form method="POST" action="{{ route('employee.tasks.comments.store', [auth()->user()->company->slug, $task]) }}" style="margin-bottom:20px;" data-members="{{ e(($members ?? collect())->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'email'=>$m->email])->values()->toJson()) }}">
                         @csrf
-                        <textarea name="comment" rows="3" class="ptm-input" style="width:100%; resize:vertical; margin-bottom:10px;" placeholder="Add a comment..." required></textarea>
-                        <button type="submit" class="ptm-btn-primary" style="font-size:12px; padding:6px 16px;">Add Comment</button>
+                        <textarea name="comment" rows="3" class="ptm-input" style="width:100%; resize:vertical; min-height:72px;" placeholder="Add a comment… type @ to mention" required></textarea>
+                        <button type="submit" class="ptm-btn-primary" style="font-size:12px; padding:6px 16px; margin-top:10px;">Add Comment</button>
                     </form>
 
                     {{-- Comments List --}}
@@ -183,7 +184,7 @@
                                 </form>
                                 @endif
                             </div>
-                            <div style="font-size:13px; color:var(--text); line-height:1.6;">{{ $comment->comment }}</div>
+                            <div style="font-size:13px; color:var(--text); line-height:1.6;">{!! \App\Support\Mentions::toHtml($comment->comment, $members ?? collect()) !!}</div>
                         </div>
                         @empty
                         <div style="padding:30px; text-align:center; color:var(--muted); font-size:13px;">No comments yet. Be the first to comment!</div>

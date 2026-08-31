@@ -1005,6 +1005,7 @@
             .then(r=>r.text()).then(html=>{
                 body.innerHTML = html;
                 body.querySelectorAll('.al-status').forEach(applyStatus);
+                if (window.Mention) Mention.bindAll(body);
             });
     }
 
@@ -1038,6 +1039,16 @@
         fetch(form.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:new FormData(form) })
             .then(r=>r.json()).then(()=>reloadPanel());
         return false;
+    }
+    function empFollow(){
+        panelDirty = true;
+        fetch(`/${slug}/tasks/${panelTaskId}/followers`, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'} })
+            .then(()=>reloadPanel());
+    }
+    function empUnfollow(){
+        panelDirty = true;
+        fetch(`/${slug}/tasks/${panelTaskId}/followers/{{ auth()->id() }}`, { method:'DELETE', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'} })
+            .then(()=>reloadPanel());
     }
     function empDeleteComment(id){
         panelDirty = true;

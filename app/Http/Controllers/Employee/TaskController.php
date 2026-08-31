@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
-use App\Models\Notification;
 use App\Models\Task;
 use App\Models\TaskAttachment;
 use App\Models\TaskComment;
+use App\Models\User;
+use App\Services\WorkspaceNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -53,17 +54,8 @@ class TaskController extends Controller
         $oldStatus = $task->status;
         $task->update(['status' => $request->status]);
         
-        if ($task->project) {
-            $companyAdmins = $task->project->company->users()->where('role', 'company_admin')->get();
-            foreach ($companyAdmins as $admin) {
-                Notification::create([
-                    'user_id' => $admin->id,
-                    'type' => 'task_status_changed',
-                    'title' => 'Task Status Updated',
-                    'message' => auth()->user()->name . ' moved "' . $task->title . '" from ' . $oldStatus . ' to ' . $request->status,
-                    'link' => route('company.tasks.show', [$slug, $task]),
-                ]);
-            }
+        if ($oldStatus !== $request->status) {
+            app(WorkspaceNotifier::class)->statusChanged($task, auth()->user(), $oldStatus, $request->status);
         }
 
         if ($request->expectsJson()) {
@@ -82,7 +74,9 @@ class TaskController extends Controller
         $userId = auth()->id();
         $isMine = $task->assigned_to === $userId || $task->assignees->contains('id', $userId);
 
-        return view('employee.tasks.show', compact('task', 'isMine', 'slug'));
+        $members = User::where('company_id', $task->company_id)->where('is_active', true)->whereIn('role', ['employee', 'company_admin'])->get();
+
+        return view('employee.tasks.show', compact('task', 'isMine', 'slug', 'members'));
     }
 
     /**
@@ -149,21 +143,26 @@ class TaskController extends Controller
     {
         abort_if($task->company_id !== auth()->user()->company_id, 403);
 
-        $task->load(['project', 'section', 'assignees', 'comments.user', 'attachments.uploader', 'subtasks.assignees']);
+        $task->load(['project', 'section', 'assignees', 'followers', 'comments.user', 'attachments.uploader', 'subtasks.assignees']);
+        $members = User::where('company_id', $task->company_id)->where('is_active', true)->whereIn('role', ['employee', 'company_admin'])->get();
 
         $userId = auth()->id();
         $isMine = $task->assigned_to === $userId
             || $task->assignees->contains('id', $userId)
             || ($task->project_id === null && $task->created_by === $userId);
 
-        return view('employee.tasks._panel', compact('task', 'isMine', 'slug'));
+        return view('employee.tasks._panel', compact('task', 'isMine', 'slug', 'members'));
     }
 
     public function storeComment(Request $request, string $slug, Task $task)
     {
         abort_if($task->company_id !== auth()->user()->company_id, 403);
         
-        $request->validate(['comment' => 'required|string|max:1000']);
+        $request->validate([
+            'comment' => 'required|string|max:4000',
+            'mentioned_ids' => 'nullable|array',
+            'mentioned_ids.*' => 'integer',
+        ]);
         
         TaskComment::create([
             'task_id' => $task->id,
@@ -179,19 +178,15 @@ class TaskController extends Controller
             'action' => 'commented',
             'description' => auth()->user()->name . ' added a comment',
         ]);
-        
-        if ($task->project) {
-            $companyAdmins = $task->project->company->users()->where('role', 'company_admin')->get();
-            foreach ($companyAdmins as $admin) {
-                Notification::create([
-                    'user_id' => $admin->id,
-                    'type' => 'task_comment',
-                    'title' => 'New Comment',
-                    'message' => auth()->user()->name . ' commented on: ' . $task->title,
-                    'link' => route('company.tasks.show', [$slug, $task]),
-                ]);
-            }
-        }
+
+        $members = User::where('company_id', $task->company_id)->where('is_active', true)->get();
+        app(WorkspaceNotifier::class)->commented(
+            $task,
+            $request->comment,
+            auth()->user(),
+            $members,
+            $request->input('mentioned_ids', [])
+        );
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true]);
@@ -264,5 +259,22 @@ class TaskController extends Controller
         }
 
         return back()->with('success', 'File deleted.');
+    }
+
+    public function storeFollower(Request $request, string $slug, Task $task)
+    {
+        abort_if($task->company_id !== auth()->user()->company_id, 403);
+        $task->followers()->syncWithoutDetaching([auth()->id()]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function destroyFollower(string $slug, Task $task, User $user)
+    {
+        abort_if($task->company_id !== auth()->user()->company_id, 403);
+        abort_if($user->id !== auth()->id(), 403);
+        $task->followers()->detach($user->id);
+
+        return response()->json(['success' => true]);
     }
 }

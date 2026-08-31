@@ -105,6 +105,10 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                 My Tasks
             </a>
+            <a href="{{ route('employee.notifications.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('employee.notifications.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Inbox
+            </a>
 
             {{-- Projects --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
@@ -167,7 +171,7 @@
                             <div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:13px;">Loading...</div>
                         </div>
                         <div style="padding:10px 16px; border-top:1px solid var(--border); text-align:center;">
-                            <a href="{{ route('employee.notifications.index', $slug) }}" style="font-size:12px; color:var(--accent2); text-decoration:none; font-weight:500;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--accent2)'">View all notifications</a>
+                            <a href="{{ route('employee.notifications.index', $slug) }}" style="font-size:12px; color:var(--accent2); text-decoration:none; font-weight:500;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--accent2)'">Open Inbox</a>
                         </div>
                     </div>
                 </div>
@@ -293,6 +297,7 @@ setInterval(fetchNotifications, 30000);
     'searchUrl' => route('employee.search', $slug),
     'isAdmin' => false,
 ])
+@include('partials.mention')
 
 </body>
 </html>

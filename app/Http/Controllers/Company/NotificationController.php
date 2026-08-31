@@ -2,56 +2,45 @@
 
 namespace App\Http\Controllers\Company;
 
+use App\Http\Controllers\Concerns\ManagesInbox;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
-    public function index(string $slug)
-    {
-        $notifications = auth()->user()
-            ->notifications()
-            ->latest()
-            ->paginate(20);
+    use ManagesInbox;
 
-        return view('company.notifications.index', compact('notifications'));
+    public function index(Request $request, string $slug)
+    {
+        [$notifications, $filter] = $this->inboxQuery($request);
+
+        return view('notifications.inbox', [
+            'notifications' => $notifications,
+            'filter' => $filter,
+            'layout' => 'company-layout',
+            'indexRoute' => 'company.notifications.index',
+            'markAllRoute' => 'company.notifications.mark-all-read',
+            'markOneRoute' => 'company.notifications.mark-as-read',
+            'readBase' => '/'.$slug.'/admin/notifications/',
+            'slug' => $slug,
+        ]);
     }
 
     public function unread(string $slug)
     {
-        $notifications = auth()->user()
-            ->notifications()
-            ->where('is_read', false)
-            ->latest()
-            ->limit(10)
-            ->get();
-
-        return response()->json([
-            'count' => $notifications->count(),
-            'notifications' => $notifications
-        ]);
+        return response()->json($this->unreadPayload());
     }
 
     public function markAsRead(string $slug, Notification $notification)
     {
-        abort_if($notification->user_id !== auth()->id(), 403);
-        
-        $notification->markAsRead();
-
-        return response()->json(['success' => true]);
+        return $this->markOne($notification);
     }
 
     public function markAllAsRead(string $slug)
     {
-        auth()->user()
-            ->notifications()
-            ->where('is_read', false)
-            ->update([
-                'is_read' => true,
-                'read_at' => now()
-            ]);
+        $this->markEvery();
 
-        return back()->with('success', 'All notifications marked as read.');
+        return back()->with('success', 'Inbox marked as read.');
     }
 }

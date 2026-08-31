@@ -85,6 +85,7 @@
                     body.innerHTML = html;
                     body.querySelectorAll('.al-status').forEach(applyStatus);
                     body.querySelectorAll('.al-pri').forEach(applyPri);
+                    if (window.Mention) Mention.bindAll(body);
                 })
                 .catch(() => {
                     body.innerHTML = '<div style="text-align:center; color:var(--danger); padding:40px; font-size:13px;">Could not load this task.</div>';
@@ -110,6 +111,8 @@
         function panelToggleSubtask(id, status){ const next = status==='done'?'todo':'done'; panelDirty=true; patchField(id,'status',next).then(reloadPanel); }
         function panelAddSubtask(form){ panelDirty=true; post(form.action, new FormData(form)).then(r=>r.json()).then(reloadPanel); return false; }
         function panelAddComment(form){ panelDirty=true; post(form.action, new FormData(form)).then(r=>r.json()).then(reloadPanel); return false; }
+        function panelFollow(){ panelDirty=true; return post(`${taskApiBase}/${panelTaskId}/followers`, new FormData()).then(reloadPanel); }
+        function panelUnfollow(userId){ panelDirty=true; return del(`${taskApiBase}/${panelTaskId}/followers/${userId}`).then(reloadPanel); }
         function panelDeleteComment(id){ panelDirty=true; del(`${taskApiBase}/comments/${id}`).then(reloadPanel); }
         function panelUpload(input){ if(!input.files.length) return; panelDirty=true; const fd=new FormData(); fd.append('file', input.files[0]); post(input.dataset.action, fd).then(r=>r.json()).then(reloadPanel); }
         function panelDeleteAttachment(id){ panelDirty=true; del(`${taskApiBase}/attachments/${id}`).then(reloadPanel); }
@@ -132,12 +135,14 @@
             openPanel, closePanel, reloadPanel, applyStatus, applyPri,
             panelPatch, panelMarkComplete, syncCompleteBtn, panelAssigneeChange,
             panelToggleSubtask, panelAddSubtask, panelAddComment, panelDeleteComment,
-            panelUpload, panelDeleteAttachment, panelDeleteTask,
+            panelUpload, panelDeleteAttachment, panelDeleteTask, panelFollow, panelUnfollow,
             empMarkComplete: panelMarkComplete,
             empPanelStatus: (v) => { panelDirty = true; return patchField(panelTaskId, 'status', v).then(reloadPanel); },
             empPanelDescription: (v) => panelPatch('description', v),
             empAddSubtask: panelAddSubtask,
             empAddComment: panelAddComment,
+            empFollow: panelFollow,
+            empUnfollow: () => panelUnfollow({{ auth()->id() }}),
             empDeleteComment: panelDeleteComment,
             empUpload: panelUpload,
             empDeleteAttachment: panelDeleteAttachment,

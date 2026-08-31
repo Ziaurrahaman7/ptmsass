@@ -7,7 +7,11 @@
     ];
     $sm = $statusMeta[$task->status] ?? $statusMeta['todo'];
     $taskPriorityObj = $companyPriorities->firstWhere('slug', $task->priority);
+    $mentionMembers = ($members ?? collect())->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'email' => $m->email])->values();
+    $followers = $task->relationLoaded('followers') ? $task->followers : collect();
 @endphp
+
+<div data-members="{{ e($mentionMembers->toJson()) }}">
 
 {{-- Actions --}}
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:18px;">
@@ -158,17 +162,24 @@
                     <button onclick="empDeleteComment({{ $comment->id }})" style="margin-left:auto; background:none; border:none; color:var(--muted); cursor:pointer; padding:2px; font-size:11px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">Delete</button>
                     @endif
                 </div>
-                <div style="font-size:13px; color:var(--text); line-height:1.5; margin-top:3px; white-space:pre-wrap;">{{ $comment->comment }}</div>
+                <div style="font-size:13px; color:var(--text); line-height:1.5; margin-top:3px;">{!! \App\Support\Mentions::toHtml($comment->comment, $members ?? collect()) !!}</div>
             </div>
         </div>
         @empty
         <div style="font-size:12px; color:var(--muted); font-family:var(--mono);">No comments yet.</div>
         @endforelse
     </div>
-    <form onsubmit="return empAddComment(this)" action="{{ route('employee.tasks.comments.store', [$slug, $task]) }}" style="display:flex; gap:8px; align-items:flex-end;">
-        <textarea name="comment" required rows="1" placeholder="Add a comment..." oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';"
-            style="flex:1; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-size:13px; font-family:var(--font); padding:9px 12px; resize:none; line-height:1.4; max-height:120px;"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.form.requestSubmit();}"></textarea>
+    <form onsubmit="return empAddComment(this)" action="{{ route('employee.tasks.comments.store', [$slug, $task]) }}" style="display:flex; gap:8px; align-items:flex-end;" data-members="{{ e($mentionMembers->toJson()) }}">
+        <textarea name="comment" required rows="1" placeholder="Add a comment… type @ to mention" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';"
+            style="flex:1; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-size:13px; font-family:var(--font); padding:9px 12px; resize:none; line-height:1.4; max-height:120px;"></textarea>
         <button type="submit" style="padding:9px 16px; font-size:13px; background:rgba(34,211,238,0.12); border:1px solid rgba(34,211,238,0.3); color:var(--accent2); border-radius:8px; cursor:pointer; font-family:var(--font);">Send</button>
     </form>
+    <div style="margin-top:12px; font-size:12px;">
+        @if($followers->contains('id', auth()->id()))
+        <button type="button" onclick="empUnfollow()" style="background:none; border:none; color:var(--muted); cursor:pointer; font-family:var(--font); padding:0;">Unfollow task</button>
+        @else
+        <button type="button" onclick="empFollow()" style="background:none; border:none; color:var(--accent2); cursor:pointer; font-family:var(--font); padding:0;">Follow task</button>
+        @endif
+    </div>
+</div>
 </div>

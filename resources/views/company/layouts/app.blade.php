@@ -174,6 +174,10 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                 My Tasks
             </a>
+            <a href="{{ route('company.notifications.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.notifications.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Inbox
+            </a>
             <a href="{{ route('company.members.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.members.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 Members
@@ -315,7 +319,7 @@
                             <div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:13px;">Loading...</div>
                         </div>
                         <div style="padding:10px 16px; border-top:1px solid var(--border); text-align:center;">
-                            <a href="{{ route('company.notifications.index', $slug) }}" style="font-size:12px; color:var(--accent2); text-decoration:none; font-weight:500;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--accent2)'">View all notifications</a>
+                            <a href="{{ route('company.notifications.index', $slug) }}" style="font-size:12px; color:var(--accent2); text-decoration:none; font-weight:500;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--accent2)'">Open Inbox</a>
                         </div>
                     </div>
                 </div>
@@ -534,6 +538,7 @@ document.addEventListener('click', function(e) {
     'searchUrl' => route('company.search', $slug),
     'isAdmin' => true,
 ])
+@include('partials.mention')
 
 </body>
 </html>
