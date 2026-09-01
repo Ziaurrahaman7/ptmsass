@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         \Illuminate\Support\Facades\DB::statement(
             "ALTER TABLE users MODIFY role ENUM('superadmin','company_admin','employee','client') NOT NULL DEFAULT 'employee'"
         );

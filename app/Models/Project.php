@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'company_id', 'created_by', 'name', 'description', 'color', 'icon', 'is_favorite', 'is_template',
         'status', 'start_date', 'due_date', 'month_goals',

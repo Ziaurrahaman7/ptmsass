@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Priority is now a company-customizable list (see `priorities` table) instead of a fixed enum,
         // so the column just needs to hold whatever slug the company's priority list currently uses.
         \Illuminate\Support\Facades\DB::statement("ALTER TABLE tasks MODIFY priority VARCHAR(255) NOT NULL DEFAULT 'medium'");

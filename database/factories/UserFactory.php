@@ -30,7 +30,19 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => 'employee',
+            'is_active' => true,
         ];
+    }
+
+    public function companyAdmin(): static
+    {
+        return $this->state(fn () => ['role' => 'company_admin']);
+    }
+
+    public function employee(): static
+    {
+        return $this->state(fn () => ['role' => 'employee']);
     }
 
     /**

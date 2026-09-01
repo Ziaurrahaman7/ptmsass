@@ -156,7 +156,7 @@ class TaskController extends Controller
 
     public function storeComment(Request $request, string $slug, Task $task)
     {
-        abort_if($task->company_id !== auth()->user()->company_id, 403);
+        $this->authorizeMine($task);
         
         $request->validate([
             'comment' => 'required|string|max:4000',
@@ -211,7 +211,7 @@ class TaskController extends Controller
     
     public function storeAttachment(Request $request, string $slug, Task $task)
     {
-        abort_if($task->company_id !== auth()->user()->company_id, 403);
+        $this->authorizeMine($task);
         
         $request->validate(['file' => 'required|file|max:10240']);
         
@@ -246,7 +246,7 @@ class TaskController extends Controller
 
     public function destroyAttachment(string $slug, TaskAttachment $attachment)
     {
-        abort_if($attachment->task->company_id !== auth()->user()->company_id, 403);
+        $this->authorizeMine($attachment->task);
 
         if (Storage::disk('public')->exists($attachment->file_path)) {
             Storage::disk('public')->delete($attachment->file_path);
