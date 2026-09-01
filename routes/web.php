@@ -39,7 +39,7 @@ Route::get('/cron/queue', function () {
     \Illuminate\Support\Facades\Artisan::call('queue:work', [
         '--stop-when-empty' => true,
         '--tries' => 3,
-        '--max-time' => 40,
+        '--max-time' => 120,
     ]);
 
     return response(trim(\Illuminate\Support\Facades\Artisan::output()) ?: 'ok');
@@ -103,6 +103,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('projects/{project}/duplicate', [CompanyProjectController::class, 'duplicateProject'])->name('projects.duplicate');
     Route::post('projects/{project}/save-as-template', [CompanyProjectController::class, 'saveAsTemplate'])->name('projects.save-as-template');
     Route::get('projects/{project}/export', [CompanyProjectController::class, 'exportTasksCsv'])->name('projects.export');
+    Route::get('projects/{project}/exports/{token}', [CompanyProjectController::class, 'downloadExport'])->name('projects.export.download');
     Route::post('projects/{project}/import', [CompanyProjectController::class, 'importTasksCsv'])->name('projects.import');
     Route::post('projects/{project}/status-updates', [CompanyProjectController::class, 'storeStatusUpdate'])->name('projects.status-updates.store');
     Route::post('projects/{project}/members', [CompanyProjectController::class, 'addMember'])->name('projects.members.add');

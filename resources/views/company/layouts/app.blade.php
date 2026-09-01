@@ -421,7 +421,7 @@ function fetchNotifications() {
             notificationList.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:13px;">No new notifications</div>';
         } else {
             notificationList.innerHTML = data.notifications.map(n => `
-                <div onclick="markAsReadAndNavigate(${n.id}, '${n.link}')" style="padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; ${n.is_read ? '' : 'background:rgba(74,222,128,0.03);'}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${n.is_read ? 'transparent' : 'rgba(74,222,128,0.03)'}'}">
+                <div onclick="markAsReadAndNavigate(${n.id}, ${JSON.stringify(n.link || '')})" style="padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; ${n.is_read ? '' : 'background:rgba(74,222,128,0.03);'}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${n.is_read ? 'transparent' : 'rgba(74,222,128,0.03)'}'}">
                     <div style="display:flex; align-items:flex-start; gap:10px;">
                         <div style="width:6px; height:6px; border-radius:50%; background:${n.is_read ? 'transparent' : 'var(--accent)'}; margin-top:6px; flex-shrink:0;"></div>
                         <div style="flex:1; min-width:0;">

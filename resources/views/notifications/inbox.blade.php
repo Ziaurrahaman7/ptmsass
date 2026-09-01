@@ -8,6 +8,8 @@
         'task_comment' => '#22d3ee',
         'task_status_changed' => '#fbbf24',
         'task_updated' => '#94a3b8',
+        'csv_import_done' => '#4ade80',
+        'csv_export_ready' => '#60a5fa',
     ];
 @endphp
 

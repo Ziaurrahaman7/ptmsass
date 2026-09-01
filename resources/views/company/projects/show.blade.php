@@ -2407,8 +2407,16 @@
         })
         .then(r => r.json())
         .then(data => {
-            if (data.success) { location.reload(); return; }
             btn.disabled = false; btn.textContent = 'Import';
+            if (data.queued || data.success) {
+                closeImportModal();
+                const el = document.createElement('div');
+                el.textContent = 'Import queued. Check Inbox when it finishes.';
+                el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2000;background:var(--surface);border:1px solid var(--border2);padding:12px 16px;border-radius:10px;font-size:13px;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.4);';
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 5000);
+                return;
+            }
         })
         .catch(() => { btn.disabled = false; btn.textContent = 'Import'; });
     }

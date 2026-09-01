@@ -78,6 +78,24 @@ class WorkspaceNotifier
         }
     }
 
+    public function personal(User $user, string $type, string $title, string $message, ?string $link = null): void
+    {
+        $notification = Notification::create([
+            'user_id' => $user->id,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'link' => $link,
+        ]);
+
+        try {
+            PlatformMail::apply();
+            Mail::to($user->email)->send(new WorkspaceNotificationMail($notification));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
     protected function recipients(array $userIds, User $actor): Collection
     {
         $ids = collect($userIds)->map(fn ($id) => (int) $id)->unique()->reject(fn ($id) => $id === (int) $actor->id);
