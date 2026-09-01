@@ -5,6 +5,7 @@ use App\Http\Controllers\InviteController;
 use App\Http\Controllers\Superadmin\CompanyController;
 use App\Http\Controllers\Superadmin\DashboardController;
 use App\Http\Controllers\Superadmin\MailSettingController;
+use App\Http\Controllers\Superadmin\PusherSettingController;
 use App\Http\Controllers\Company\DashboardController as CompanyDashboardController;
 use App\Http\Controllers\Company\ProjectController as CompanyProjectController;
 use App\Http\Controllers\Company\CustomFieldController as CompanyCustomFieldController;
@@ -58,6 +59,9 @@ Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'superadmi
     Route::get('smtp', [MailSettingController::class, 'edit'])->name('smtp.edit');
     Route::put('smtp', [MailSettingController::class, 'update'])->name('smtp.update');
     Route::post('smtp/test', [MailSettingController::class, 'test'])->name('smtp.test');
+    Route::get('pusher', [PusherSettingController::class, 'edit'])->name('pusher.edit');
+    Route::put('pusher', [PusherSettingController::class, 'update'])->name('pusher.update');
+    Route::post('pusher/test', [PusherSettingController::class, 'test'])->name('pusher.test');
 });
 
 // Company Admin routes — /{slug}/admin/...

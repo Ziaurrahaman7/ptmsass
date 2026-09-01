@@ -399,23 +399,34 @@
 <script>
 const slug = '{{ $slug }}';
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+let inboxFetchSeq = 0;
+
+function applyInboxCount(count) {
+    const badge = document.getElementById('notificationCount');
+    if (!badge) return;
+    const n = Number(count) || 0;
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.style.display = n > 0 ? 'block' : 'none';
+}
+
+function bumpInboxCount() {
+    const badge = document.getElementById('notificationCount');
+    const current = badge && badge.style.display !== 'none' ? parseInt(badge.textContent, 10) || 0 : 0;
+    applyInboxCount(current + 1);
+}
 
 // Fetch unread notifications
 function fetchNotifications() {
+    const seq = ++inboxFetchSeq;
     fetch('/' + slug + '/admin/notifications/unread', {
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
     })
     .then(r => r.json())
     .then(data => {
-        const countBadge = document.getElementById('notificationCount');
+        if (seq !== inboxFetchSeq) return;
         const notificationList = document.getElementById('notificationList');
-        
-        if (data.count > 0) {
-            countBadge.textContent = data.count;
-            countBadge.style.display = 'block';
-        } else {
-            countBadge.style.display = 'none';
-        }
+        applyInboxCount(data.count);
         
         if (data.notifications.length === 0) {
             notificationList.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:13px;">No new notifications</div>';
@@ -539,6 +550,7 @@ document.addEventListener('click', function(e) {
     'isAdmin' => true,
 ])
 @include('partials.mention')
+@include('partials.realtime')
 
 </body>
 </html>

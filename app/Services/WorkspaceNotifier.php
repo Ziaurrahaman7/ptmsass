@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\InboxReceived;
 use App\Mail\WorkspaceNotificationMail;
 use App\Models\Notification;
 use App\Models\Task;
@@ -88,12 +89,7 @@ class WorkspaceNotifier
             'link' => $link,
         ]);
 
-        try {
-            PlatformMail::apply();
-            Mail::to($user->email)->send(new WorkspaceNotificationMail($notification));
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        $this->deliver($notification, $user);
     }
 
     protected function recipients(array $userIds, User $actor): Collection
@@ -112,8 +108,8 @@ class WorkspaceNotifier
         $slug = $user->company?->slug ?? $task->company?->slug;
         $link = $slug
             ? ($user->isCompanyAdmin()
-                ? route('company.tasks.show', [$slug, $task])
-                : route('employee.tasks.show', [$slug, $task]))
+                ? '/'.$slug.'/admin/tasks/'.$task->id
+                : '/'.$slug.'/tasks/'.$task->id)
             : null;
 
         $notification = Notification::create([
@@ -125,6 +121,19 @@ class WorkspaceNotifier
             'message' => $message,
             'link' => $link,
         ]);
+
+        $this->deliver($notification, $user);
+    }
+
+    protected function deliver(Notification $notification, User $user): void
+    {
+        try {
+            if (PlatformBroadcast::apply()) {
+                broadcast(new InboxReceived($notification));
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         try {
             PlatformMail::apply();
