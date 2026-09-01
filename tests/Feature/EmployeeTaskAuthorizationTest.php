@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessTaskAttachment;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Tests\Concerns\CreatesWorkspaces;
 use Tests\TestCase;
 
@@ -72,5 +75,38 @@ class EmployeeTaskAuthorizationTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame('in_progress', $ws['task']->fresh()->status);
+    }
+
+    public function test_employee_cannot_upload_attachment_on_unassigned_task(): void
+    {
+        Queue::fake();
+        $ws = $this->workspace('acme');
+
+        $this->actingAs($ws['employee'])
+            ->post(route('employee.tasks.attachments.store', [$ws['company']->slug, $ws['task']]), [
+                'file' => UploadedFile::fake()->create('brief.pdf', 40),
+            ], ['Accept' => 'application/json'])
+            ->assertForbidden();
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_assigned_employee_attachment_is_queued(): void
+    {
+        Queue::fake();
+        $ws = $this->workspace('acme');
+        $ws['task']->update(['assigned_to' => $ws['employee']->id]);
+
+        $this->actingAs($ws['employee'])
+            ->post(route('employee.tasks.attachments.store', [$ws['company']->slug, $ws['task']]), [
+                'file' => UploadedFile::fake()->create('brief.pdf', 40),
+            ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJson(['queued' => true]);
+
+        Queue::assertPushed(ProcessTaskAttachment::class);
+        $this->assertDatabaseMissing('task_attachments', [
+            'task_id' => $ws['task']->id,
+        ]);
     }
 }

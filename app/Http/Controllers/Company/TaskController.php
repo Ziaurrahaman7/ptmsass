@@ -10,6 +10,7 @@ use App\Models\TaskAttachment;
 use App\Models\TaskComment;
 use App\Models\TaskDependency;
 use App\Models\User;
+use App\Services\TaskAttachmentIntake;
 use App\Services\WorkspaceNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -517,42 +518,21 @@ class TaskController extends Controller
         return back()->with('success', 'Comment deleted.');
     }
     
-    public function storeAttachment(Request $request, string $slug, Task $task)
+    public function storeAttachment(Request $request, string $slug, Task $task, TaskAttachmentIntake $intake)
     {
         abort_if($task->company_id !== $this->companyId(), 403);
-        
+
         $request->validate([
-            'file' => 'required|file|max:10240', // 10MB max
+            'file' => 'required|file|max:10240',
         ]);
-        
-        $file = $request->file('file');
-        $fileName = time() . '_' . $file->getClientOriginalName();
-        $filePath = $file->storeAs('task-attachments', $fileName, 'public');
-        
-        TaskAttachment::create([
-            'task_id' => $task->id,
-            'uploaded_by' => auth()->id(),
-            'file_name' => $file->getClientOriginalName(),
-            'file_path' => $filePath,
-            'file_type' => $file->getClientMimeType(),
-            'file_size' => $file->getSize(),
-        ]);
-        
-        // Log activity
-        ActivityLog::create([
-            'company_id' => $this->companyId(),
-            'user_id' => auth()->id(),
-            'subject_type' => Task::class,
-            'subject_id' => $task->id,
-            'action' => 'uploaded',
-            'description' => auth()->user()->name . ' uploaded a file: ' . $file->getClientOriginalName(),
-        ]);
+
+        $intake->queue($task, $request->user(), $request->file('file'));
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true]);
+            return response()->json(['success' => true, 'queued' => true]);
         }
 
-        return back()->with('success', 'File uploaded.');
+        return back()->with('success', 'Upload queued. The file will appear shortly — check Inbox if it takes a moment.');
     }
 
     public function destroyAttachment(string $slug, TaskAttachment $attachment)

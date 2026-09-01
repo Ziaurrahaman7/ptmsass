@@ -2287,8 +2287,17 @@
         if(!input.files.length) return;
         panelDirty = true;
         const fd=new FormData(); fd.append('file', input.files[0]);
+        input.value = '';
         fetch(input.dataset.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:fd })
-            .then(r=>r.json()).then(()=>reloadPanel());
+            .then(r=>r.json()).then(data=>{
+                if (data.queued) {
+                    if (typeof toastQueued === 'function') toastQueued('Upload queued. File appears when processing finishes.');
+                    let n = 0;
+                    const t = setInterval(() => { reloadPanel(); if (++n >= 6) clearInterval(t); }, 2500);
+                } else {
+                    reloadPanel();
+                }
+            });
     }
     function panelDeleteAttachment(id){
         panelDirty = true;

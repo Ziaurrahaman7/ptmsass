@@ -114,7 +114,7 @@
         function panelFollow(){ panelDirty=true; return post(`${taskApiBase}/${panelTaskId}/followers`, new FormData()).then(reloadPanel); }
         function panelUnfollow(userId){ panelDirty=true; return del(`${taskApiBase}/${panelTaskId}/followers/${userId}`).then(reloadPanel); }
         function panelDeleteComment(id){ panelDirty=true; del(`${taskApiBase}/comments/${id}`).then(reloadPanel); }
-        function panelUpload(input){ if(!input.files.length) return; panelDirty=true; const fd=new FormData(); fd.append('file', input.files[0]); post(input.dataset.action, fd).then(r=>r.json()).then(reloadPanel); }
+        function panelUpload(input){ if(!input.files.length) return; panelDirty=true; const fd=new FormData(); fd.append('file', input.files[0]); input.value=''; post(input.dataset.action, fd).then(r=>r.json()).then(data=>{ if(data.queued){ if(typeof toastQueued==='function') toastQueued('Upload queued. File appears when processing finishes.'); let n=0; const t=setInterval(()=>{ reloadPanel(); if(++n>=6) clearInterval(t); }, 2500); } else { reloadPanel(); } }); }
         function panelDeleteAttachment(id){ panelDirty=true; del(`${taskApiBase}/attachments/${id}`).then(reloadPanel); }
         function panelDeleteTask(){
             if(!confirm('Delete this task?')) return;

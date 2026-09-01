@@ -10,6 +10,8 @@
         'task_updated' => '#94a3b8',
         'csv_import_done' => '#4ade80',
         'csv_export_ready' => '#60a5fa',
+        'task_attachment' => '#fb923c',
+        'attachment_ready' => '#4ade80',
     ];
 @endphp
 

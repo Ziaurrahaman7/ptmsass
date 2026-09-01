@@ -79,6 +79,24 @@ class WorkspaceNotifier
         }
     }
 
+    public function attached(Task $task, User $actor, string $fileName): void
+    {
+        $this->follow($task, [$actor->id, $task->created_by]);
+        $ids = $task->followers()->pluck('users.id')->all();
+        foreach ($this->recipients($ids, $actor) as $user) {
+            $this->push($user, $task, $actor, 'task_attachment', $actor->name.' attached a file', $fileName.' on '.$task->title);
+        }
+
+        $slug = $actor->company?->slug ?? $task->company?->slug;
+        $link = $slug
+            ? ($actor->isCompanyAdmin()
+                ? '/'.$slug.'/admin/tasks/'.$task->id
+                : '/'.$slug.'/tasks/'.$task->id)
+            : null;
+
+        $this->personal($actor, 'attachment_ready', 'File ready', $fileName.' is on '.$task->title, $link);
+    }
+
     public function personal(User $user, string $type, string $title, string $message, ?string $link = null): void
     {
         $notification = Notification::create([

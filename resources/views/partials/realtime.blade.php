@@ -1,3 +1,12 @@
+<script>
+function toastQueued(msg) {
+    const el = document.createElement('div');
+    el.textContent = msg || 'Queued';
+    el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2400;background:var(--surface);border:1px solid var(--border2);padding:12px 16px;border-radius:10px;font-size:13px;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:280px;';
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 4500);
+}
+</script>
 @php
     $pusherLive = \App\Models\PusherSetting::current();
 @endphp
@@ -24,6 +33,9 @@
         .listen('.inbox.received', function (n) {
             if (typeof bumpInboxCount === 'function') bumpInboxCount();
             if (typeof fetchNotifications === 'function') fetchNotifications();
+            if ((n.type === 'attachment_ready' || n.type === 'task_attachment') && typeof reloadPanel === 'function') {
+                reloadPanel();
+            }
             const el = document.createElement('div');
             el.textContent = n.title || 'New notification';
             el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2400;background:var(--surface);border:1px solid var(--border2);padding:12px 16px;border-radius:10px;font-size:13px;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:280px;cursor:pointer;';
