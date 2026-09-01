@@ -32,6 +32,19 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
 
+Route::get('/cron/queue', function () {
+    $token = (string) config('app.queue_cron_token');
+    abort_if($token === '' || ! hash_equals($token, (string) request('token')), 403);
+
+    \Illuminate\Support\Facades\Artisan::call('queue:work', [
+        '--stop-when-empty' => true,
+        '--tries' => 3,
+        '--max-time' => 40,
+    ]);
+
+    return response(trim(\Illuminate\Support\Facades\Artisan::output()) ?: 'ok');
+})->middleware('throttle:20,1');
+
 Route::middleware('guest')->group(function () {
     Route::get('/invite/{token}', [InviteController::class, 'show'])->name('invite.show');
     Route::post('/invite/{token}', [InviteController::class, 'store'])->name('invite.store');

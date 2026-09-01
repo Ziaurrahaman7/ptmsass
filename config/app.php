@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'queue_cron_token' => env('QUEUE_CRON_TOKEN'),
+
 ];
