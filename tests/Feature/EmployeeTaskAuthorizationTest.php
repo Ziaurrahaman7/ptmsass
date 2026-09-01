@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesWorkspaces;
 use Tests\TestCase;
@@ -10,6 +11,12 @@ class EmployeeTaskAuthorizationTest extends TestCase
 {
     use CreatesWorkspaces;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(ValidateCsrfToken::class);
+    }
 
     public function test_employee_cannot_change_status_of_unassigned_task(): void
     {
