@@ -1530,13 +1530,24 @@
 
                 {{-- Add new member --}}
                 @if($availableMembers->isNotEmpty())
-                <div style="display:flex; gap:8px; margin-bottom:18px;">
-                    <select id="shareMemberSelect" class="ptm-select" style="flex:1;">
-                        @foreach($availableMembers as $am)
-                        <option value="{{ $am->id }}">{{ $am->name }}</option>
-                        @endforeach
-                    </select>
-                    <button id="shareMemberSaveBtn" onclick="submitShareMember()" class="ptm-btn-primary" style="white-space:nowrap;">Invite</button>
+                <div style="margin-bottom:18px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <select id="shareMemberSelect" class="ptm-select" style="flex:1; min-width:140px;">
+                            @foreach($availableMembers as $am)
+                            <option value="{{ $am->id }}">{{ $am->name }}</option>
+                            @endforeach
+                        </select>
+                        <select id="shareMemberRole" class="ptm-select" style="width:140px;">
+                            <option value="viewer">Viewer</option>
+                            <option value="commenter">Commenter</option>
+                            <option value="editor" selected>Editor</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <button id="shareMemberSaveBtn" onclick="submitShareMember()" class="ptm-btn-primary" style="white-space:nowrap;">Add</button>
+                    </div>
+                    <div style="font-size:11px; color:var(--muted); margin-top:8px; line-height:1.45;">
+                        <strong style="color:var(--text); font-weight:500;">Project access</strong> — what they can do on <em>this</em> project only. Their workspace role (Members / Roles) controls company-wide features like Time or Reports.
+                    </div>
                 </div>
                 @endif
 
@@ -1550,7 +1561,7 @@
                             <div style="font-size:13px; color:var(--text); font-weight:500;">{{ $pm->name }}</div>
                             <div style="font-size:11px; color:var(--muted);">{{ $pm->email }}</div>
                         </div>
-                        <span style="font-size:11px; color:var(--muted); font-family:var(--mono); background:var(--surface); border:1px solid var(--border2); border-radius:6px; padding:3px 8px;">{{ $pm->pivot->role === 'owner' ? 'Owner' : 'Member' }}</span>
+                        <span style="font-size:11px; color:var(--muted); font-family:var(--mono); background:var(--surface); border:1px solid var(--border2); border-radius:6px; padding:3px 8px;">{{ \App\Support\PermissionCatalog::projectRoleLabel($pm->pivot->role) }}</span>
                         @if($pm->pivot->role !== 'owner')
                         <button onclick="removeProjectMember({{ $pm->id }}); closeShareModal()" title="Remove" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:3px; border-radius:6px; display:flex;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1578,10 +1589,16 @@
                 @if($availableMembers->isEmpty())
                 <div style="font-size:13px; color:var(--muted);">Everyone in your company is already on this project.</div>
                 @else
-                <select id="addMemberSelect" class="ptm-select" style="width:100%; margin-bottom:16px;">
+                <select id="addMemberSelect" class="ptm-select" style="width:100%; margin-bottom:10px;">
                     @foreach($availableMembers as $am)
                     <option value="{{ $am->id }}">{{ $am->name }}</option>
                     @endforeach
+                </select>
+                <select id="addMemberRole" class="ptm-select" style="width:100%; margin-bottom:16px;">
+                    <option value="editor">Editor</option>
+                    <option value="admin">Project Admin</option>
+                    <option value="commenter">Commenter</option>
+                    <option value="viewer">Viewer</option>
                 </select>
                 @endif
                 <div style="display:flex; justify-content:flex-end; gap:10px;">
@@ -1600,10 +1617,16 @@
                 @if($availableClients->isEmpty())
                 <div style="font-size:13px; color:var(--muted);">No client accounts available. Create one from the <a href="{{ route('company.members.index', $slug) }}" style="color:var(--accent2);">Members</a> page first (role: Client).</div>
                 @else
-                <select id="addClientSelect" class="ptm-select" style="width:100%; margin-bottom:16px;">
+                <select id="addClientSelect" class="ptm-select" style="width:100%; margin-bottom:10px;">
                     @foreach($availableClients as $ac)
                     <option value="{{ $ac->id }}">{{ $ac->name }} ({{ $ac->email }})</option>
                     @endforeach
+                </select>
+                <select id="addClientMode" class="ptm-select" style="width:100%; margin-bottom:16px;">
+                    <option value="view">View only</option>
+                    <option value="collaborate">Collaborate</option>
+                    <option value="contribute">Contribute</option>
+                    <option value="approve">Approve</option>
                 </select>
                 @endif
                 <div style="display:flex; justify-content:flex-end; gap:10px;">
@@ -2514,18 +2537,21 @@
         const select = document.getElementById('shareMemberSelect');
         if (!select) return;
         const btn = document.getElementById('shareMemberSaveBtn');
-        btn.disabled = true; btn.textContent = 'Inviting…';
+        btn.disabled = true; btn.textContent = 'Adding…';
         fetch(projectUrl('/members'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-            body: JSON.stringify({ user_id: select.value })
+            body: JSON.stringify({
+                user_id: select.value,
+                role: document.getElementById('shareMemberRole')?.value || 'editor'
+            })
         })
         .then(r => r.json())
         .then(data => {
             if (data.success) { location.reload(); return; }
-            btn.disabled = false; btn.textContent = 'Invite';
+            btn.disabled = false; btn.textContent = 'Add';
         })
-        .catch(() => { btn.disabled = false; btn.textContent = 'Invite'; });
+        .catch(() => { btn.disabled = false; btn.textContent = 'Add'; });
     }
 
     /* Project roles / members */
@@ -2539,7 +2565,7 @@
         fetch(projectUrl('/members'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-            body: JSON.stringify({ user_id: select.value })
+            body: JSON.stringify({ user_id: select.value, role: document.getElementById('addMemberRole')?.value || 'editor' })
         })
         .then(r => r.json())
         .then(data => {
@@ -2549,11 +2575,15 @@
         .catch(() => { btn.disabled = false; btn.textContent = 'Add'; });
     }
     function removeProjectMember(userId) {
-        if (!confirm('Remove this person from the project?')) return;
+        if (!confirm('Remove from this project?\n\n• They lose project access\n• Open tasks become unassigned\n• Completed tasks keep their name as assignee')) return;
         fetch(`/${slug}/admin/projects/${PROJECT_ID}/members/${userId}`, {
             method: 'DELETE',
             headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
-        }).then(() => location.reload());
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) location.reload();
+        });
     }
 
     /* Client access */
@@ -2567,7 +2597,7 @@
         fetch(projectUrl('/clients'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-            body: JSON.stringify({ user_id: select.value })
+            body: JSON.stringify({ user_id: select.value, access_mode: document.getElementById('addClientMode')?.value || 'view' })
         })
         .then(r => r.json())
         .then(data => {

@@ -37,6 +37,8 @@ class ProjectController extends Controller
 
     public function store(Request $request, string $slug)
     {
+        $this->authorize('create', Project::class);
+
         $data = $request->validate([
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -325,10 +327,15 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
 
-        $data = $request->validate(['user_id' => 'required|exists:users,id']);
+        $data = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'role' => 'nullable|in:owner,admin,editor,commenter,viewer',
+        ]);
         $user = auth()->user()->company->users()->where('is_active', true)->findOrFail($data['user_id']);
 
-        $project->members()->syncWithoutDetaching([$user->id => ['role' => 'member']]);
+        $project->members()->syncWithoutDetaching([
+            $user->id => ['role' => $data['role'] ?? 'editor'],
+        ]);
 
         return response()->json(['success' => true]);
     }
@@ -336,8 +343,16 @@ class ProjectController extends Controller
     public function removeMember(string $slug, Project $project, User $user)
     {
         $this->authorizeProject($project);
-        $project->members()->detach($user->id);
-        return response()->json(['success' => true]);
+        $member = $project->members()->where('users.id', $user->id)->first();
+        abort_if($member && $member->pivot->role === 'owner', 422, 'Cannot remove the project owner.');
+
+        $result = $project->revokeMemberAccess($user);
+
+        return response()->json([
+            'success' => true,
+            'open_unassigned' => $result['open_unassigned'],
+            'completed_kept' => $result['completed_kept'],
+        ]);
     }
 
     // Client access to this project (drives what the client portal shows them)
@@ -345,10 +360,15 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
 
-        $data = $request->validate(['user_id' => 'required|exists:users,id']);
+        $data = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'access_mode' => 'nullable|in:view,collaborate,contribute,approve',
+        ]);
         $client = auth()->user()->company->users()->where('role', 'client')->where('is_active', true)->findOrFail($data['user_id']);
 
-        $project->clients()->syncWithoutDetaching([$client->id]);
+        $project->clients()->syncWithoutDetaching([
+            $client->id => ['access_mode' => $data['access_mode'] ?? 'view'],
+        ]);
 
         return response()->json(['success' => true]);
     }
@@ -492,5 +512,6 @@ class ProjectController extends Controller
     private function authorizeProject(Project $project): void
     {
         abort_if($project->company_id !== $this->companyId(), 403);
+        $this->authorize('view', $project);
     }
 }

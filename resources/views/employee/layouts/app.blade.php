@@ -82,17 +82,13 @@
         @php
             $slug = auth()->user()->company->slug;
             // Projects where the current employee has at least one assigned task
-            $sidebarUserId = auth()->id();
-            $sidebarProjectIds = \App\Models\Task::where(function ($q) use ($sidebarUserId) {
-                    $q->where('assigned_to', $sidebarUserId)
-                      ->orWhereHas('assignees', fn($q) => $q->where('user_id', $sidebarUserId));
-                })
-                ->whereNotNull('project_id')
-                ->distinct()
-                ->pluck('project_id');
-            $sidebarProjects = \App\Models\Project::whereIn('id', $sidebarProjectIds)
+            $sidebarUser = auth()->user();
+            $sidebarProjects = \App\Models\Project::query()
+                ->where('company_id', $sidebarUser->company_id)
                 ->orderBy('name')
-                ->get(['id', 'name']);
+                ->get(['id', 'name', 'company_id'])
+                ->filter(fn ($p) => $sidebarUser->can('view', $p))
+                ->values();
             $activeProject = request()->route('project');
             $activeProjectId = is_object($activeProject) ? $activeProject->id : (int) $activeProject;
         @endphp
@@ -109,6 +105,16 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 Inbox
             </a>
+            <a href="{{ route('employee.teams.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('employee.teams.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Teams
+            </a>
+            @if(auth()->user()->hasPermission('time.track'))
+            <a href="{{ route('employee.time.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('employee.time.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Time
+            </a>
+            @endif
 
             {{-- Projects --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
@@ -131,9 +137,16 @@
                 <div style="width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:rgba(34,211,238,0.15); color:var(--accent2); flex-shrink:0;">
                     {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                 </div>
+                @php
+                    $profileUser = auth()->user();
+                    $profileUser->loadMissing('workspaceRoles');
+                    $profileRoleName = $profileUser->workspaceRoles->where('is_system', false)->first()?->name
+                        ?? $profileUser->workspaceRoles->first()?->name
+                        ?? 'Team member';
+                @endphp
                 <div>
-                    <div style="font-size:13px; font-weight:500; color:var(--text);">{{ auth()->user()->name }}</div>
-                    <div style="font-size:10px; color:var(--muted); font-family:var(--mono);">Employee</div>
+                    <div style="font-size:13px; font-weight:500; color:var(--text);">{{ $profileUser->name }}</div>
+                    <div style="font-size:10px; color:var(--accent2); font-family:var(--mono);">{{ $profileRoleName }}</div>
                 </div>
             </div>
             <form method="POST" action="{{ route('logout') }}">

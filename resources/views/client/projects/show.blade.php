@@ -170,4 +170,37 @@
         </div>
     </div>
 
+    @php $mode = auth()->user()->clientMode($project); @endphp
+    @if(in_array($mode, ['collaborate', 'contribute', 'approve'], true))
+    <div class="ptm-card" style="padding:18px 20px; margin-top:16px;">
+        <div class="ptm-section-title" style="margin-bottom:12px;">Collaborate ({{ $mode }})</div>
+        @foreach($tasks->take(12) as $task)
+        <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+            <div style="font-size:13px; color:var(--text); font-weight:500;">{{ $task->title }}</div>
+            @can('comment', $task)
+            <form method="POST" action="{{ route('client.tasks.comments.store', [$slug, $task]) }}" style="margin-top:8px; display:flex; gap:8px;">
+                @csrf
+                <input name="comment" class="ptm-input" style="flex:1;" placeholder="Comment…">
+                <button class="ptm-btn-ghost" style="padding:8px 12px;">Send</button>
+            </form>
+            <form method="POST" action="{{ route('client.tasks.attachments.store', [$slug, $task]) }}" enctype="multipart/form-data" style="margin-top:8px;">
+                @csrf
+                <input type="file" name="file" onchange="this.form.submit()" style="font-size:12px; color:var(--muted);">
+            </form>
+            @endcan
+            @can('update', $task)
+            <form method="POST" action="{{ route('client.tasks.status', [$slug, $task]) }}" style="margin-top:8px;">
+                @csrf
+                <select name="status" class="ptm-select" onchange="this.form.submit()">
+                    @foreach(['todo','in_progress','in_review','done'] as $st)
+                    <option value="{{ $st }}" @selected($task->status===$st)>{{ $st }}</option>
+                    @endforeach
+                </select>
+            </form>
+            @endcan
+        </div>
+        @endforeach
+    </div>
+    @endif
+
 </x-client-layout>

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Invitation extends Model
 {
     protected $fillable = [
-        'company_id', 'invited_by', 'name', 'email', 'role',
+        'company_id', 'invited_by', 'name', 'email', 'role', 'workspace_role_id',
         'token', 'expires_at', 'accepted_at',
     ];
 
@@ -26,6 +26,11 @@ class Invitation extends Model
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'invited_by');
+    }
+
+    public function workspaceRole(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'workspace_role_id');
     }
 
     public function scopePending(Builder $q): Builder
@@ -50,6 +55,13 @@ class Invitation extends Model
 
     public function roleLabel(): string
     {
-        return $this->role === 'client' ? 'Client' : 'Employee';
+        if ($this->role === 'client') {
+            return 'Client';
+        }
+        if ($this->workspaceRole) {
+            return $this->workspaceRole->name;
+        }
+
+        return 'Employee';
     }
 }

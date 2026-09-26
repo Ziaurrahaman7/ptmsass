@@ -99,6 +99,23 @@
             </span>
         </div>
 
+        <div class="ptm-card" style="padding:12px 16px; margin-bottom:14px; display:flex; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:200px;">
+                <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Your access on this project</div>
+                <div style="font-size:14px; font-weight:600; color:var(--text);">{{ $projectAccessLabel ?? 'Guest' }}</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:4px; line-height:1.45;">{{ $projectAccessSummary ?? '' }}</div>
+            </div>
+            @php
+                $wsName = auth()->user()->workspaceRoles()->where('is_system', false)->value('name')
+                    ?? auth()->user()->workspaceRoles()->value('name');
+            @endphp
+            @if($wsName)
+            <div style="font-size:11px; color:var(--muted); font-family:var(--mono); padding:6px 10px; border:1px solid var(--border2); border-radius:8px;">
+                Workspace role: <span style="color:var(--text);">{{ $wsName }}</span>
+            </div>
+            @endif
+        </div>
+
         {{-- Progress / 6-month timeline / weekly execution (seo_dashboard style) --}}
         @php
             $timelineTasks = $tasks->map(fn($t) => [
@@ -478,6 +495,7 @@
                         @forelse($group['tasks'] as $task)
                             @php
                                 $isMine = $task->assigned_to === $myId || $task->assignees->contains('id', $myId);
+                                $canEditTask = auth()->user()->can('update', $task);
                                 $sm = $statusMeta[$task->status] ?? $statusMeta['todo'];
                             @endphp
                             <div class="al-row al-gridrow" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" data-status="{{ $task->status }}" data-priority="{{ $task->priority }}" data-due="{{ $task->due_date?->format('Y-m-d') }}" data-assignees="{{ $task->assignees->pluck('id')->push($task->assigned_to)->filter()->unique()->implode(',') }}" data-createdby="{{ $task->created_by }}" data-created="{{ $task->created_at?->format('Y-m-d') }}" data-modified="{{ $task->updated_at?->format('Y-m-d') }}" data-section="{{ $group['id'] }}" data-sectionname="{{ $group['name'] }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
@@ -520,9 +538,9 @@
                                     @endif
                                 </div>
 
-                                {{-- Status (editable only for own tasks) --}}
+                                {{-- Status --}}
                                 <div class="al-cell c-status">
-                                    @if($isMine)
+                                    @if($canEditTask)
                                         <form method="POST" action="{{ route('employee.tasks.status', [$slug, $task]) }}" style="width:100%;">
                                             @csrf @method('PATCH')
                                             <select name="status" class="al-pill al-status" onchange="applyStatus(this); this.form.submit()">
@@ -559,6 +577,7 @@
                                 @foreach($task->subtasks as $sub)
                                     @php
                                         $subMine = $sub->assigned_to === $myId || $sub->assignees->contains('id', $myId);
+                                        $canEditSub = auth()->user()->can('update', $sub);
                                         $ssm = $statusMeta[$sub->status] ?? $statusMeta['todo'];
                                     @endphp
                                     <div class="al-subrow al-gridrow" data-title="{{ strtolower($sub->title) }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
@@ -579,7 +598,7 @@
                                             @endforelse
                                         </div>
                                         <div class="al-cell c-status">
-                                            @if($subMine)
+                                            @if($canEditSub)
                                                 <form method="POST" action="{{ route('employee.tasks.status', [$slug, $sub]) }}" style="width:100%;">
                                                     @csrf @method('PATCH')
                                                     <select name="status" class="al-pill al-status" onchange="applyStatus(this); this.form.submit()">

@@ -71,6 +71,10 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 Pusher / Realtime
             </a>
+            <a href="{{ route('superadmin.security.edit') }}" class="ptm-nav-link {{ request()->routeIs('superadmin.security.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Security
+            </a>
         </nav>
 
         <div style="padding:12px 12px 14px; border-top:1px solid var(--border);">

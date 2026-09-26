@@ -44,11 +44,7 @@ class TaskController extends Controller
 
     public function updateStatus(Request $request, string $slug, Task $task)
     {
-        // Check if user is assigned (either assigned_to or in assignees)
-        $isAssigned = $task->assigned_to === auth()->id() || 
-                      $task->assignees->contains('id', auth()->id());
-        
-        abort_if(!$isAssigned, 403);
+        $this->authorize('update', $task);
 
         $request->validate(['status' => 'required|in:todo,in_progress,in_review,done']);
         
@@ -85,7 +81,7 @@ class TaskController extends Controller
      */
     public function inlineUpdate(Request $request, string $slug, Task $task)
     {
-        $this->authorizeMine($task);
+        $this->authorize('update', $task);
 
         $data = $request->validate([
             'title'       => 'sometimes|required|string|max:255',
@@ -105,7 +101,7 @@ class TaskController extends Controller
 
     public function storeSubtask(Request $request, string $slug, Task $task)
     {
-        $this->authorizeMine($task);
+        $this->authorize('update', $task);
 
         $data = $request->validate(['title' => 'required|string|max:255']);
 
@@ -143,21 +139,26 @@ class TaskController extends Controller
     public function panel(string $slug, Task $task)
     {
         abort_if($task->company_id !== auth()->user()->company_id, 403);
+        $this->authorize('view', $task);
 
         $task->load(['project', 'section', 'assignees', 'followers', 'comments.user', 'attachments.uploader', 'subtasks.assignees']);
         $members = User::where('company_id', $task->company_id)->where('is_active', true)->whereIn('role', ['employee', 'company_admin'])->get();
 
-        $userId = auth()->id();
+        $user = auth()->user();
+        $userId = $user->id;
         $isMine = $task->assigned_to === $userId
             || $task->assignees->contains('id', $userId)
             || ($task->project_id === null && $task->created_by === $userId);
+        $canUpdate = $user->can('update', $task);
+        $canComment = $user->can('comment', $task);
+        $canAttach = $user->can('attach', $task);
 
-        return view('employee.tasks._panel', compact('task', 'isMine', 'slug', 'members'));
+        return view('employee.tasks._panel', compact('task', 'isMine', 'slug', 'members', 'canUpdate', 'canComment', 'canAttach'));
     }
 
     public function storeComment(Request $request, string $slug, Task $task)
     {
-        $this->authorizeMine($task);
+        $this->authorize('comment', $task);
         
         $request->validate([
             'comment' => 'required|string|max:4000',
@@ -199,6 +200,7 @@ class TaskController extends Controller
     public function destroyComment(string $slug, TaskComment $comment)
     {
         abort_if($comment->task->company_id !== auth()->user()->company_id, 403);
+        $this->authorize('comment', $comment->task);
         abort_if($comment->user_id !== auth()->id(), 403);
 
         $comment->delete();
@@ -212,7 +214,7 @@ class TaskController extends Controller
     
     public function storeAttachment(Request $request, string $slug, Task $task, TaskAttachmentIntake $intake)
     {
-        $this->authorizeMine($task);
+        $this->authorize('attach', $task);
 
         $request->validate(['file' => 'required|file|max:10240']);
 

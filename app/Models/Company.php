@@ -11,16 +11,24 @@ class Company extends Model
     use HasFactory;
     protected $fillable = [
         'name', 'slug', 'email', 'phone', 'logo', 'status', 'trial_ends_at',
+        'mfa_required', 'trusted_domains',
     ];
 
     protected $casts = [
         'trial_ends_at' => 'datetime',
+        'mfa_required' => 'boolean',
+        'trusted_domains' => 'array',
     ];
 
     protected static function boot()
     {
         parent::boot();
         static::creating(fn ($company) => $company->slug ??= Str::slug($company->name));
+        static::created(function ($company) {
+            if (\Illuminate\Support\Facades\Schema::hasTable('roles')) {
+                app(\App\Services\RoleProvisioner::class)->forCompany((int) $company->id);
+            }
+        });
     }
 
     public function users()

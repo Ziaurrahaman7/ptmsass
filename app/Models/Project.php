@@ -38,6 +38,11 @@ class Project extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function linkedTasks()
+    {
+        return $this->belongsToMany(Task::class, 'task_project')->withTimestamps();
+    }
+
     public function sections()
     {
         return $this->hasMany(Section::class)->orderBy('position')->orderBy('id');
@@ -75,7 +80,9 @@ class Project extends Model
 
     public function clients()
     {
-        return $this->belongsToMany(User::class, 'project_clients')->withTimestamps();
+        return $this->belongsToMany(User::class, 'project_clients')
+            ->withPivot('access_mode')
+            ->withTimestamps();
     }
 
     public function resources()
@@ -99,5 +106,53 @@ class Project extends Model
         if ($total === 0) return 0;
         $done = $this->tasks()->where('status', 'done')->count();
         return (int) round(($done / $total) * 100);
+    }
+
+    /**
+     * Asana-style remove from project: drop membership, unassign open work, keep assignee on completed tasks.
+     *
+     * @return array{open_unassigned: int, completed_kept: int}
+     */
+    public function revokeMemberAccess(User $user): array
+    {
+        $this->members()->detach($user->id);
+
+        $tasks = Task::query()
+            ->where('company_id', $this->company_id)
+            ->where(function ($q) {
+                $q->where('project_id', $this->id)
+                    ->orWhereHas('projects', fn ($p) => $p->where('projects.id', $this->id));
+            })
+            ->get();
+
+        $openUnassigned = 0;
+        $completedKept = 0;
+
+        foreach ($tasks as $task) {
+            $involved = (int) $task->assigned_to === (int) $user->id
+                || $task->assignees()->where('users.id', $user->id)->exists();
+
+            if (! $involved) {
+                continue;
+            }
+
+            if ($task->status === 'done') {
+                $completedKept++;
+
+                continue;
+            }
+
+            if ((int) $task->assigned_to === (int) $user->id) {
+                $task->update(['assigned_to' => null]);
+            }
+            $task->assignees()->detach($user->id);
+            $task->followers()->detach($user->id);
+            $openUnassigned++;
+        }
+
+        return [
+            'open_unassigned' => $openUnassigned,
+            'completed_kept' => $completedKept,
+        ];
     }
 }

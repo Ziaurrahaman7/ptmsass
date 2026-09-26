@@ -117,7 +117,7 @@ class WorkspaceNotifier
         return User::query()
             ->whereIn('id', $ids)
             ->where('is_active', true)
-            ->whereIn('role', ['employee', 'company_admin'])
+            ->whereIn('role', ['employee', 'company_admin', 'client'])
             ->get();
     }
 

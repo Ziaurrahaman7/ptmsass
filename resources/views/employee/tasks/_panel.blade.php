@@ -15,7 +15,7 @@
 
 {{-- Actions --}}
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:18px;">
-    @if($isMine)
+    @if($canUpdate ?? $isMine)
     <button onclick="empMarkComplete('{{ $task->status }}')" id="panelComplete"
         style="display:flex; align-items:center; gap:7px; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:13px; font-family:var(--font);
         {{ $task->status === 'done' ? 'background:rgba(74,222,128,0.15); border:1px solid rgba(74,222,128,0.4); color:#4ade80;' : 'background:var(--surface2); border:1px solid var(--border2); color:var(--text);' }}">
@@ -23,7 +23,7 @@
         {{ $task->status === 'done' ? 'Completed' : 'Mark complete' }}
     </button>
     @else
-    <span style="font-size:11px; color:var(--muted); font-family:var(--mono); padding:6px 0;">Read-only — not assigned to you</span>
+    <span style="font-size:11px; color:var(--muted); font-family:var(--mono); padding:6px 0;">Read-only{{ ($isMine ?? false) ? ' (viewer on this project)' : ' — not assigned to you' }}</span>
     @endif
 </div>
 
@@ -56,7 +56,7 @@
     {{-- Status --}}
     <div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:10px; padding:8px 0;">
         <span style="font-size:12px; color:var(--muted); font-weight:500;">Status</span>
-        @if($isMine)
+        @if($canUpdate ?? $isMine)
             <select class="al-pill al-status" style="width:170px;" onchange="applyStatus(this); empPanelStatus(this.value)">
                 @foreach($statusMeta as $val=>$cfg)
                 <option value="{{ $val }}" {{ $task->status===$val?'selected':'' }}>{{ $cfg['label'] }}</option>
@@ -83,7 +83,7 @@
 {{-- Notes --}}
 <div style="margin-bottom:22px;">
     <div style="font-size:12px; color:var(--muted); font-weight:500; margin-bottom:6px;">Notes</div>
-    @if($isMine)
+    @if($canUpdate ?? $isMine)
         <textarea id="panelDescription" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';" onblur="empPanelDescription(this.value)"
             placeholder="Add notes..." rows="1"
             style="width:100%; font-size:13px; color:var(--text); line-height:1.5; padding:10px 12px; background:var(--surface2); border:1px solid transparent; border-radius:8px; font-family:var(--font); resize:none; min-height:60px;"
@@ -95,7 +95,7 @@
 </div>
 
 {{-- Subtasks --}}
-@if($task->subtasks->count() > 0 || $isMine)
+@if($task->subtasks->count() > 0 || ($canUpdate ?? $isMine))
 <div style="margin-bottom:22px;">
     <div style="font-size:12px; color:var(--text); font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
         Subtasks <span style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ $task->subtasks->count() }}</span>
@@ -110,7 +110,7 @@
         </div>
         @endforeach
     </div>
-    @if($isMine)
+    @if($canUpdate ?? $isMine)
     <form onsubmit="return empAddSubtask(this)" action="{{ route('employee.tasks.subtasks.store', [$slug, $task]) }}" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" style="flex-shrink:0;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         <input type="text" name="title" required placeholder="Add a subtask..." style="flex:1; background:none; border:none; color:var(--text); font-size:13px; font-family:var(--font); padding:6px 0;">
@@ -130,7 +130,7 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="flex-shrink:0;"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
             <a href="{{ asset('storage/'.$att->file_path) }}" target="_blank" style="font-size:13px; color:var(--text); text-decoration:none; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text)'">{{ $att->file_name }}</a>
             <span style="font-size:10px; color:var(--muted); font-family:var(--mono);">{{ number_format($att->file_size/1024, 0) }} KB</span>
-            @if($att->uploaded_by === auth()->id())
+            @if(($canAttach ?? false) && $att->uploaded_by === auth()->id())
             <button onclick="empDeleteAttachment({{ $att->id }})" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:2px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -138,11 +138,13 @@
         </div>
         @endforeach
     </div>
+    @if($canAttach ?? false)
     <label style="display:inline-flex; align-items:center; gap:7px; margin-top:8px; padding:7px 12px; border:1px dashed var(--border2); border-radius:8px; cursor:pointer; font-size:12px; color:var(--muted);" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         Upload file
         <input type="file" onchange="empUpload(this)" data-action="{{ route('employee.tasks.attachments.store', [$slug, $task]) }}" style="display:none;">
     </label>
+    @endif
 </div>
 
 {{-- Comments --}}
@@ -158,7 +160,7 @@
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span style="font-size:13px; font-weight:600; color:var(--text);">{{ $comment->user->name ?? 'Unknown' }}</span>
                     <span style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ $comment->created_at->diffForHumans() }}</span>
-                    @if($comment->user_id === auth()->id())
+                    @if(($canComment ?? false) && $comment->user_id === auth()->id())
                     <button onclick="empDeleteComment({{ $comment->id }})" style="margin-left:auto; background:none; border:none; color:var(--muted); cursor:pointer; padding:2px; font-size:11px;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--muted)'">Delete</button>
                     @endif
                 </div>
@@ -169,11 +171,15 @@
         <div style="font-size:12px; color:var(--muted); font-family:var(--mono);">No comments yet.</div>
         @endforelse
     </div>
+    @if($canComment ?? false)
     <form onsubmit="return empAddComment(this)" action="{{ route('employee.tasks.comments.store', [$slug, $task]) }}" style="display:flex; gap:8px; align-items:flex-end;" data-members="{{ e($mentionMembers->toJson()) }}">
         <textarea name="comment" required rows="1" placeholder="Add a comment… type @ to mention" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';"
             style="flex:1; background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--text); font-size:13px; font-family:var(--font); padding:9px 12px; resize:none; line-height:1.4; max-height:120px;"></textarea>
         <button type="submit" style="padding:9px 16px; font-size:13px; background:rgba(34,211,238,0.12); border:1px solid rgba(34,211,238,0.3); color:var(--accent2); border-radius:8px; cursor:pointer; font-family:var(--font);">Send</button>
     </form>
+    @else
+    <div style="font-size:12px; color:var(--muted); font-family:var(--mono);">Comments are read-only for your project role.</div>
+    @endif
     <div style="margin-top:12px; font-size:12px;">
         @if($followers->contains('id', auth()->id()))
         <button type="button" onclick="empUnfollow()" style="background:none; border:none; color:var(--muted); cursor:pointer; font-family:var(--font); padding:0;">Unfollow task</button>

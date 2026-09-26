@@ -12,6 +12,8 @@
         'csv_export_ready' => '#60a5fa',
         'task_attachment' => '#fb923c',
         'attachment_ready' => '#4ade80',
+        'task_approval' => '#a78bfa',
+        'form_submitted' => '#fbbf24',
     ];
 @endphp
 

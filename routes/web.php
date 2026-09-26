@@ -27,8 +27,16 @@ use App\Http\Controllers\Employee\TaskController as EmployeeTaskController;
 use App\Http\Controllers\Employee\MyTaskController as EmployeeMyTaskController;
 use App\Http\Controllers\Employee\SearchController as EmployeeSearchController;
 use App\Http\Controllers\Employee\NotificationController as EmployeeNotificationController;
+use App\Http\Controllers\Company\RoleController as CompanyRoleController;
+use App\Http\Controllers\Company\GapWorkspaceController as CompanyGapWorkspaceController;
+use App\Http\Controllers\Employee\TeamAdminController as EmployeeTeamAdminController;
+use App\Http\Controllers\Employee\TimeEntryController as EmployeeTimeEntryController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\ProjectController as ClientProjectController;
+use App\Http\Controllers\Client\TaskActionController as ClientTaskActionController;
+use App\Http\Controllers\Client\NotificationController as ClientNotificationController;
+use App\Http\Controllers\PublicFormController;
+use App\Http\Controllers\Superadmin\SecurityController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
@@ -62,7 +70,12 @@ Route::prefix('superadmin')->name('superadmin.')->middleware(['auth', 'superadmi
     Route::get('pusher', [PusherSettingController::class, 'edit'])->name('pusher.edit');
     Route::put('pusher', [PusherSettingController::class, 'update'])->name('pusher.update');
     Route::post('pusher/test', [PusherSettingController::class, 'test'])->name('pusher.test');
+    Route::get('security', [SecurityController::class, 'edit'])->name('security.edit');
+    Route::put('security', [SecurityController::class, 'update'])->name('security.update');
 });
+
+Route::get('/f/{token}', [PublicFormController::class, 'show'])->name('forms.public.show');
+Route::post('/f/{token}', [PublicFormController::class, 'submit'])->name('forms.public.submit');
 
 // Company Admin routes — /{slug}/admin/...
 Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_admin', 'company_slug'])->group(function () {
@@ -134,6 +147,36 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::delete('tasks/comments/{comment}', [CompanyTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
     Route::delete('tasks/attachments/{attachment}', [CompanyTaskController::class, 'destroyAttachment'])->name('tasks.attachments.destroy');
     
+    Route::post('tasks/{task}/projects', [CompanyTaskController::class, 'attachProject'])->name('tasks.projects.attach');
+    Route::delete('tasks/{task}/projects/{project}', [CompanyTaskController::class, 'detachProject'])->name('tasks.projects.detach');
+    Route::post('tasks/{task}/approvals', [CompanyTaskController::class, 'requestApproval'])->name('tasks.approvals.store');
+    Route::patch('tasks/{task}/approvals/{approval}', [CompanyTaskController::class, 'decideApproval'])->name('tasks.approvals.decide');
+    Route::patch('tasks/{task}/recurrence', [CompanyTaskController::class, 'setRecurrence'])->name('tasks.recurrence');
+
+    Route::get('roles', [CompanyRoleController::class, 'index'])->name('roles.index');
+    Route::post('roles', [CompanyRoleController::class, 'store'])->name('roles.store');
+    Route::put('roles/{role}', [CompanyRoleController::class, 'update'])->name('roles.update');
+    Route::post('roles/{role}/assign', [CompanyRoleController::class, 'assign'])->name('roles.assign');
+    Route::delete('roles/{role}/users/{user}', [CompanyRoleController::class, 'unassign'])->name('roles.unassign');
+
+    Route::get('templates', [CompanyGapWorkspaceController::class, 'templates'])->name('templates.index');
+    Route::post('templates', [CompanyGapWorkspaceController::class, 'storeTemplate'])->name('templates.store');
+    Route::post('templates/{template}/apply', [CompanyGapWorkspaceController::class, 'applyTemplate'])->name('templates.apply');
+    Route::get('forms', [CompanyGapWorkspaceController::class, 'forms'])->name('forms.index');
+    Route::post('forms', [CompanyGapWorkspaceController::class, 'storeForm'])->name('forms.store');
+    Route::get('rules', [CompanyGapWorkspaceController::class, 'rules'])->name('rules.index');
+    Route::post('rules', [CompanyGapWorkspaceController::class, 'storeRule'])->name('rules.store');
+    Route::get('timesheets', [CompanyGapWorkspaceController::class, 'timesheets'])->name('timesheets.index');
+    Route::post('timesheets/{time_entry}/review', [CompanyGapWorkspaceController::class, 'reviewTime'])->name('timesheets.review');
+    Route::get('capacity', [CompanyGapWorkspaceController::class, 'capacity'])->name('capacity.index');
+    Route::post('capacity/{user}', [CompanyGapWorkspaceController::class, 'updateCapacity'])->name('capacity.update');
+    Route::get('reports', [CompanyGapWorkspaceController::class, 'reports'])->name('reports.index');
+    Route::get('integrations', [CompanyGapWorkspaceController::class, 'integrations'])->name('integrations.index');
+    Route::post('integrations/tokens', [CompanyGapWorkspaceController::class, 'storeToken'])->name('integrations.tokens.store');
+    Route::post('integrations/webhooks', [CompanyGapWorkspaceController::class, 'storeWebhook'])->name('integrations.webhooks.store');
+    Route::get('security', [CompanyGapWorkspaceController::class, 'security'])->name('security.edit');
+    Route::post('security', [CompanyGapWorkspaceController::class, 'updateSecurity'])->name('security.update');
+
     Route::get('members', [CompanyMemberController::class, 'index'])->name('members.index');
     Route::post('members', [CompanyMemberController::class, 'store'])->name('members.store');
     Route::post('members/invitations/{invitation}/resend', [CompanyMemberController::class, 'resend'])->name('members.invitations.resend');
@@ -229,6 +272,14 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     
     // Notifications
     Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/teams', [EmployeeTeamAdminController::class, 'index'])->name('teams.index');
+    Route::get('/teams/{team}', [EmployeeTeamAdminController::class, 'show'])->name('teams.show');
+    Route::put('/teams/{team}', [EmployeeTeamAdminController::class, 'update'])->name('teams.update');
+    Route::post('/teams/{team}/members', [EmployeeTeamAdminController::class, 'addMember'])->name('teams.members.add');
+    Route::delete('/teams/{team}/members/{user}', [EmployeeTeamAdminController::class, 'removeMember'])->name('teams.members.remove');
+    Route::get('/time', [EmployeeTimeEntryController::class, 'index'])->name('time.index');
+    Route::post('/time', [EmployeeTimeEntryController::class, 'store'])->name('time.store');
+
     Route::get('/notifications/unread', [EmployeeNotificationController::class, 'unread'])->name('notifications.unread');
     Route::patch('/notifications/{notification}/read', [EmployeeNotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
     Route::post('/notifications/mark-all-read', [EmployeeNotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
@@ -237,6 +288,15 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
 Route::prefix('{slug}/client')->name('client.')->middleware(['auth', 'client', 'company_slug'])->group(function () {
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
     Route::get('/projects/{project}', [ClientProjectController::class, 'show'])->name('projects.show');
+    Route::post('/tasks/{task}/comments', [ClientTaskActionController::class, 'comment'])->name('tasks.comments.store');
+    Route::post('/tasks/{task}/attachments', [ClientTaskActionController::class, 'attach'])->name('tasks.attachments.store');
+    Route::post('/tasks/{task}/follow', [ClientTaskActionController::class, 'follow'])->name('tasks.follow');
+    Route::post('/tasks/{task}/status', [ClientTaskActionController::class, 'updateStatus'])->name('tasks.status');
+    Route::post('/tasks/{task}/approvals/{approval}', [ClientTaskActionController::class, 'decide'])->name('tasks.approvals.decide');
+    Route::get('/notifications', [ClientNotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread', [ClientNotificationController::class, 'unread'])->name('notifications.unread');
+    Route::patch('/notifications/{notification}/read', [ClientNotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
+    Route::post('/notifications/mark-all-read', [ClientNotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 });
 
 // Dashboard redirect

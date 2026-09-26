@@ -182,11 +182,47 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 Members
             </a>
+            <a href="{{ route('company.roles.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.roles.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Roles
+            </a>
 
             {{-- Settings --}}
             <div style="padding:14px 12px 6px;">
                 <span class="ptm-section-title">Settings</span>
             </div>
+            <a href="{{ route('company.templates.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.templates.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+                Templates
+            </a>
+            <a href="{{ route('company.forms.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.forms.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Forms
+            </a>
+            <a href="{{ route('company.rules.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.rules.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Rules
+            </a>
+            <a href="{{ route('company.timesheets.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.timesheets.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Timesheets
+            </a>
+            <a href="{{ route('company.capacity.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.capacity.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Capacity
+            </a>
+            <a href="{{ route('company.reports.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.reports.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
+                Reports
+            </a>
+            <a href="{{ route('company.integrations.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.integrations.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/></svg>
+                API / Webhooks
+            </a>
+            <a href="{{ route('company.security.edit', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.security.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Security
+            </a>
             <a href="{{ route('company.priorities.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.priorities.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9 12 2"/></svg>
                 Priorities

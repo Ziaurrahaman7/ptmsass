@@ -10,6 +10,8 @@ use App\Models\TaskAttachment;
 use App\Models\TaskComment;
 use App\Models\TaskDependency;
 use App\Models\User;
+use App\Models\TaskApproval;
+use App\Services\AutomationEngine;
 use App\Services\TaskAttachmentIntake;
 use App\Services\WorkspaceNotifier;
 use Illuminate\Http\Request;
@@ -149,6 +151,8 @@ class TaskController extends Controller
             'due_date'    => 'nullable|date',
         ]);
 
+        $this->authorize('createTasks', $project);
+
         $task = Task::create([
             'parent_task_id' => $data['parent_task_id'] ?? null,
             'project_id' => $project->id,
@@ -181,6 +185,7 @@ class TaskController extends Controller
             $assigneeIds[] = $task->assigned_to;
         }
         app(WorkspaceNotifier::class)->assigned($task, array_unique($assigneeIds), auth()->user());
+        app(AutomationEngine::class)->fire('task.created', $task);
 
         return back()->with('success', 'Task created.');
     }
@@ -441,6 +446,7 @@ class TaskController extends Controller
     public function updateStatus(Request $request, string $slug, Task $task)
     {
         abort_if($task->company_id !== $this->companyId(), 403);
+        $this->authorize('update', $task);
         
         $request->validate(['status' => 'required|in:todo,in_progress,in_review,done']);
         
@@ -458,6 +464,7 @@ class TaskController extends Controller
 
         if ($oldStatus !== $request->status) {
             app(WorkspaceNotifier::class)->statusChanged($task, auth()->user(), $oldStatus, $request->status);
+            app(AutomationEngine::class)->fire('task.status_changed', $task->fresh());
         }
         
         return response()->json(['success' => true]);
@@ -466,6 +473,7 @@ class TaskController extends Controller
     public function storeComment(Request $request, string $slug, Task $task)
     {
         abort_if($task->company_id !== $this->companyId(), 403);
+        $this->authorize('comment', $task);
         
         $request->validate([
             'comment' => 'required|string|max:4000',
@@ -526,6 +534,7 @@ class TaskController extends Controller
             'file' => 'required|file|max:10240',
         ]);
 
+        $this->authorize('attach', $task);
         $intake->queue($task, $request->user(), $request->file('file'));
 
         if ($request->expectsJson()) {
@@ -687,5 +696,95 @@ class TaskController extends Controller
         $task->followers()->detach($user->id);
 
         return response()->json(['success' => true]);
+    }
+
+    public function attachProject(Request $request, string $slug, Task $task)
+    {
+        $this->authorize('update', $task);
+        $data = $request->validate(['project_id' => 'required|exists:projects,id']);
+        $project = Project::query()->where('company_id', $this->companyId())->findOrFail($data['project_id']);
+        $task->projects()->syncWithoutDetaching([$project->id]);
+
+        return back()->with('success', 'Task linked to '.$project->name.'.');
+    }
+
+    public function detachProject(string $slug, Task $task, Project $project)
+    {
+        $this->authorize('update', $task);
+        abort_if((int) $project->id === (int) $task->project_id, 422, 'Cannot unlink the primary project.');
+        $task->projects()->detach($project->id);
+
+        return back()->with('success', 'Project unlinked.');
+    }
+
+    public function requestApproval(Request $request, string $slug, Task $task)
+    {
+        $this->authorize('update', $task);
+        $data = $request->validate(['approver_id' => 'required|exists:users,id']);
+        $approver = User::query()->where('company_id', $this->companyId())->findOrFail($data['approver_id']);
+
+        $approval = TaskApproval::create([
+            'task_id' => $task->id,
+            'requested_by' => auth()->id(),
+            'approver_id' => $approver->id,
+            'status' => 'waiting',
+        ]);
+
+        app(WorkspaceNotifier::class)->personal(
+            $approver,
+            'task_approval',
+            'Approval requested',
+            auth()->user()->name.' asked you to review '.$task->title,
+            '/'.$slug.'/admin/tasks/'.$task->id
+        );
+
+        return back()->with('success', 'Approval requested.');
+    }
+
+    public function decideApproval(Request $request, string $slug, Task $task, TaskApproval $approval)
+    {
+        abort_if((int) $approval->task_id !== (int) $task->id, 404);
+        $this->authorize('approve', $task);
+        abort_unless(
+            auth()->id() === (int) $approval->approver_id || auth()->user()->isCompanyAdmin(),
+            403
+        );
+
+        $data = $request->validate([
+            'status' => 'required|in:approved,rejected,changes_requested',
+            'note' => 'nullable|string|max:2000',
+        ]);
+
+        $approval->update([
+            'status' => $data['status'],
+            'note' => $data['note'] ?? null,
+            'decided_at' => now(),
+        ]);
+
+        $requester = $approval->requester;
+        if ($requester) {
+            app(WorkspaceNotifier::class)->personal(
+                $requester,
+                'task_approval',
+                'Approval '.$data['status'],
+                $task->title,
+                '/'.$slug.'/admin/tasks/'.$task->id
+            );
+        }
+
+        return back()->with('success', 'Decision saved.');
+    }
+
+    public function setRecurrence(Request $request, string $slug, Task $task)
+    {
+        $this->authorize('update', $task);
+        $data = $request->validate([
+            'recurrence' => 'nullable|in:daily,weekly,monthly',
+            'recurrence_until' => 'nullable|date',
+            'recurrence_remaining' => 'nullable|integer|min:1',
+        ]);
+        $task->update($data);
+
+        return back()->with('success', 'Recurrence saved.');
     }
 }

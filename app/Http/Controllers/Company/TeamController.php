@@ -96,6 +96,7 @@ class TeamController extends Controller
     public function update(Request $request, string $slug, Team $team)
     {
         abort_if($team->company_id !== $this->companyId(), 403);
+        $this->authorize('update', $team);
 
         $data = $request->validate([
             'name'        => 'required|string|max:255',
@@ -118,9 +119,12 @@ class TeamController extends Controller
     {
         abort_if($team->company_id !== $this->companyId(), 403);
 
+        $this->authorize('update', $team);
+
         $data = $request->validate([
             'members'   => 'required|array',
             'members.*' => 'exists:users,id',
+            'role'      => 'nullable|in:admin,member',
         ]);
 
         // Only attach users that belong to this company and aren't already members.
@@ -129,7 +133,11 @@ class TeamController extends Controller
             ->pluck('id')
             ->toArray();
 
-        $team->members()->syncWithoutDetaching($companyUserIds);
+        $payload = [];
+        foreach ($companyUserIds as $id) {
+            $payload[$id] = ['role' => $data['role'] ?? 'member'];
+        }
+        $team->members()->syncWithoutDetaching($payload);
 
         return redirect()->route('company.team.overview', ['slug' => $slug, 'team' => $team, 'tab' => 'members'])
             ->with('success', 'Member(s) added to team.');

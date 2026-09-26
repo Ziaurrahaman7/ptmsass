@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Mail\MemberInvitedMail;
 use App\Models\Company;
 use App\Models\Invitation;
+use App\Models\Role;
 use App\Models\User;
+use App\Services\RoleProvisioner;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -25,12 +27,13 @@ class MemberInvitationService
         $token = Str::random(64);
 
         $payload = [
-            'name'       => $data['name'],
-            'email'      => $data['email'],
-            'role'       => $data['role'] ?? 'employee',
-            'token'      => $token,
-            'expires_at' => now()->addDays(7),
-            'invited_by' => $inviter->id,
+            'name'              => $data['name'],
+            'email'             => $data['email'],
+            'role'              => $data['role'] ?? 'employee',
+            'workspace_role_id' => $data['workspace_role_id'] ?? null,
+            'token'             => $token,
+            'expires_at'        => now()->addDays(7),
+            'invited_by'        => $inviter->id,
         ];
 
         if ($invitation) {
@@ -98,6 +101,20 @@ class MemberInvitationService
             'is_active'         => true,
             'email_verified_at' => now(),
         ]);
+
+        $workspaceRoleId = $invitation->workspace_role_id;
+        if ($workspaceRoleId && $user->role !== 'client') {
+            $role = Role::query()
+                ->where('id', $workspaceRoleId)
+                ->where('company_id', $invitation->company_id)
+                ->where('slug', '!=', 'company-admin')
+                ->first();
+            if ($role) {
+                $user->workspaceRoles()->sync([$role->id]);
+            }
+        } else {
+            app(RoleProvisioner::class)->assignDefault($user);
+        }
 
         $invitation->update(['accepted_at' => now()]);
 

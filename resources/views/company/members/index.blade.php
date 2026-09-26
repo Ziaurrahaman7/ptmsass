@@ -97,10 +97,11 @@
                                 'client'        => 'color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08);',
                                 default         => 'color:var(--muted); border-color:var(--border2); background:transparent;',
                             };
+                            $wsNames = $member->workspaceRoles->pluck('name')->filter()->values();
                             $roleLabel = match($member->role) {
                                 'company_admin' => 'Admin',
                                 'client'        => 'Client',
-                                default         => 'Employee',
+                                default         => $wsNames->first() ?? 'Employee',
                             };
                         @endphp
                         <span style="font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; border:1px solid; {{ $roleStyle }}">
@@ -152,12 +153,39 @@
                     <input type="email" name="email" class="ptm-input" style="width:100%;" required value="{{ old('email') }}">
                     @error('email')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
                 </div>
+                @php
+                    $roles = $workspaceRoles ?? collect();
+                    $defaultAccess = (string) ($roles->firstWhere('slug', 'employee')?->id ?? $roles->first()?->id ?? '');
+                    $selectedAccess = old('access_role');
+                    if ($selectedAccess === null && old('role') === 'client') {
+                        $selectedAccess = 'client';
+                    } elseif ($selectedAccess === null && old('workspace_role_id')) {
+                        $selectedAccess = (string) old('workspace_role_id');
+                    } elseif ($selectedAccess === null) {
+                        $selectedAccess = $defaultAccess ?: 'client';
+                    }
+                @endphp
                 <div>
-                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ROLE</label>
-                    <select name="role" class="ptm-select" style="width:100%;">
-                        <option value="employee">Employee</option>
-                        <option value="client">Client</option>
+                    <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ROLE *</label>
+                    <select name="access_role" class="ptm-select" style="width:100%;" required>
+                        @if($roles->isNotEmpty())
+                        <optgroup label="Team members">
+                            @foreach($roles as $wsRole)
+                            <option value="{{ $wsRole->id }}" @selected((string) $selectedAccess === (string) $wsRole->id)>{{ $wsRole->name }}</option>
+                            @endforeach
+                        </optgroup>
+                        @endif
+                        <optgroup label="External">
+                            <option value="client" @selected($selectedAccess === 'client')>Client (project portal only)</option>
+                        </optgroup>
                     </select>
+                    @error('access_role')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
+                    <div style="font-size:11px; color:var(--muted); margin-top:8px; line-height:1.45;">
+                        Controls company-wide features. To limit someone on a single project, use <strong style="color:var(--text);">Project → Share</strong> and pick Viewer / Editor.
+                    </div>
+                    @if($roles->isEmpty())
+                    <div style="font-size:11px; color:var(--muted); margin-top:6px;">Add team roles under <a href="{{ route('company.roles.index', $slug) }}" style="color:var(--accent2);">Roles</a>.</div>
+                    @endif
                 </div>
                 <div style="display:flex; gap:10px; padding-top:4px;">
                     <button type="submit" class="ptm-btn-primary">Send invite</button>
