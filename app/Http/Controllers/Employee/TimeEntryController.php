@@ -12,7 +12,24 @@ class TimeEntryController extends Controller
     public function index(string $slug)
     {
         abort_unless(auth()->user()->hasPermission('time.track'), 403);
-        $entries = TimeEntry::query()->where('user_id', auth()->id())->latest('worked_on')->paginate(30);
+
+        $userId = auth()->id();
+        $statsBase = TimeEntry::query()->where('user_id', $userId);
+        $weekStart = now()->startOfWeek()->toDateString();
+
+        $stats = [
+            'today_minutes' => (int) (clone $statsBase)->whereDate('worked_on', today())->sum('minutes'),
+            'week_minutes' => (int) (clone $statsBase)->where('worked_on', '>=', $weekStart)->sum('minutes'),
+            'week_billable' => (int) (clone $statsBase)->where('worked_on', '>=', $weekStart)->where('billable', true)->sum('minutes'),
+            'pending_count' => (clone $statsBase)->where('status', 'pending')->count(),
+        ];
+
+        $entries = TimeEntry::query()
+            ->where('user_id', $userId)
+            ->with(['task.project'])
+            ->latest('worked_on')
+            ->latest('id')
+            ->paginate(20);
         $tasks = Task::query()
             ->where('company_id', auth()->user()->company_id)
             ->where(function ($q) {
@@ -24,7 +41,7 @@ class TimeEntryController extends Controller
             ->limit(80)
             ->get();
 
-        return view('employee.time.index', compact('entries', 'tasks'));
+        return view('employee.time.index', compact('entries', 'tasks', 'stats'));
     }
 
     public function store(Request $request, string $slug)
