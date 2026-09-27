@@ -32,7 +32,7 @@ class PermissionGapTest extends TestCase
         $this->assertTrue(Role::query()->where('company_id', $ws['company']->id)->where('slug', 'company-admin')->exists());
         $this->assertTrue($ws['admin']->hasPermission('project.create'));
         $this->assertFalse($ws['employee']->hasPermission('project.delete'));
-        $this->assertTrue($ws['employee']->hasPermission('task.comment'));
+        $this->assertTrue($ws['employee']->hasPermission('time.track'));
     }
 
     public function test_two_employees_can_have_different_project_rights(): void
@@ -144,7 +144,6 @@ class PermissionGapTest extends TestCase
         $employee->unsetRelation('workspaceRoles');
 
         $this->assertFalse($employee->hasPermission('time.track'));
-        $this->assertFalse($employee->hasPermission('task.comment'));
     }
 
     public function test_project_member_can_view_project_with_minimal_columns(): void
@@ -200,7 +199,7 @@ class PermissionGapTest extends TestCase
         $this->assertFalse($employee->can('comment', $ws['task']));
     }
 
-    public function test_workspace_task_edit_allows_create_tasks_on_project(): void
+    public function test_project_editor_creates_tasks_without_global_task_permission(): void
     {
         $ws = $this->workspace('acme');
         $accountant = Role::query()->create([
@@ -210,7 +209,7 @@ class PermissionGapTest extends TestCase
             'is_system' => false,
         ]);
         $accountant->permissions()->sync(
-            Permission::query()->whereIn('key', ['task.edit', 'member.invite'])->pluck('id')
+            Permission::query()->whereIn('key', ['member.invite'])->pluck('id')
         );
         $user = User::factory()->employee()->create([
             'company_id' => $ws['company']->id,
@@ -219,9 +218,38 @@ class PermissionGapTest extends TestCase
         $user->workspaceRoles()->sync([$accountant->id]);
         $ws['project']->members()->attach($user->id, ['role' => 'editor']);
 
-        $this->assertTrue($user->hasPermission('task.edit'));
         $this->assertTrue($user->hasPermission('member.invite'));
         $this->assertTrue($user->can('createTasks', $ws['project']));
+        $this->assertTrue($user->can('update', $ws['task']));
+        $this->assertTrue($user->can('comment', $ws['task']));
+    }
+
+    public function test_project_commenter_can_comment_without_workspace_task_permission(): void
+    {
+        $ws = $this->workspace('noteam');
+        $role = Role::query()->create([
+            'company_id' => $ws['company']->id,
+            'name' => 'Ops',
+            'slug' => 'ops-role',
+            'is_system' => false,
+        ]);
+        $user = User::factory()->employee()->create([
+            'company_id' => $ws['company']->id,
+            'email' => 'ops@noteam.test',
+        ]);
+        $user->workspaceRoles()->sync([$role->id]);
+        $ws['project']->members()->attach($user->id, ['role' => 'commenter']);
+
+        $this->assertTrue($user->can('comment', $ws['task']));
+        $this->assertFalse($user->can('update', $ws['task']));
+    }
+
+    public function test_project_viewer_cannot_comment(): void
+    {
+        $ws = $this->workspace('viewco');
+        $ws['project']->members()->attach($ws['employee']->id, ['role' => 'viewer']);
+
+        $this->assertFalse($ws['employee']->can('comment', $ws['task']));
     }
 
     public function test_employee_with_project_create_can_store_via_employee_portal(): void

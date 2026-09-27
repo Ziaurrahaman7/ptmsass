@@ -4,16 +4,14 @@ namespace App\Support;
 
 class PermissionCatalog
 {
-    public static function all(): array
+    /** Workspace-wide capabilities (Roles UI + global delegation). */
+    public static function workspace(): array
     {
         return [
             'project.create' => 'Create projects',
             'project.edit' => 'Edit projects',
             'project.delete' => 'Delete projects',
             'team.manage' => 'Manage all teams',
-            'task.assign' => 'Assign tasks',
-            'task.edit' => 'Create and edit project tasks',
-            'task.comment' => 'Comment on tasks',
             'member.invite' => 'Invite members',
             'settings.manage' => 'Manage workspace settings and roles',
             'form.manage' => 'Manage intake forms',
@@ -27,14 +25,25 @@ class PermissionCatalog
         ];
     }
 
+    /** @deprecated Task actions use project membership (Viewer / Commenter / Editor). Kept for DB cleanup only. */
+    public static function legacyProjectTaskKeys(): array
+    {
+        return ['task.assign', 'task.edit', 'task.comment'];
+    }
+
+    public static function all(): array
+    {
+        return self::workspace();
+    }
+
     public static function companyAdminKeys(): array
     {
-        return array_keys(self::all());
+        return array_keys(self::workspace());
     }
 
     public static function employeeKeys(): array
     {
-        return ['task.comment', 'time.track'];
+        return ['time.track'];
     }
 
     public static function projectRanks(): array
@@ -90,7 +99,7 @@ class PermissionCatalog
         return match ($role) {
             'viewer' => 'You can view all tasks in this project (read-only).',
             'commenter' => 'You can view tasks and add comments & attachments.',
-            'editor', 'member' => 'You can view and edit tasks in this project.',
+            'editor', 'member' => 'You can view, edit, and create tasks in this project.',
             'admin' => 'You can manage tasks and project settings.',
             'owner' => 'You have full control of this project.',
             default => 'You can open this project because a task is assigned to you.',

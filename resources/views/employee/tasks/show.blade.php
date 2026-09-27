@@ -155,13 +155,18 @@
                     <span style="font-size:12px; color:var(--muted); font-family:var(--mono);">{{ $task->comments->count() }}</span>
                 </div>
                 <div style="padding:18px;">
-                    {{-- Add Comment Form --}}
+                    @if($canComment ?? auth()->user()->can('comment', $task))
                     <script>window.PTM_MEMBERS = @json(($members ?? collect())->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'email'=>$m->email])->values());</script>
                     <form method="POST" action="{{ route('employee.tasks.comments.store', [auth()->user()->company->slug, $task]) }}" style="margin-bottom:20px;" data-members="{{ e(($members ?? collect())->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'email'=>$m->email])->values()->toJson()) }}">
                         @csrf
                         <textarea name="comment" rows="3" class="ptm-input" style="width:100%; resize:vertical; min-height:72px;" placeholder="Add a comment… type @ to mention" required></textarea>
                         <button type="submit" class="ptm-btn-primary" style="font-size:12px; padding:6px 16px; margin-top:10px;">Add Comment</button>
                     </form>
+                    @else
+                    <div style="font-size:12px; color:var(--muted); margin-bottom:16px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--surface2);">
+                        Your workspace role does not include permission to comment on tasks.
+                    </div>
+                    @endif
 
                     {{-- Comments List --}}
                     <div style="display:flex; flex-direction:column; gap:14px;">

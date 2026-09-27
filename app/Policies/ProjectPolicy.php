@@ -67,7 +67,6 @@ class ProjectPolicy
         }
 
         return $user->isCompanyAdmin()
-            || $perms->allows($user, 'task.edit')
             || $perms->projectAtLeast($user, $project, 'editor')
             || $perms->clientAtLeast($user, $project, 'contribute');
     }

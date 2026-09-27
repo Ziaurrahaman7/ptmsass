@@ -33,9 +33,7 @@ class TaskPolicy
 
     public function create(User $user): bool
     {
-        return $user->isCompanyAdmin()
-            || $user->isEmployee()
-            || app(PermissionService::class)->allows($user, 'task.edit');
+        return $user->isCompanyAdmin() || $user->isEmployee();
     }
 
     public function update(User $user, Task $task): bool
@@ -49,9 +47,6 @@ class TaskPolicy
         }
         if ($this->projectMemberBelow($user, $task, 'editor')) {
             return false;
-        }
-        if ($perms->allows($user, 'task.edit')) {
-            return true;
         }
         if ($task->project && $perms->projectAtLeast($user, $task->project, 'editor')) {
             return true;
@@ -94,13 +89,10 @@ class TaskPolicy
         if ($this->projectMemberBelow($user, $task, 'commenter')) {
             return false;
         }
-        if ($perms->allows($user, 'task.comment')) {
+        if ($task->project && $perms->clientAtLeast($user, $task->project, 'collaborate')) {
             return true;
         }
         if ($task->project && $perms->projectAtLeast($user, $task->project, 'commenter')) {
-            return true;
-        }
-        if ($task->project && $perms->clientAtLeast($user, $task->project, 'collaborate')) {
             return true;
         }
         if ($perms->isAssignee($user, $task)) {

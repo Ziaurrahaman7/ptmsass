@@ -1,14 +1,14 @@
 <x-company-layout title="Roles">
 <div style="margin-bottom:18px;">
     <div style="font-size:20px; font-weight:600;">Roles & permissions</div>
-    <div style="font-size:13px; color:var(--muted); margin-top:4px;">Workspace-wide features (Time, Reports, creating projects in admin, etc.). Access updates immediately when you save.</div>
+    <div style="font-size:13px; color:var(--muted); margin-top:4px;">Organization-wide capabilities only. Task comments, edits, and assignments are controlled per project (Share → Viewer / Commenter / Editor).</div>
 </div>
 
 <div class="ptm-card" style="padding:14px 16px; margin-bottom:18px; font-size:12px; color:var(--muted); line-height:1.55;">
     <div style="font-weight:600; color:var(--text); margin-bottom:6px;">How access works (simple)</div>
     <ol style="margin:0; padding-left:18px;">
         <li><strong style="color:var(--text);">Members → Role</strong> — team vs client portal + workspace role (this page).</li>
-        <li><strong style="color:var(--text);">Project → Share</strong> — what someone can do on one project (Viewer / Editor / …).</li>
+        <li><strong style="color:var(--text);">Project → Share</strong> — comments, task edits, and creates on that project (Viewer / Commenter / Editor / …).</li>
         <li><strong style="color:var(--text);">Teams</strong> — team admins manage only their team.</li>
     </ol>
 </div>

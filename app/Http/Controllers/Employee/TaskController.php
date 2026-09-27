@@ -65,15 +65,17 @@ class TaskController extends Controller
     public function show(string $slug, Task $task)
     {
         abort_if($task->company_id !== auth()->user()->company_id, 403);
+        $this->authorize('view', $task);
 
         $task->load(['project', 'assignee', 'assignees', 'comments.user', 'attachments.uploader', 'activities.user', 'subtasks.assignees']);
 
         $userId = auth()->id();
         $isMine = $task->assigned_to === $userId || $task->assignees->contains('id', $userId);
+        $canComment = auth()->user()->can('comment', $task);
 
         $members = User::where('company_id', $task->company_id)->where('is_active', true)->whereIn('role', ['employee', 'company_admin'])->get();
 
-        return view('employee.tasks.show', compact('task', 'isMine', 'slug', 'members'));
+        return view('employee.tasks.show', compact('task', 'isMine', 'slug', 'members', 'canComment'));
     }
 
     /**

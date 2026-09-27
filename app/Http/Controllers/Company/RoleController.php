@@ -19,7 +19,10 @@ class RoleController extends Controller
         $provisioner->forCompany((int) auth()->user()->company_id);
 
         $roles = Role::query()->where('company_id', auth()->user()->company_id)->with('permissions', 'users')->get();
-        $permissions = Permission::query()->orderBy('key')->get();
+        $permissions = Permission::query()
+            ->whereIn('key', PermissionCatalog::companyAdminKeys())
+            ->orderBy('key')
+            ->get();
         $members = User::query()->where('company_id', auth()->user()->company_id)->whereIn('role', ['employee', 'company_admin'])->orderBy('name')->get();
 
         return view('company.roles.index', compact('roles', 'permissions', 'members'));
@@ -40,7 +43,9 @@ class RoleController extends Controller
             'slug' => Str::slug($data['name']).'-'.Str::random(4),
             'is_system' => false,
         ]);
-        $ids = Permission::query()->whereIn('key', $data['permissions'] ?? [])->pluck('id');
+        $allowed = PermissionCatalog::companyAdminKeys();
+        $keys = array_values(array_intersect($data['permissions'] ?? [], $allowed));
+        $ids = Permission::query()->whereIn('key', $keys)->pluck('id');
         $role->permissions()->sync($ids);
 
         return back()->with('success', 'Role created.');

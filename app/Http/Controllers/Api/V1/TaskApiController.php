@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Project;
 use App\Models\Task;
 use Illuminate\Http\Request;
 
@@ -23,12 +24,20 @@ class TaskApiController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        abort_unless($user->isCompanyAdmin() || $user->hasPermission('task.edit'), 403);
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'project_id' => 'nullable|exists:projects,id',
             'status' => 'nullable|in:todo,in_progress,in_review,done',
         ]);
+
+        if (! empty($data['project_id'])) {
+            $project = Project::query()
+                ->where('company_id', $user->company_id)
+                ->findOrFail($data['project_id']);
+            $this->authorize('createTasks', $project);
+        } else {
+            $this->authorize('create', Task::class);
+        }
 
         $task = Task::create([
             'company_id' => $user->company_id,
