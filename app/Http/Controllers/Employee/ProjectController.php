@@ -14,6 +14,39 @@ use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
+    public function create(string $slug)
+    {
+        $this->authorize('create', Project::class);
+
+        return view('employee.projects.create');
+    }
+
+    public function store(Request $request, string $slug)
+    {
+        $this->authorize('create', Project::class);
+
+        $companyId = (int) auth()->user()->company_id;
+
+        $data = $request->validate([
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status'      => 'required|in:planning,in_progress,on_hold,completed',
+            'start_date'  => 'nullable|date',
+            'due_date'    => 'nullable|date|after_or_equal:start_date',
+        ]);
+
+        $project = Project::create([
+            ...$data,
+            'company_id' => $companyId,
+            'created_by' => auth()->id(),
+        ]);
+        $project->members()->attach(auth()->id(), ['role' => 'owner']);
+
+        return redirect()
+            ->route('employee.projects.show', [$slug, $project])
+            ->with('success', 'Project created.');
+    }
+
     public function show(string $slug, Project $project)
     {
         abort_if($project->company_id !== auth()->user()->company_id, 403);

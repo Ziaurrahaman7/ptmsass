@@ -252,6 +252,8 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
 Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'company_slug'])->group(function () {
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
     Route::get('/search', EmployeeSearchController::class)->name('search');
+    Route::get('/projects/create', [EmployeeProjectController::class, 'create'])->name('projects.create');
+    Route::post('/projects', [EmployeeProjectController::class, 'store'])->name('projects.store');
     Route::get('/projects/{project}', [EmployeeProjectController::class, 'show'])->name('projects.show');
     Route::post('/projects/{project}/tasks', [EmployeeProjectController::class, 'storeTask'])->name('projects.tasks.store');
     Route::get('/members', [EmployeeMemberController::class, 'index'])->name('members.index');

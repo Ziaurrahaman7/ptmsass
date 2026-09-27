@@ -31,6 +31,8 @@ class ProjectController extends Controller
 
     public function create(string $slug)
     {
+        $this->authorize('create', Project::class);
+
         $templates = Project::where('company_id', $this->companyId())->where('is_template', true)->orderBy('name')->get();
         return view('company.projects.create', compact('templates'));
     }

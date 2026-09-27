@@ -223,4 +223,39 @@ class PermissionGapTest extends TestCase
         $this->assertTrue($user->hasPermission('member.invite'));
         $this->assertTrue($user->can('createTasks', $ws['project']));
     }
+
+    public function test_employee_with_project_create_can_store_via_employee_portal(): void
+    {
+        $ws = $this->workspace('buildco');
+        $builder = Role::query()->create([
+            'company_id' => $ws['company']->id,
+            'name' => 'Builder',
+            'slug' => 'builder-role',
+            'is_system' => false,
+        ]);
+        $builder->permissions()->sync(
+            Permission::query()->where('key', 'project.create')->pluck('id')
+        );
+        $user = User::factory()->employee()->create([
+            'company_id' => $ws['company']->id,
+            'email' => 'builder@buildco.test',
+        ]);
+        $user->workspaceRoles()->sync([$builder->id]);
+
+        $this->assertTrue($user->hasPermission('project.create'));
+
+        $this->actingAs($user)
+            ->withoutMiddleware(ValidateCsrfToken::class)
+            ->post(route('employee.projects.store', $ws['company']->slug), [
+                'name' => 'Delegated project',
+                'status' => 'planning',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('projects', [
+            'company_id' => $ws['company']->id,
+            'name' => 'Delegated project',
+            'created_by' => $user->id,
+        ]);
+    }
 }

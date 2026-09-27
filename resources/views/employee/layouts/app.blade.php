@@ -125,7 +125,14 @@
             {{-- Projects --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
                 <span class="ptm-section-title">Projects</span>
-                <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:0 7px; border-radius:10px; font-family:var(--mono);">{{ $sidebarProjects->count() }}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    @if(auth()->user()->hasPermission('project.create'))
+                    <a href="{{ route('employee.projects.create', $slug) }}" style="display:flex; color:var(--muted); text-decoration:none;" title="New project" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    </a>
+                    @endif
+                    <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:0 7px; border-radius:10px; font-family:var(--mono);">{{ $sidebarProjects->count() }}</span>
+                </div>
             </div>
             @forelse($sidebarProjects as $sidebarProject)
                 <a href="{{ route('employee.projects.show', [$slug, $sidebarProject->id]) }}"
