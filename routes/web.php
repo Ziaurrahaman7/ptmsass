@@ -31,6 +31,7 @@ use App\Http\Controllers\Company\RoleController as CompanyRoleController;
 use App\Http\Controllers\Company\GapWorkspaceController as CompanyGapWorkspaceController;
 use App\Http\Controllers\Employee\TeamAdminController as EmployeeTeamAdminController;
 use App\Http\Controllers\Employee\TimeEntryController as EmployeeTimeEntryController;
+use App\Http\Controllers\Employee\MemberController as EmployeeMemberController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\ProjectController as ClientProjectController;
 use App\Http\Controllers\Client\TaskActionController as ClientTaskActionController;
@@ -252,6 +253,9 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
     Route::get('/search', EmployeeSearchController::class)->name('search');
     Route::get('/projects/{project}', [EmployeeProjectController::class, 'show'])->name('projects.show');
+    Route::post('/projects/{project}/tasks', [EmployeeProjectController::class, 'storeTask'])->name('projects.tasks.store');
+    Route::get('/members', [EmployeeMemberController::class, 'index'])->name('members.index');
+    Route::post('/members', [EmployeeMemberController::class, 'store'])->name('members.store');
     Route::get('/my-tasks', [EmployeeMyTaskController::class, 'index'])->name('my-tasks.index');
     Route::post('/my-tasks', [EmployeeMyTaskController::class, 'store'])->name('my-tasks.store');
     Route::patch('/my-tasks/{task}/status', [EmployeeMyTaskController::class, 'updateStatus'])->name('my-tasks.status');

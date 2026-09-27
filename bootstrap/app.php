@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'client'        => \App\Http\Middleware\ClientMiddleware::class,
             'company_slug'  => \App\Http\Middleware\CompanySlugMiddleware::class,
             'api_token'     => \App\Http\Middleware\ApiTokenAuth::class,
+            'permission'    => \App\Http\Middleware\EnsureWorkspacePermission::class,
         ]);
 
         // Behind a reverse proxy / CDN (e.g. Cloudflare, Nginx SSL termination) in production,

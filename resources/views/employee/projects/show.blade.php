@@ -116,6 +116,28 @@
             @endif
         </div>
 
+        @if($canCreateTasks ?? false)
+        <form method="POST" action="{{ route('employee.projects.tasks.store', [$slug, $project]) }}" class="ptm-card" style="padding:14px 16px; margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+            @csrf
+            <div style="flex:1; min-width:200px;">
+                <label class="ptm-section-title" style="display:block; margin-bottom:6px;">New task</label>
+                <input type="text" name="title" class="ptm-input" style="width:100%;" placeholder="Task title" required>
+            </div>
+            @if($sections->isNotEmpty())
+            <div>
+                <label class="ptm-section-title" style="display:block; margin-bottom:6px;">Section</label>
+                <select name="section_id" class="ptm-select">
+                    <option value="">(No section)</option>
+                    @foreach($sections as $sec)
+                    <option value="{{ $sec->id }}">{{ $sec->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
+            <button type="submit" class="ptm-btn-primary">Add task</button>
+        </form>
+        @endif
+
         {{-- Progress / 6-month timeline / weekly execution (seo_dashboard style) --}}
         @php
             $timelineTasks = $tasks->map(fn($t) => [
@@ -627,6 +649,14 @@
                         @empty
                             <div style="padding:11px 14px 11px 35px; font-size:12px; color:var(--muted); font-family:var(--mono); border-bottom:1px solid var(--border);">No tasks in this section</div>
                         @endforelse
+                        @if($canCreateTasks ?? false)
+                        <form method="POST" action="{{ route('employee.projects.tasks.store', [$slug, $project]) }}" class="al-addrow" style="display:flex; align-items:center; gap:6px; padding:4px 14px; border-bottom:1px solid var(--border);">
+                            @csrf
+                            <input type="hidden" name="section_id" value="{{ $group['id'] }}">
+                            <span style="color:var(--muted); font-size:14px; flex-shrink:0;">+</span>
+                            <input type="text" name="title" class="ptm-input" placeholder="Add task..." required style="flex:1; border:none; background:transparent; padding:8px 4px;">
+                        </form>
+                        @endif
                     </div>
                 </div>
                 @endforeach

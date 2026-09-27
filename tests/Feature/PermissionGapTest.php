@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -197,5 +198,29 @@ class PermissionGapTest extends TestCase
         $this->assertTrue($employee->can('view', $ws['task']));
         $this->assertFalse($employee->can('update', $ws['task']));
         $this->assertFalse($employee->can('comment', $ws['task']));
+    }
+
+    public function test_workspace_task_edit_allows_create_tasks_on_project(): void
+    {
+        $ws = $this->workspace('acme');
+        $accountant = Role::query()->create([
+            'company_id' => $ws['company']->id,
+            'name' => 'Accountant',
+            'slug' => 'accountant-perms',
+            'is_system' => false,
+        ]);
+        $accountant->permissions()->sync(
+            Permission::query()->whereIn('key', ['task.edit', 'member.invite'])->pluck('id')
+        );
+        $user = User::factory()->employee()->create([
+            'company_id' => $ws['company']->id,
+            'email' => 'acct@acme.test',
+        ]);
+        $user->workspaceRoles()->sync([$accountant->id]);
+        $ws['project']->members()->attach($user->id, ['role' => 'editor']);
+
+        $this->assertTrue($user->hasPermission('task.edit'));
+        $this->assertTrue($user->hasPermission('member.invite'));
+        $this->assertTrue($user->can('createTasks', $ws['project']));
     }
 }

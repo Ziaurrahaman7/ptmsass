@@ -1,11 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Company;
+namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
-use App\Models\Invitation;
 use App\Models\Role;
-use App\Models\User;
 use App\Services\MemberInvitationService;
 use App\Services\RoleProvisioner;
 use Illuminate\Http\Request;
@@ -15,16 +13,11 @@ class MemberController extends Controller
 {
     public function __construct(private MemberInvitationService $invites) {}
 
-    private function company()
-    {
-        return auth()->user()->company;
-    }
-
     public function index(string $slug)
     {
         abort_unless(auth()->user()->hasPermission('member.invite'), 403);
 
-        $company = $this->company();
+        $company = auth()->user()->company;
         app(RoleProvisioner::class)->forCompany((int) $company->id);
 
         $members = $company->users()->with('workspaceRoles')->latest()->get();
@@ -35,14 +28,14 @@ class MemberController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('company.members.index', compact('members', 'invitations', 'workspaceRoles'));
+        return view('employee.members.index', compact('members', 'invitations', 'workspaceRoles', 'slug'));
     }
 
     public function store(Request $request, string $slug)
     {
         abort_unless(auth()->user()->hasPermission('member.invite'), 403);
 
-        $company = $this->company();
+        $company = auth()->user()->company;
 
         $validRoleIds = Role::query()
             ->where('company_id', $company->id)
@@ -75,38 +68,5 @@ class MemberController extends Controller
         return back()
             ->with('success', $message)
             ->with('invite_url', $result['url']);
-    }
-
-    public function resend(string $slug, Invitation $invitation)
-    {
-        abort_if($invitation->company_id !== $this->company()->id, 403);
-
-        $result = $this->invites->resend($invitation);
-
-        $message = $result['mailed']
-            ? 'Invite resent.'
-            : 'New invite link created, but email could not be sent. Copy the link below.';
-
-        return back()
-            ->with('success', $message)
-            ->with('invite_url', $result['url']);
-    }
-
-    public function revoke(string $slug, Invitation $invitation)
-    {
-        abort_if($invitation->company_id !== $this->company()->id, 403);
-        abort_if($invitation->accepted_at, 422);
-
-        $invitation->delete();
-
-        return back()->with('success', 'Invite revoked.');
-    }
-
-    public function toggle(string $slug, User $user)
-    {
-        abort_if($user->company_id !== $this->company()->id, 403);
-        $user->update(['is_active' => ! $user->is_active]);
-
-        return back()->with('success', 'Member status updated.');
     }
 }

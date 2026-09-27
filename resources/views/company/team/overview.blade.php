@@ -421,6 +421,13 @@
                             @endforeach
                         </div>
                     </div>
+                    <div>
+                        <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">TEAM ROLE</label>
+                        <select name="role" class="ptm-select" style="width:100%; max-width:280px;">
+                            <option value="member">Member</option>
+                            <option value="admin">Team Admin (manage this team only)</option>
+                        </select>
+                    </div>
                     <div style="display:flex; gap:10px; padding-top:4px;">
                         <button type="submit" class="ptm-btn-primary">Add to team</button>
                         <button type="button" onclick="document.getElementById('addTeamMemberModal').style.display='none'" class="ptm-btn-ghost">Cancel</button>
