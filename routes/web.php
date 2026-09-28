@@ -80,7 +80,7 @@ Route::get('/f/{token}', [PublicFormController::class, 'show'])->name('forms.pub
 Route::post('/f/{token}', [PublicFormController::class, 'submit'])->name('forms.public.submit');
 
 // Company Admin routes — /{slug}/admin/...
-Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_admin', 'company_slug'])->group(function () {
+Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_admin', 'company_slug', 'admin.permission'])->group(function () {
     Route::get('/dashboard', [CompanyDashboardController::class, 'index'])->name('dashboard');
     
     // Search

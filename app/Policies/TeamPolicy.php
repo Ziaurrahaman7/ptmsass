@@ -15,8 +15,7 @@ class TeamPolicy
             return false;
         }
 
-        return $user->isCompanyAdmin()
-            || $perms->allows($user, 'team.manage')
+        return $perms->allows($user, 'team.manage')
             || $perms->teamRole($user, $team) !== null;
     }
 
@@ -27,8 +26,7 @@ class TeamPolicy
             return false;
         }
 
-        return $user->isCompanyAdmin()
-            || $perms->allows($user, 'team.manage')
+        return $perms->allows($user, 'team.manage')
             || $perms->teamRole($user, $team) === 'admin';
     }
 
@@ -37,6 +35,6 @@ class TeamPolicy
         $perms = app(PermissionService::class);
 
         return $perms->sameCompany($user, $team)
-            && ($user->isCompanyAdmin() || $perms->allows($user, 'team.manage'));
+            && $perms->allows($user, 'team.manage');
     }
 }

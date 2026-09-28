@@ -22,7 +22,7 @@ class MemberController extends Controller
 
     public function index(string $slug)
     {
-        abort_unless(auth()->user()->hasPermission('member.invite'), 403);
+        abort_unless(auth()->user()->hasPermission('member.manage'), 403);
 
         $company = $this->company();
         app(RoleProvisioner::class)->forCompany((int) $company->id);
@@ -40,7 +40,7 @@ class MemberController extends Controller
 
     public function store(Request $request, string $slug)
     {
-        abort_unless(auth()->user()->hasPermission('member.invite'), 403);
+        abort_unless(auth()->user()->hasPermission('member.manage'), 403);
 
         $company = $this->company();
 

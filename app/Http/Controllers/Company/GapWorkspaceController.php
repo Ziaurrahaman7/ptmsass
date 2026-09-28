@@ -228,7 +228,7 @@ class GapWorkspaceController extends Controller
 
     public function integrations(string $slug)
     {
-        abort_unless(auth()->user()->isCompanyAdmin(), 403);
+        abort_unless(auth()->user()->hasPermission('integration.manage'), 403);
         $tokens = ApiToken::query()->where('company_id', $this->companyId())->latest()->get();
         $webhooks = Webhook::query()->where('company_id', $this->companyId())->latest()->get();
 
@@ -237,7 +237,7 @@ class GapWorkspaceController extends Controller
 
     public function storeToken(Request $request, string $slug)
     {
-        abort_unless(auth()->user()->isCompanyAdmin(), 403);
+        abort_unless(auth()->user()->hasPermission('integration.manage'), 403);
         $data = $request->validate(['name' => 'required|string|max:80']);
         $plain = Str::random(48);
         ApiToken::create([
@@ -252,7 +252,7 @@ class GapWorkspaceController extends Controller
 
     public function storeWebhook(Request $request, string $slug)
     {
-        abort_unless(auth()->user()->isCompanyAdmin(), 403);
+        abort_unless(auth()->user()->hasPermission('integration.manage'), 403);
         $data = $request->validate([
             'url' => 'required|url',
             'event' => 'required|string|max:80',

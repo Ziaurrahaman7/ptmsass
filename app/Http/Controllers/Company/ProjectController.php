@@ -21,6 +21,8 @@ class ProjectController extends Controller
 
     public function index(string $slug)
     {
+        $this->authorize('viewAny', Project::class);
+
         $projects = Project::where('company_id', $this->companyId())
             ->where('is_template', false)
             ->withCount(['tasks', 'tasks as done_tasks_count' => fn($q) => $q->where('status', 'done')])

@@ -15,7 +15,7 @@ class TaskPolicy
         if (! $perms->sameCompany($user, $task)) {
             return false;
         }
-        if ($user->isCompanyAdmin()) {
+        if ($user->isCompanyAdmin() && $perms->allows($user, 'project.view')) {
             return true;
         }
         if ($perms->isAssignee($user, $task)) {
@@ -33,7 +33,12 @@ class TaskPolicy
 
     public function create(User $user): bool
     {
-        return $user->isCompanyAdmin() || $user->isEmployee();
+        if ($user->isCompanyAdmin()) {
+            return app(PermissionService::class)->allows($user, 'my_tasks.view')
+                || app(PermissionService::class)->allows($user, 'project.edit');
+        }
+
+        return $user->isEmployee();
     }
 
     public function update(User $user, Task $task): bool
@@ -42,7 +47,7 @@ class TaskPolicy
         if (! $this->view($user, $task)) {
             return false;
         }
-        if ($user->isCompanyAdmin()) {
+        if ($user->isCompanyAdmin() && $perms->allows($user, 'project.edit')) {
             return true;
         }
         if ($this->projectMemberBelow($user, $task, 'editor')) {
@@ -67,7 +72,7 @@ class TaskPolicy
         if (! $perms->sameCompany($user, $task)) {
             return false;
         }
-        if ($user->isCompanyAdmin()) {
+        if ($user->isCompanyAdmin() && $perms->allows($user, 'project.edit')) {
             return true;
         }
         if ($task->project_id === null && (int) $task->created_by === (int) $user->id) {
@@ -83,7 +88,7 @@ class TaskPolicy
         if (! $this->view($user, $task)) {
             return false;
         }
-        if ($user->isCompanyAdmin()) {
+        if ($user->isCompanyAdmin() && $perms->allows($user, 'project.edit')) {
             return true;
         }
         if ($this->projectMemberBelow($user, $task, 'commenter')) {

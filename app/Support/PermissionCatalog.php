@@ -40,37 +40,85 @@ class PermissionCatalog
     public static function adminPortalPermissions(): array
     {
         return [
+            'dashboard.view' => [
+                'label' => 'Dashboard',
+                'hint' => 'Admin home overview',
+            ],
+            'my_tasks.view' => [
+                'label' => 'My Tasks',
+                'hint' => 'Personal task list in admin portal',
+            ],
+            'inbox.view' => [
+                'label' => 'Inbox',
+                'hint' => 'Notifications',
+            ],
+            'member.manage' => [
+                'label' => 'Members',
+                'hint' => 'Invite and manage workspace members',
+            ],
+            'settings.manage' => [
+                'label' => 'Roles & security',
+                'hint' => 'Roles page and security settings',
+            ],
+            'project.view' => [
+                'label' => 'View projects',
+                'hint' => 'Projects sidebar, boards, and tasks',
+            ],
+            'project.create' => [
+                'label' => 'Create projects',
+                'hint' => 'New project (+) in admin portal',
+            ],
             'project.edit' => [
                 'label' => 'Edit projects',
-                'hint' => 'Admin → Projects → edit project details',
+                'hint' => 'Project settings, sections, sharing, imports',
             ],
             'project.delete' => [
                 'label' => 'Delete projects',
-                'hint' => 'Admin → Projects list → Delete',
+                'hint' => 'Remove projects from workspace',
             ],
             'team.manage' => [
-                'label' => 'Manage all teams',
-                'hint' => 'Admin → Teams (any team, not only team admin)',
-            ],
-            'settings.manage' => [
-                'label' => 'Manage workspace settings and roles',
-                'hint' => 'Admin → Roles & security settings',
+                'label' => 'Teams',
+                'hint' => 'Create and manage all teams',
             ],
             'template.manage' => [
-                'label' => 'Manage task templates',
-                'hint' => 'Admin → Settings → Templates',
+                'label' => 'Templates',
+                'hint' => 'Task / project templates',
+            ],
+            'form.manage' => [
+                'label' => 'Forms',
+                'hint' => 'Intake forms (admin settings)',
             ],
             'rule.manage' => [
-                'label' => 'Manage automation rules',
-                'hint' => 'Admin → Settings → Rules',
+                'label' => 'Rules',
+                'hint' => 'Automation rules',
             ],
             'time.review' => [
-                'label' => 'Review timesheets',
-                'hint' => 'Admin → Settings → Timesheets',
+                'label' => 'Timesheets',
+                'hint' => 'Review submitted time',
             ],
             'report.view' => [
-                'label' => 'View cross-project reports',
-                'hint' => 'Admin → Settings → Reports',
+                'label' => 'Reports',
+                'hint' => 'Settings → Reports',
+            ],
+            'integration.manage' => [
+                'label' => 'API / Webhooks',
+                'hint' => 'Integrations and API tokens',
+            ],
+            'priority.manage' => [
+                'label' => 'Priorities',
+                'hint' => 'Workspace priority labels',
+            ],
+            'insight.view' => [
+                'label' => 'Reporting',
+                'hint' => 'Insights dashboards and charts',
+            ],
+            'portfolio.manage' => [
+                'label' => 'Portfolios',
+                'hint' => 'Portfolio groupings',
+            ],
+            'goal.manage' => [
+                'label' => 'Goals',
+                'hint' => 'Company goals',
             ],
         ];
     }

@@ -164,84 +164,121 @@
                 ->where('is_favorite', true)
                 ->orderBy('title_override')
                 ->get(['type', 'title_override']);
+            $adminCan = fn (string $perm) => auth()->user()->hasPermission($perm);
         @endphp
         <nav style="flex:1; padding:10px 8px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
+            @if($adminCan('dashboard.view'))
             <a href="{{ route('company.dashboard', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.dashboard') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
             </a>
+            @endif
+            @if($adminCan('my_tasks.view'))
             <a href="{{ route('company.my-tasks.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.my-tasks.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                 My Tasks
             </a>
+            @endif
+            @if($adminCan('inbox.view'))
             <a href="{{ route('company.notifications.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.notifications.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 Inbox
             </a>
+            @endif
+            @if($adminCan('member.manage'))
             <a href="{{ route('company.members.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.members.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 Members
             </a>
+            @endif
+            @if($adminCan('settings.manage'))
             <a href="{{ route('company.roles.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.roles.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 Roles
             </a>
+            @endif
 
+            @if($adminCan('template.manage') || $adminCan('form.manage') || $adminCan('rule.manage') || $adminCan('time.review') || $adminCan('report.view') || $adminCan('integration.manage') || $adminCan('priority.manage'))
             {{-- Settings --}}
             <div style="padding:14px 12px 6px;">
                 <span class="ptm-section-title">Settings</span>
             </div>
+            @endif
+            @if($adminCan('template.manage'))
             <a href="{{ route('company.templates.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.templates.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
                 Templates
             </a>
+            @endif
+            @if($adminCan('form.manage'))
             <a href="{{ route('company.forms.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.forms.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Forms
             </a>
+            @endif
+            @if($adminCan('rule.manage'))
             <a href="{{ route('company.rules.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.rules.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 Rules
             </a>
+            @endif
+            @if($adminCan('time.review'))
             <a href="{{ route('company.timesheets.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.timesheets.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                 Timesheets
             </a>
+            @endif
+            @if($adminCan('report.view'))
             <a href="{{ route('company.reports.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.reports.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
                 Reports
             </a>
+            @endif
+            @if($adminCan('integration.manage'))
             <a href="{{ route('company.integrations.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.integrations.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/></svg>
                 API / Webhooks
             </a>
+            @endif
+            @if($adminCan('settings.manage'))
             <a href="{{ route('company.security.edit', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.security.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                 Security
             </a>
+            @endif
+            @if($adminCan('priority.manage'))
             <a href="{{ route('company.priorities.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.priorities.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9 12 2"/></svg>
                 Priorities
             </a>
+            @endif
 
+            @if($adminCan('insight.view') || $adminCan('portfolio.manage') || $adminCan('goal.manage'))
             {{-- Insights --}}
             <div style="padding:14px 12px 6px;">
                 <span class="ptm-section-title">Insights</span>
             </div>
+            @endif
+            @if($adminCan('insight.view'))
             <a href="{{ route('company.insights.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.insights.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 Reporting
             </a>
+            @endif
+            @if($adminCan('portfolio.manage'))
             <a href="{{ route('company.portfolios.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.portfolios.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
                 Portfolios
             </a>
+            @endif
+            @if($adminCan('goal.manage'))
             <a href="{{ route('company.goals.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.goals.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
                 Goals
             </a>
+            @endif
 
-            @if($starredProjects->isNotEmpty() || $starredDashboards->isNotEmpty() || $starredPrefs->isNotEmpty())
+            @if($adminCan('project.view') && ($starredProjects->isNotEmpty() || ($adminCan('insight.view') && ($starredDashboards->isNotEmpty() || $starredPrefs->isNotEmpty()))))
             {{-- Starred --}}
             <div style="padding:14px 12px 6px;">
                 <span class="ptm-section-title">Starred</span>
@@ -252,6 +289,7 @@
                 <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $sproj->name }}</span>
             </a>
             @endforeach
+            @if($adminCan('insight.view'))
             @foreach($starredDashboards as $sd)
             <a href="{{ route('company.insights.dashboards.show', [$slug, $sd->id]) }}" class="ptm-nav-link {{ request()->route('dashboard') && request()->route('dashboard')->id === $sd->id ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6L12 16.8 6.3 19.5l1.2-6L3 9.3l6.4-.7L12 3z"/></svg>
@@ -265,7 +303,9 @@
             </a>
             @endforeach
             @endif
+            @endif
 
+            @if($adminCan('team.manage'))
             {{-- Teams Dropdown --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
                 <span class="ptm-section-title">Teams</span>
@@ -282,13 +322,17 @@
             @empty
                 <div style="padding:6px 12px; font-size:11px; color:var(--muted); font-family:var(--mono);">No teams yet</div>
             @endforelse
+            @endif
 
+            @if($adminCan('project.view'))
             {{-- Projects list --}}
             <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 12px 6px;">
                 <span class="ptm-section-title">Projects</span>
+                @if($adminCan('project.create'))
                 <a href="{{ route('company.projects.create', $slug) }}" style="display:flex; color:var(--muted); text-decoration:none;" title="New project" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </a>
+                @endif
             </div>
             @forelse($sidebarProjects as $sidebarProject)
                 <a href="{{ route('company.projects.show', [$slug, $sidebarProject->id]) }}"
@@ -299,6 +343,7 @@
             @empty
                 <div style="padding:6px 12px; font-size:11px; color:var(--muted); font-family:var(--mono);">No projects yet</div>
             @endforelse
+            @endif
         </nav>
 
         <div style="padding:12px 12px 14px; border-top:1px solid var(--border);">

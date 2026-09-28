@@ -8,13 +8,22 @@ use App\Services\PermissionService;
 
 class ProjectPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        if ($user->isCompanyAdmin()) {
+            return app(PermissionService::class)->allows($user, 'project.view');
+        }
+
+        return $user->isEmployee();
+    }
+
     public function view(User $user, Project $project): bool
     {
         $perms = app(PermissionService::class);
         if (! $perms->sameCompany($user, $project)) {
             return false;
         }
-        if ($user->isCompanyAdmin()) {
+        if ($user->isCompanyAdmin() && $perms->allows($user, 'project.view')) {
             return true;
         }
         if ($user->isClient()) {
@@ -37,7 +46,7 @@ class ProjectPolicy
             return false;
         }
 
-        return $user->isCompanyAdmin()
+        return ($user->isCompanyAdmin() && $perms->allows($user, 'project.edit'))
             || $perms->allows($user, 'project.edit')
             || $perms->projectAtLeast($user, $project, 'admin');
     }
@@ -49,7 +58,7 @@ class ProjectPolicy
             return false;
         }
 
-        return $user->isCompanyAdmin()
+        return ($user->isCompanyAdmin() && $perms->allows($user, 'project.delete'))
             || $perms->allows($user, 'project.delete')
             || $perms->projectAtLeast($user, $project, 'owner');
     }
@@ -66,7 +75,7 @@ class ProjectPolicy
             return false;
         }
 
-        return $user->isCompanyAdmin()
+        return ($user->isCompanyAdmin() && $perms->allows($user, 'project.edit'))
             || $perms->projectAtLeast($user, $project, 'editor')
             || $perms->clientAtLeast($user, $project, 'contribute');
     }

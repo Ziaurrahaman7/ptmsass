@@ -21,16 +21,14 @@ class PermissionService
         if (! $user->company_id) {
             return false;
         }
-        if ($user->isCompanyAdmin()) {
-            return true;
-        }
-
         $this->ensure($user);
 
         $roles = $user->workspaceRoles()->where('roles.company_id', $user->company_id);
         // Custom role assigned → only custom roles count (ignore stacked system "Employee" pack).
         if ((clone $roles)->where('roles.is_system', false)->exists()) {
             $roles->where('roles.is_system', false);
+        } elseif ($user->isCompanyAdmin()) {
+            $roles->where('roles.slug', 'company-admin');
         }
 
         return $roles->whereHas('permissions', fn ($q) => $q->where('key', $key))->exists();
@@ -41,7 +39,7 @@ class PermissionService
         if ((int) $user->company_id !== (int) $project->company_id) {
             return null;
         }
-        if ($user->isCompanyAdmin()) {
+        if ($user->isCompanyAdmin() && $this->allows($user, 'project.view')) {
             return 'owner';
         }
 
@@ -86,7 +84,7 @@ class PermissionService
         if ((int) $user->company_id !== (int) $team->company_id) {
             return null;
         }
-        if ($user->isCompanyAdmin() || $this->allows($user, 'team.manage')) {
+        if ($this->allows($user, 'team.manage')) {
             return 'admin';
         }
         $row = $team->members()->where('users.id', $user->id)->first();
