@@ -5,6 +5,7 @@
     $totalCount = count($permCatalog);
     $memberCount = $role->users->count();
     $isCompanyAdminRole = $role->slug === 'company-admin';
+    $isEmployeeSystemRole = $role->slug === 'employee';
     $permGroup = ($isAdminRole ? 'adm' : 'emp').'-'.$role->id;
 @endphp
 
@@ -31,7 +32,10 @@
 
             <div class="role-name-row" style="margin-top:16px;">
                 <label class="ptm-section-title" style="margin:0;">Role name</label>
-                <input name="name" class="ptm-input" value="{{ $role->name }}" @disabled($isCompanyAdminRole)>
+                <input name="name" class="ptm-input" value="{{ $role->name }}" @disabled($isCompanyAdminRole || $isEmployeeSystemRole)>
+                @if($isCompanyAdminRole || $isEmployeeSystemRole)
+                <input type="hidden" name="name" value="{{ $role->name }}">
+                @endif
             </div>
 
             <div class="perm-section-head">

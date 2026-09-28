@@ -23,8 +23,13 @@ class RoleProvisioner
         $admin = $this->role($companyId, 'Company Admin', 'company-admin', true, 'admin');
         $member = $this->role($companyId, 'Employee', 'employee', true, 'employee');
 
-        $this->syncKeys($admin, PermissionCatalog::adminPortalKeys());
-        $this->syncKeys($member, PermissionCatalog::employeeKeys());
+        // Default permissions only when the system role is first created — do not reset UI edits.
+        if ($admin->wasRecentlyCreated) {
+            $this->syncKeys($admin, PermissionCatalog::adminPortalKeys());
+        }
+        if ($member->wasRecentlyCreated) {
+            $this->syncKeys($member, PermissionCatalog::employeeKeys());
+        }
 
         User::query()
             ->where('company_id', $companyId)
