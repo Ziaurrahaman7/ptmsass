@@ -128,6 +128,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('projects/{project}/members', [CompanyProjectController::class, 'addMember'])->name('projects.members.add');
     Route::delete('projects/{project}/members/{user}', [CompanyProjectController::class, 'removeMember'])->name('projects.members.remove');
     Route::post('projects/{project}/clients', [CompanyProjectController::class, 'addClient'])->name('projects.clients.add');
+    Route::patch('projects/{project}/clients/{user}', [CompanyProjectController::class, 'updateClientAccess'])->name('projects.clients.update');
     Route::delete('projects/{project}/clients/{user}', [CompanyProjectController::class, 'removeClient'])->name('projects.clients.remove');
     Route::post('projects/{project}/resources', [CompanyProjectController::class, 'storeResource'])->name('projects.resources.store');
     Route::delete('projects/{project}/resources/{resource}', [CompanyProjectController::class, 'destroyResource'])->name('projects.resources.destroy');
@@ -284,6 +285,7 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     Route::get('/teams/{team}', [EmployeeTeamAdminController::class, 'show'])->name('teams.show');
     Route::put('/teams/{team}', [EmployeeTeamAdminController::class, 'update'])->name('teams.update');
     Route::post('/teams/{team}/members', [EmployeeTeamAdminController::class, 'addMember'])->name('teams.members.add');
+    Route::patch('/teams/{team}/members/{user}/role', [EmployeeTeamAdminController::class, 'updateMemberRole'])->name('teams.members.role');
     Route::delete('/teams/{team}/members/{user}', [EmployeeTeamAdminController::class, 'removeMember'])->name('teams.members.remove');
     Route::get('/time', [EmployeeTimeEntryController::class, 'index'])->name('time.index');
     Route::post('/time', [EmployeeTimeEntryController::class, 'store'])->name('time.store');

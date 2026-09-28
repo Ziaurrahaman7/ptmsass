@@ -13,16 +13,27 @@ class TeamAdminController extends Controller
     {
         $teams = auth()->user()->teams()->orderBy('name')->get();
 
-        return view('employee.teams.index', compact('teams'));
+        return view('employee.teams.index', compact('teams', 'slug'));
     }
 
     public function show(string $slug, Team $team)
     {
         $this->authorize('view', $team);
         $team->load('members');
-        $people = User::query()->where('company_id', auth()->user()->company_id)->where('role', 'employee')->where('is_active', true)->orderBy('name')->get();
+        $canManage = auth()->user()->can('update', $team);
+        $memberIds = $team->members->pluck('id');
+        $people = User::query()
+            ->where('company_id', auth()->user()->company_id)
+            ->whereIn('role', ['employee', 'company_admin'])
+            ->where('is_active', true)
+            ->whereNotIn('id', $memberIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
 
-        return view('employee.teams.show', compact('team', 'people'));
+        $myPivot = auth()->user()->teams()->where('teams.id', $team->id)->first()?->pivot;
+        $myTeamRole = $myPivot?->role ?? 'member';
+
+        return view('employee.teams.show', compact('team', 'people', 'canManage', 'myTeamRole', 'slug'));
     }
 
     public function update(Request $request, string $slug, Team $team)
@@ -48,6 +59,22 @@ class TeamAdminController extends Controller
         $team->members()->syncWithoutDetaching([$user->id => ['role' => $data['role'] ?? 'member']]);
 
         return back()->with('success', 'Member added.');
+    }
+
+    public function updateMemberRole(Request $request, string $slug, Team $team, User $user)
+    {
+        $this->authorize('update', $team);
+        abort_unless($team->members()->where('users.id', $user->id)->exists(), 404);
+
+        $data = $request->validate([
+            'role' => 'required|in:admin,member',
+        ]);
+
+        $team->members()->updateExistingPivot($user->id, [
+            'role' => $data['role'],
+        ]);
+
+        return back()->with('success', 'Team role updated.');
     }
 
     public function removeMember(string $slug, Team $team, User $user)

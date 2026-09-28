@@ -377,6 +377,24 @@ class ProjectController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function updateClientAccess(Request $request, string $slug, Project $project, User $user)
+    {
+        $this->authorizeProject($project);
+
+        $data = $request->validate([
+            'access_mode' => 'required|in:view,collaborate,contribute,approve',
+        ]);
+
+        abort_unless($user->role === 'client' && (int) $user->company_id === (int) auth()->user()->company_id, 404);
+        abort_unless($project->clients()->where('users.id', $user->id)->exists(), 404);
+
+        $project->clients()->updateExistingPivot($user->id, [
+            'access_mode' => $data['access_mode'],
+        ]);
+
+        return response()->json(['success' => true, 'access_mode' => $data['access_mode']]);
+    }
+
     public function removeClient(string $slug, Project $project, User $user)
     {
         $this->authorizeProject($project);

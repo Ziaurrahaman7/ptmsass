@@ -82,6 +82,30 @@ class PermissionGapTest extends TestCase
         $this->assertTrue($client->fresh()->can('comment', $ws['task']->fresh()));
     }
 
+    public function test_admin_can_update_client_access_mode_on_project(): void
+    {
+        $ws = $this->workspace('acme');
+        $client = User::factory()->create([
+            'company_id' => $ws['company']->id,
+            'role' => 'client',
+            'email' => 'client-mode@acme.test',
+        ]);
+        $ws['project']->clients()->attach($client->id, ['access_mode' => 'view']);
+
+        $this->actingAs($ws['admin'])
+            ->patchJson(route('company.projects.clients.update', [
+                'slug' => $ws['company']->slug,
+                'project' => $ws['project'],
+                'user' => $client,
+            ]), ['access_mode' => 'collaborate'])
+            ->assertOk()
+            ->assertJson(['success' => true, 'access_mode' => 'collaborate']);
+
+        $this->assertSame('collaborate', $ws['project']->clients()->where('users.id', $client->id)->first()->pivot->access_mode);
+        $client->unsetRelation('clientProjects');
+        $this->assertTrue($client->fresh()->can('comment', $ws['task']->fresh()));
+    }
+
     public function test_task_appears_in_two_projects(): void
     {
         $ws = $this->workspace('acme');

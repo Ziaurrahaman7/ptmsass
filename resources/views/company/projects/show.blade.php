@@ -1110,13 +1110,22 @@
                                 Add client
                             </button>
                             @foreach($projectClients as $pc)
-                            <div style="display:flex; align-items:center; gap:8px; position:relative;" class="ov-member-row">
-                                <span style="width:28px; height:28px; border-radius:50%; background:#d97706; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ strtoupper(substr($pc->name,0,2)) }}</span>
+                            @php
+                                $clientAccessMode = $pc->pivot->access_mode ?? 'view';
+                            @endphp
+                            <div style="display:flex; align-items:flex-start; gap:8px; position:relative; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:var(--surface2);" class="ov-member-row">
+                                <span style="width:28px; height:28px; border-radius:50%; background:#d97706; color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">{{ strtoupper(substr($pc->name,0,2)) }}</span>
                                 <div style="min-width:0; flex:1;">
                                     <div style="font-size:13px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $pc->name }}</div>
                                     <div style="font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $pc->email }}</div>
+                                    <select class="ptm-select client-access-mode-select" data-user-id="{{ $pc->id }}" data-last-value="{{ $clientAccessMode }}" style="font-size:11px; padding:5px 8px; width:100%; margin-top:8px;" onchange="updateProjectClientMode({{ $pc->id }}, this)">
+                                        <option value="view" @selected($clientAccessMode === 'view')>View only</option>
+                                        <option value="collaborate" @selected($clientAccessMode === 'collaborate')>Collaborate</option>
+                                        <option value="contribute" @selected($clientAccessMode === 'contribute')>Contribute</option>
+                                        <option value="approve" @selected($clientAccessMode === 'approve')>Approve</option>
+                                    </select>
                                 </div>
-                                <button onclick="removeProjectClient({{ $pc->id }})" title="Remove access" class="ov-member-remove">
+                                <button onclick="removeProjectClient({{ $pc->id }})" title="Remove access" class="ov-member-remove" style="margin-top:2px;">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </button>
                             </div>
@@ -2605,6 +2614,29 @@
             btn.disabled = false; btn.textContent = 'Add';
         })
         .catch(() => { btn.disabled = false; btn.textContent = 'Add'; });
+    }
+    function updateProjectClientMode(userId, selectEl) {
+        const previous = selectEl.dataset.lastValue || selectEl.value;
+        selectEl.dataset.lastValue = selectEl.value;
+        selectEl.disabled = true;
+        fetch(`/${slug}/admin/projects/${PROJECT_ID}/clients/${userId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: JSON.stringify({ access_mode: selectEl.value })
+        })
+        .then(r => r.json())
+        .then(data => {
+            selectEl.disabled = false;
+            if (!data.success) {
+                selectEl.value = previous;
+                return;
+            }
+            selectEl.dataset.lastValue = selectEl.value;
+        })
+        .catch(() => {
+            selectEl.disabled = false;
+            selectEl.value = previous;
+        });
     }
     function removeProjectClient(userId) {
         if (!confirm('Remove this client\'s access to the project?')) return;
