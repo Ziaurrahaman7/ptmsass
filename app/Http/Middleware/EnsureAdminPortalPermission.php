@@ -15,6 +15,10 @@ class EnsureAdminPortalPermission
             abort(403);
         }
 
+        if ($user->hasUnrestrictedAdminPortalAccess()) {
+            return $next($request);
+        }
+
         $permission = AdminRoutePermissions::forRoute($request->route()?->getName());
         if ($permission && ! $user->hasPermission($permission)) {
             abort(403, 'You do not have permission for this area.');

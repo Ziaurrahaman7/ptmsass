@@ -87,6 +87,29 @@ class User extends Authenticatable
         return $this->role === 'company_admin';
     }
 
+    /** Custom admin-portal workspace role (e.g. production manager) — limited ticks, not owner-style access. */
+    public function hasDelegatedAdminPortalRole(): bool
+    {
+        if (! $this->company_id) {
+            return false;
+        }
+
+        return $this->workspaceRoles()
+            ->where('roles.company_id', $this->company_id)
+            ->where('roles.is_system', false)
+            ->where('roles.portal_type', 'admin')
+            ->exists();
+    }
+
+    /**
+     * Company admin login with full admin portal (sidebar Teams, all routes).
+     * False when a custom Admin login role is assigned in Roles.
+     */
+    public function hasUnrestrictedAdminPortalAccess(): bool
+    {
+        return $this->isCompanyAdmin() && ! $this->hasDelegatedAdminPortalRole();
+    }
+
     public function isEmployee(): bool
     {
         return $this->role === 'employee';

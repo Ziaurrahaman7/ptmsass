@@ -21,6 +21,9 @@ class PermissionService
         if (! $user->company_id) {
             return false;
         }
+        if ($user->hasUnrestrictedAdminPortalAccess()) {
+            return true;
+        }
         $this->ensure($user);
 
         $roles = $user->workspaceRoles()->where('roles.company_id', $user->company_id);

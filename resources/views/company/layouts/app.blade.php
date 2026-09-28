@@ -353,7 +353,13 @@
                 </div>
                 <div>
                     <div style="font-size:13px; font-weight:500; color:var(--text);">{{ auth()->user()->name }}</div>
-                    <div style="font-size:10px; color:var(--muted); font-family:var(--mono);">Company Admin</div>
+                    @php
+                        $wsRoleName = auth()->user()->workspaceRoles->first()?->name;
+                        $adminLoginLabel = auth()->user()->hasDelegatedAdminPortalRole()
+                            ? ($wsRoleName ?: 'Delegated admin')
+                            : 'Company Admin';
+                    @endphp
+                    <div style="font-size:10px; color:var(--muted); font-family:var(--mono);">{{ $adminLoginLabel }}</div>
                 </div>
             </div>
             <form method="POST" action="{{ route('logout') }}">

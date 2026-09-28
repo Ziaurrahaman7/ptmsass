@@ -138,10 +138,14 @@
                         <div style="padding:14px;">
                             <div style="display:flex; flex-wrap:wrap; gap:8px;">
                                 @foreach($members->take(10) as $member)
-                                <div title="{{ $member->name }}" style="position:relative;">
-                                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(74,222,128,0.15); color:#4ade80; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; border:2px solid {{ $member->is_active ? 'rgba(74,222,128,0.3)' : 'var(--border)' }};">
+                                @php $isTeamAdmin = ($member->pivot->role ?? 'member') === 'admin'; @endphp
+                                <div title="{{ $member->name }}{{ $isTeamAdmin ? ' · Team Admin' : '' }}" style="position:relative;">
+                                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(74,222,128,0.15); color:#4ade80; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; border:2px solid {{ $isTeamAdmin ? 'rgba(167,139,250,0.5)' : ($member->is_active ? 'rgba(74,222,128,0.3)' : 'var(--border)') }};">
                                         {{ strtoupper(substr($member->name, 0, 1)) }}
                                     </div>
+                                    @if($isTeamAdmin)
+                                    <div style="position:absolute; top:-4px; left:-4px; font-size:8px; font-family:var(--mono); font-weight:600; padding:1px 4px; border-radius:4px; color:#a78bfa; background:rgba(167,139,250,0.2); border:1px solid rgba(167,139,250,0.4);">Admin</div>
+                                    @endif
                                     @if($member->is_active)
                                     <div style="position:absolute; bottom:-2px; right:-2px; width:10px; height:10px; border-radius:50%; background:#4ade80; border:2px solid var(--surface);"></div>
                                     @endif
@@ -208,7 +212,8 @@
                 $companyUsers = auth()->user()->company->users()->where('is_active', true)->orderBy('name')->get();
                 $nonMembers = $companyUsers->whereNotIn('id', $members->pluck('id'))->values();
                 $teamFields = $team->fields;
-                $memberColspan = 3 + $teamFields->count();
+                $canManageTeam = auth()->user()->can('update', $team);
+                $memberColspan = 4 + $teamFields->count();
                 $fieldTypeMeta = [
                     'single_select' => ['label' => 'Single-select', 'icon' => '<circle cx="12" cy="12" r="9"/><path d="M8 12l2.5 2.5L16 9"/>'],
                     'multi_select'  => ['label' => 'Multi-select',  'icon' => '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l2.5 2.5L16 9"/>'],
@@ -238,6 +243,7 @@
                     <thead>
                         <tr>
                             <th style="padding:11px 18px; text-align:left; width:280px;">Name</th>
+                            <th style="padding:11px 18px; text-align:left; width:150px;">Team role</th>
                             <th style="padding:11px 18px; text-align:left;">Job title</th>
                             @foreach($teamFields as $field)
                             <th style="padding:11px 18px; text-align:left; white-space:nowrap;">
@@ -312,10 +318,31 @@
                                         @endif
                                     </div>
                                     <div style="min-width:0;">
-                                        <div style="font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $member->name }}</div>
+                                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                            <span style="font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $member->name }}</span>
+                                            @if(($member->pivot->role ?? 'member') === 'admin')
+                                            <span style="font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:6px; color:#a78bfa; border:1px solid rgba(167,139,250,0.35); background:rgba(167,139,250,0.1); flex-shrink:0;">Team Admin</span>
+                                            @endif
+                                        </div>
                                         <div style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ $member->email }}</div>
                                     </div>
                                 </div>
+                            </td>
+                            <td style="padding:11px 18px;">
+                                @php $teamMemberRole = $member->pivot->role ?? 'member'; @endphp
+                                @if($canManageTeam)
+                                <form method="POST" action="{{ route('company.teams.members.role', [$slug, $team, $member]) }}" style="margin:0;">
+                                    @csrf @method('PATCH')
+                                    <select name="role" onchange="this.form.submit()" class="ptm-select" style="font-size:12px; padding:6px 10px; max-width:160px;">
+                                        <option value="member" @selected($teamMemberRole !== 'admin')>Member</option>
+                                        <option value="admin" @selected($teamMemberRole === 'admin')>Team Admin</option>
+                                    </select>
+                                </form>
+                                @elseif($teamMemberRole === 'admin')
+                                <span style="font-size:10px; font-family:var(--mono); padding:3px 8px; border-radius:6px; color:#a78bfa; border:1px solid rgba(167,139,250,0.35); background:rgba(167,139,250,0.08);">Team Admin</span>
+                                @else
+                                <span style="font-size:10px; font-family:var(--mono); padding:3px 8px; border-radius:6px; color:var(--muted); border:1px solid var(--border2);">Member</span>
+                                @endif
                             </td>
                             <td style="padding:11px 18px;">
                                 <input type="text" class="job-title-input"

@@ -20,8 +20,16 @@
 </form>
 @endcan
 @foreach($team->members as $member)
-<div class="ptm-card" style="padding:12px 16px; margin-bottom:6px; display:flex; justify-content:space-between;">
-    <span>{{ $member->name }} · {{ $member->pivot->role }}</span>
+@php $teamMemberRole = $member->pivot->role ?? 'member'; @endphp
+<div class="ptm-card" style="padding:12px 16px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+    <span style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span>{{ $member->name }}</span>
+        @if($teamMemberRole === 'admin')
+        <span style="font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:6px; color:#a78bfa; border:1px solid rgba(167,139,250,0.35); background:rgba(167,139,250,0.1);">Team Admin</span>
+        @else
+        <span style="font-size:10px; font-family:var(--mono); padding:2px 7px; border-radius:6px; color:var(--muted); border:1px solid var(--border2);">Member</span>
+        @endif
+    </span>
     @can('update', $team)
     <form method="POST" action="{{ route('employee.teams.members.remove', [$slug, $team, $member]) }}">
         @csrf @method('DELETE')

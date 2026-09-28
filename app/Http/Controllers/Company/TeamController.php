@@ -162,6 +162,24 @@ class TeamController extends Controller
         return back()->with('success', 'Job title updated.');
     }
 
+    public function updateMemberRole(Request $request, string $slug, Team $team, User $user)
+    {
+        abort_if($team->company_id !== $this->companyId(), 403);
+        $this->authorize('update', $team);
+        abort_unless($team->members()->where('users.id', $user->id)->exists(), 404);
+
+        $data = $request->validate([
+            'role' => 'required|in:admin,member',
+        ]);
+
+        $team->members()->updateExistingPivot($user->id, [
+            'role' => $data['role'],
+        ]);
+
+        return redirect()->route('company.team.overview', ['slug' => $slug, 'team' => $team, 'tab' => 'members'])
+            ->with('success', 'Team role updated.');
+    }
+
     public function removeMember(string $slug, Team $team, User $user)
     {
         abort_if($team->company_id !== $this->companyId(), 403);

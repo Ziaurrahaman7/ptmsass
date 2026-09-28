@@ -191,6 +191,7 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::put('teams/{team}', [CompanyTeamController::class, 'update'])->name('teams.update');
     Route::post('teams/{team}/members', [CompanyTeamController::class, 'addMembers'])->name('teams.members.add');
     Route::patch('teams/{team}/members/{user}/title', [CompanyTeamController::class, 'updateMemberTitle'])->name('teams.members.title');
+    Route::patch('teams/{team}/members/{user}/role', [CompanyTeamController::class, 'updateMemberRole'])->name('teams.members.role');
     Route::delete('teams/{team}/members/{user}', [CompanyTeamController::class, 'removeMember'])->name('teams.members.remove');
     Route::post('teams/{team}/fields', [CompanyTeamFieldController::class, 'store'])->name('teams.fields.store');
     Route::delete('teams/{team}/fields/{field}', [CompanyTeamFieldController::class, 'destroy'])->name('teams.fields.destroy');
