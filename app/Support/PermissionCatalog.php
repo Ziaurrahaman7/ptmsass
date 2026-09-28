@@ -4,23 +4,107 @@ namespace App\Support;
 
 class PermissionCatalog
 {
+    /**
+     * Roles UI: permissions that work on the employee portal (/{slug}/...).
+     *
+     * @return array<string, array{label: string, hint: string}>
+     */
+    public static function employeePortalPermissions(): array
+    {
+        return [
+            'project.create' => [
+                'label' => 'Create projects',
+                'hint' => 'Employee sidebar → Projects (+) and /projects/create',
+            ],
+            'member.invite' => [
+                'label' => 'Invite members',
+                'hint' => 'Employee sidebar → Invite members',
+            ],
+            'time.track' => [
+                'label' => 'Track time',
+                'hint' => 'Employee sidebar → Time',
+            ],
+            'form.manage' => [
+                'label' => 'Manage intake forms',
+                'hint' => 'Employee sidebar → Intake forms + public /f/… links',
+            ],
+        ];
+    }
+
+    /**
+     * Roles UI: permissions for the company admin portal (/{slug}/admin/...).
+     * Employee login cannot open these pages even when ticked.
+     *
+     * @return array<string, array{label: string, hint: string}>
+     */
+    public static function adminPortalPermissions(): array
+    {
+        return [
+            'project.edit' => [
+                'label' => 'Edit projects',
+                'hint' => 'Admin → Projects → edit project details',
+            ],
+            'project.delete' => [
+                'label' => 'Delete projects',
+                'hint' => 'Admin → Projects list → Delete',
+            ],
+            'team.manage' => [
+                'label' => 'Manage all teams',
+                'hint' => 'Admin → Teams (any team, not only team admin)',
+            ],
+            'settings.manage' => [
+                'label' => 'Manage workspace settings and roles',
+                'hint' => 'Admin → Roles & security settings',
+            ],
+            'template.manage' => [
+                'label' => 'Manage task templates',
+                'hint' => 'Admin → Settings → Templates',
+            ],
+            'rule.manage' => [
+                'label' => 'Manage automation rules',
+                'hint' => 'Admin → Settings → Rules',
+            ],
+            'time.review' => [
+                'label' => 'Review timesheets',
+                'hint' => 'Admin → Settings → Timesheets',
+            ],
+            'report.view' => [
+                'label' => 'View cross-project reports',
+                'hint' => 'Admin → Settings → Reports',
+            ],
+        ];
+    }
+
     /** Workspace-wide capabilities (Roles UI + global delegation). */
     public static function workspace(): array
     {
-        return [
-            'project.create' => 'Create projects',
-            'project.edit' => 'Edit projects',
-            'project.delete' => 'Delete projects',
-            'team.manage' => 'Manage all teams',
-            'member.invite' => 'Invite members',
-            'settings.manage' => 'Manage workspace settings and roles',
-            'form.manage' => 'Manage intake forms',
-            'rule.manage' => 'Manage automation rules',
-            'template.manage' => 'Manage task templates',
-            'time.track' => 'Track time',
-            'time.review' => 'Review timesheets',
-            'report.view' => 'View cross-project reports',
-        ];
+        $labels = [];
+        foreach (self::employeePortalPermissions() as $key => $meta) {
+            $labels[$key] = $meta['label'];
+        }
+        foreach (self::adminPortalPermissions() as $key => $meta) {
+            $labels[$key] = $meta['label'];
+        }
+
+        return $labels;
+    }
+
+    public static function employeePortalKeys(): array
+    {
+        return array_keys(self::employeePortalPermissions());
+    }
+
+    public static function adminPortalKeys(): array
+    {
+        return array_keys(self::adminPortalPermissions());
+    }
+
+    /** @return array<int, string> */
+    public static function keysForPortalType(string $portalType): array
+    {
+        return $portalType === 'admin'
+            ? self::adminPortalKeys()
+            : self::employeePortalKeys();
     }
 
     /** @deprecated Hidden from Roles UI; kept for policy/DB cleanup only. */

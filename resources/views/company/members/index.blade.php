@@ -159,6 +159,8 @@
                     $selectedAccess = old('access_role');
                     if ($selectedAccess === null && old('role') === 'client') {
                         $selectedAccess = 'client';
+                    } elseif ($selectedAccess === null && old('role') === 'company_admin') {
+                        $selectedAccess = 'company_admin';
                     } elseif ($selectedAccess === null && old('workspace_role_id')) {
                         $selectedAccess = (string) old('workspace_role_id');
                     } elseif ($selectedAccess === null) {
@@ -168,6 +170,11 @@
                 <div>
                     <label style="display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:6px;">ROLE *</label>
                     <select name="access_role" class="ptm-select" style="width:100%;" required>
+                        @if(auth()->user()->isCompanyAdmin())
+                        <optgroup label="Administrators">
+                            <option value="company_admin" @selected($selectedAccess === 'company_admin')>Company admin (full admin portal)</option>
+                        </optgroup>
+                        @endif
                         @if($roles->isNotEmpty())
                         <optgroup label="Team members">
                             @foreach($roles as $wsRole)
@@ -180,9 +187,6 @@
                         </optgroup>
                     </select>
                     @error('access_role')<div style="font-size:11px; color:#f87171; margin-top:4px;">{{ $message }}</div>@enderror
-                    <div style="font-size:11px; color:var(--muted); margin-top:8px; line-height:1.45;">
-                        Controls company-wide features. To limit someone on a single project, use <strong style="color:var(--text);">Project → Share</strong> and pick Viewer / Editor.
-                    </div>
                     @if($roles->isEmpty())
                     <div style="font-size:11px; color:var(--muted); margin-top:6px;">Add team roles under <a href="{{ route('company.roles.index', $slug) }}" style="color:var(--accent2);">Roles</a>.</div>
                     @endif

@@ -31,7 +31,7 @@ class MemberController extends Controller
         $invitations = $company->invitations()->pending()->with('workspaceRole')->latest()->get();
         $workspaceRoles = Role::query()
             ->where('company_id', $company->id)
-            ->where('slug', '!=', 'company-admin')
+            ->where('portal_type', 'employee')
             ->orderBy('name')
             ->get();
 
@@ -46,18 +46,27 @@ class MemberController extends Controller
 
         $validRoleIds = Role::query()
             ->where('company_id', $company->id)
-            ->where('slug', '!=', 'company-admin')
+            ->where('portal_type', 'employee')
             ->pluck('id')
             ->map(fn ($id) => (string) $id)
             ->all();
 
+        $accessRoleOptions = array_merge(['client'], $validRoleIds);
+        if (auth()->user()->isCompanyAdmin()) {
+            $accessRoleOptions[] = 'company_admin';
+        }
+
         $data = $request->validate([
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|max:255',
-            'access_role'  => ['required', 'string', Rule::in(array_merge(['client'], $validRoleIds))],
+            'access_role'  => ['required', 'string', Rule::in($accessRoleOptions)],
         ]);
 
-        if ($data['access_role'] === 'client') {
+        if ($data['access_role'] === 'company_admin') {
+            abort_unless(auth()->user()->isCompanyAdmin(), 403);
+            $data['role'] = 'company_admin';
+            $data['workspace_role_id'] = null;
+        } elseif ($data['access_role'] === 'client') {
             $data['role'] = 'client';
             $data['workspace_role_id'] = null;
         } else {

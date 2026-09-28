@@ -39,6 +39,10 @@ class InviteController extends Controller
             return redirect()->route('client.dashboard', $slug);
         }
 
+        if ($user->isCompanyAdmin()) {
+            return redirect()->route('company.dashboard', $slug);
+        }
+
         return redirect()->route('employee.dashboard', $slug);
     }
 }

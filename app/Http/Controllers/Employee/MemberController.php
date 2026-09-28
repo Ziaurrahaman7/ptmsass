@@ -24,7 +24,7 @@ class MemberController extends Controller
         $invitations = $company->invitations()->pending()->with('workspaceRole')->latest()->get();
         $workspaceRoles = Role::query()
             ->where('company_id', $company->id)
-            ->where('slug', '!=', 'company-admin')
+            ->where('portal_type', 'employee')
             ->orderBy('name')
             ->get();
 
@@ -39,7 +39,7 @@ class MemberController extends Controller
 
         $validRoleIds = Role::query()
             ->where('company_id', $company->id)
-            ->where('slug', '!=', 'company-admin')
+            ->where('portal_type', 'employee')
             ->pluck('id')
             ->map(fn ($id) => (string) $id)
             ->all();

@@ -96,7 +96,9 @@ class MemberInvitationService
             'name'              => $invitation->name,
             'email'             => $invitation->email,
             'password'          => $password,
-            'role'              => in_array($invitation->role, ['employee', 'client'], true) ? $invitation->role : 'employee',
+            'role'              => in_array($invitation->role, ['employee', 'client', 'company_admin'], true)
+                ? $invitation->role
+                : 'employee',
             'company_id'        => $invitation->company_id,
             'is_active'         => true,
             'email_verified_at' => now(),

@@ -20,10 +20,10 @@ class RoleProvisioner
     {
         $this->seedCatalog();
 
-        $admin = $this->role($companyId, 'Company Admin', 'company-admin', true);
-        $member = $this->role($companyId, 'Employee', 'employee', true);
+        $admin = $this->role($companyId, 'Company Admin', 'company-admin', true, 'admin');
+        $member = $this->role($companyId, 'Employee', 'employee', true, 'employee');
 
-        $this->syncKeys($admin, PermissionCatalog::companyAdminKeys());
+        $this->syncKeys($admin, PermissionCatalog::adminPortalKeys());
         $this->syncKeys($member, PermissionCatalog::employeeKeys());
 
         User::query()
@@ -51,12 +51,18 @@ class RoleProvisioner
         }
     }
 
-    protected function role(int $companyId, string $name, string $slug, bool $system): Role
+    protected function role(int $companyId, string $name, string $slug, bool $system, string $portalType = 'employee'): Role
     {
-        return Role::query()->firstOrCreate(
+        $role = Role::query()->firstOrCreate(
             ['company_id' => $companyId, 'slug' => $slug],
-            ['name' => $name, 'is_system' => $system]
+            ['name' => $name, 'is_system' => $system, 'portal_type' => $portalType]
         );
+
+        if ($role->portal_type !== $portalType) {
+            $role->update(['portal_type' => $portalType]);
+        }
+
+        return $role;
     }
 
     protected function syncKeys(Role $role, array $keys): void

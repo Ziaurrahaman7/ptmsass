@@ -58,6 +58,9 @@ class Invitation extends Model
         if ($this->role === 'client') {
             return 'Client';
         }
+        if ($this->role === 'company_admin') {
+            return 'Company admin';
+        }
         if ($this->workspaceRole) {
             return $this->workspaceRole->name;
         }

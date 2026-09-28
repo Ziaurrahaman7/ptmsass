@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Role extends Model
 {
-    protected $fillable = ['company_id', 'name', 'slug', 'is_system'];
+    protected $fillable = ['company_id', 'name', 'slug', 'is_system', 'portal_type'];
 
     protected $casts = [
         'is_system' => 'boolean',
@@ -28,5 +28,15 @@ class Role extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_role');
+    }
+
+    public function isAdminPortalRole(): bool
+    {
+        return $this->portal_type === 'admin';
+    }
+
+    public function isEmployeePortalRole(): bool
+    {
+        return $this->portal_type !== 'admin';
     }
 }

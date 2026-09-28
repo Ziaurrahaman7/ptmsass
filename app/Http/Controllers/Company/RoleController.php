@@ -19,13 +19,12 @@ class RoleController extends Controller
         $provisioner->forCompany((int) auth()->user()->company_id);
 
         $roles = Role::query()->where('company_id', auth()->user()->company_id)->with('permissions', 'users')->get();
-        $permissions = Permission::query()
-            ->whereIn('key', PermissionCatalog::companyAdminKeys())
-            ->orderBy('key')
-            ->get();
         $members = User::query()->where('company_id', auth()->user()->company_id)->whereIn('role', ['employee', 'company_admin'])->orderBy('name')->get();
 
-        return view('company.roles.index', compact('roles', 'permissions', 'members'));
+        $employeePermissions = PermissionCatalog::employeePortalPermissions();
+        $adminPermissions = PermissionCatalog::adminPortalPermissions();
+
+        return view('company.roles.index', compact('roles', 'members', 'employeePermissions', 'adminPermissions'));
     }
 
     public function store(Request $request, string $slug)
@@ -33,6 +32,7 @@ class RoleController extends Controller
         abort_unless(auth()->user()->hasPermission('settings.manage'), 403);
         $data = $request->validate([
             'name' => 'required|string|max:80',
+            'portal_type' => 'required|in:employee,admin',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string',
         ]);
@@ -42,8 +42,9 @@ class RoleController extends Controller
             'name' => $data['name'],
             'slug' => Str::slug($data['name']).'-'.Str::random(4),
             'is_system' => false,
+            'portal_type' => $data['portal_type'],
         ]);
-        $allowed = PermissionCatalog::companyAdminKeys();
+        $allowed = PermissionCatalog::keysForPortalType($data['portal_type']);
         $keys = array_values(array_intersect($data['permissions'] ?? [], $allowed));
         $ids = Permission::query()->whereIn('key', $keys)->pluck('id');
         $role->permissions()->sync($ids);
@@ -59,10 +60,14 @@ class RoleController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:80',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'in:'.implode(',', PermissionCatalog::companyAdminKeys()),
+            'permissions.*' => 'in:'.implode(',', PermissionCatalog::keysForPortalType($role->portal_type ?? 'employee')),
         ]);
-        $role->update(['name' => $data['name']]);
-        $ids = Permission::query()->whereIn('key', $data['permissions'] ?? [])->pluck('id');
+        if (! ($role->is_system && $role->slug === 'company-admin')) {
+            $role->update(['name' => $data['name']]);
+        }
+        $allowed = PermissionCatalog::keysForPortalType($role->portal_type ?? 'employee');
+        $keys = array_values(array_intersect($data['permissions'] ?? [], $allowed));
+        $ids = Permission::query()->whereIn('key', $keys)->pluck('id');
         $role->permissions()->sync($ids);
 
         return back()->with('success', 'Role updated. Assigned users receive these permissions immediately.');
@@ -74,6 +79,18 @@ class RoleController extends Controller
         abort_if((int) $role->company_id !== (int) auth()->user()->company_id, 403);
         $data = $request->validate(['user_id' => 'required|exists:users,id']);
         $user = User::query()->where('company_id', auth()->user()->company_id)->findOrFail($data['user_id']);
+
+        if ($role->isAdminPortalRole() && ! $user->isCompanyAdmin()) {
+            return back()->withErrors([
+                'user_id' => 'This role is for users with admin login. Invite them as Company admin under Members.',
+            ]);
+        }
+        if ($role->isEmployeePortalRole() && $user->isCompanyAdmin()) {
+            return back()->withErrors([
+                'user_id' => 'This role is for employee login users. Company admins use the Company Admin role.',
+            ]);
+        }
+
         // One workspace role per user — replaces prior roles (e.g. default Employee pack).
         $user->workspaceRoles()->sync([$role->id]);
 
