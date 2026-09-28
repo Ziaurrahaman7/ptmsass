@@ -99,7 +99,12 @@ class ProjectController extends Controller
         }
 
         $projectMembers = $project->members()->orderByDesc('project_user.created_at')->get();
-        $availableMembers = $members->whereNotIn('id', $projectMembers->pluck('id'))->values();
+        $availableMembers = $members
+            ->where('role', '!=', 'client')
+            ->whereNotIn('id', $projectMembers->pluck('id'))
+            ->values();
+        $shareProjectMembers = $projectMembers->filter(fn (User $u) => $u->role !== 'client')->values();
+        $shareMisplacedClients = $projectMembers->filter(fn (User $u) => $u->role === 'client')->values();
         $resources = $project->resources;
         $milestones = $project->milestones()->with('assignee')->get();
 
@@ -118,7 +123,7 @@ class ProjectController extends Controller
 
         return view('company.projects.show', compact(
             'project', 'tasks', 'sections', 'customFields', 'members', 'statusUpdates', 'portfolios',
-            'projectMembers', 'availableMembers', 'resources', 'milestones', 'activity',
+            'projectMembers', 'shareProjectMembers', 'shareMisplacedClients', 'availableMembers', 'resources', 'milestones', 'activity',
             'projectClients', 'availableClients', 'scheduleTasks', 'workloadRows'
         ));
     }
@@ -336,6 +341,13 @@ class ProjectController extends Controller
             'role' => 'nullable|in:owner,admin,editor,commenter,viewer',
         ]);
         $user = auth()->user()->company->users()->where('is_active', true)->findOrFail($data['user_id']);
+
+        if ($user->role === 'client') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Client accounts are added from Overview → Client access (View only / Collaborate).',
+            ], 422);
+        }
 
         $project->members()->syncWithoutDetaching([
             $user->id => ['role' => $data['role'] ?? 'editor'],

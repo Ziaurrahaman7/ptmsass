@@ -1560,10 +1560,26 @@
                 </div>
                 @endif
 
+                @if($shareMisplacedClients->isNotEmpty())
+                <div style="font-size:12px; color:var(--warn); background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:8px; padding:10px 12px; margin-bottom:12px; line-height:1.45;">
+                    {{ $shareMisplacedClients->count() === 1 ? 'This client was added via Share by mistake.' : 'These clients were added via Share by mistake.' }}
+                    Use <strong style="color:var(--text);">Overview → Client access</strong> instead. Remove them here if they should not be project members.
+                </div>
+                @foreach($shareMisplacedClients as $pm)
+                <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.2); margin-bottom:8px;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:13px; color:var(--text); font-weight:500;">{{ $pm->name }} <span style="font-size:10px; font-family:var(--mono); color:var(--warn);">CLIENT</span></div>
+                        <div style="font-size:11px; color:var(--muted);">{{ $pm->email }}</div>
+                    </div>
+                    <button onclick="removeProjectMember({{ $pm->id }}); closeShareModal()" title="Remove from Share list" style="font-size:11px; color:var(--muted); background:none; border:1px solid var(--border2); border-radius:6px; padding:4px 10px; cursor:pointer;">Remove</button>
+                </div>
+                @endforeach
+                @endif
+
                 {{-- Current members --}}
                 <div style="font-size:11px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">Members with access</div>
                 <div style="display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto;">
-                    @foreach($projectMembers as $pm)
+                    @foreach($shareProjectMembers as $pm)
                     <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:var(--surface2);">
                         <div style="width:32px; height:32px; border-radius:50%; background:#7c3aed; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ strtoupper(substr($pm->name,0,2)) }}</div>
                         <div style="flex:1; min-width:0;">

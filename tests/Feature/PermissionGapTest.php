@@ -82,6 +82,26 @@ class PermissionGapTest extends TestCase
         $this->assertTrue($client->fresh()->can('comment', $ws['task']->fresh()));
     }
 
+    public function test_client_cannot_be_added_as_project_share_member(): void
+    {
+        $ws = $this->workspace('acme');
+        $client = User::factory()->create([
+            'company_id' => $ws['company']->id,
+            'role' => 'client',
+            'email' => 'share-block@acme.test',
+        ]);
+
+        $this->actingAs($ws['admin'])
+            ->postJson(route('company.projects.members.add', [
+                'slug' => $ws['company']->slug,
+                'project' => $ws['project'],
+            ]), ['user_id' => $client->id, 'role' => 'editor'])
+            ->assertStatus(422)
+            ->assertJson(['success' => false]);
+
+        $this->assertFalse($ws['project']->members()->where('users.id', $client->id)->exists());
+    }
+
     public function test_admin_can_update_client_access_mode_on_project(): void
     {
         $ws = $this->workspace('acme');
