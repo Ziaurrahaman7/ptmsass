@@ -159,7 +159,7 @@ class GapWorkspaceController extends Controller
 
     public function capacity(string $slug)
     {
-        abort_unless(auth()->user()->hasPermission('capacity.view'), 403);
+        abort_unless(auth()->user()->isCompanyAdmin(), 403);
         $people = User::query()
             ->where('company_id', $this->companyId())
             ->whereIn('role', ['employee', 'company_admin'])
@@ -198,7 +198,7 @@ class GapWorkspaceController extends Controller
 
     public function updateCapacity(Request $request, string $slug, User $user)
     {
-        abort_unless(auth()->user()->hasPermission('capacity.view'), 403);
+        abort_unless(auth()->user()->isCompanyAdmin(), 403);
         abort_if((int) $user->company_id !== $this->companyId(), 403);
         $data = $request->validate(['weekly_capacity_hours' => 'required|integer|min:1|max:80']);
         $user->update($data);

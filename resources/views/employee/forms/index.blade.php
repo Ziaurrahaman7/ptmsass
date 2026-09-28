@@ -1,8 +1,8 @@
-<x-company-layout title="Intake forms">
+<x-employee-layout title="Intake forms">
     @include('partials.intake-forms-manager', [
         'forms' => $forms,
         'projects' => $projects,
         'slug' => $slug,
-        'storeRoute' => route('company.forms.store', $slug),
+        'storeRoute' => route('employee.forms.store', $slug),
     ])
-</x-company-layout>
+</x-employee-layout>

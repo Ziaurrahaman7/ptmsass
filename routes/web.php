@@ -32,6 +32,7 @@ use App\Http\Controllers\Company\GapWorkspaceController as CompanyGapWorkspaceCo
 use App\Http\Controllers\Employee\TeamAdminController as EmployeeTeamAdminController;
 use App\Http\Controllers\Employee\TimeEntryController as EmployeeTimeEntryController;
 use App\Http\Controllers\Employee\MemberController as EmployeeMemberController;
+use App\Http\Controllers\Employee\FormController as EmployeeFormController;
 use App\Http\Controllers\Client\DashboardController as ClientDashboardController;
 use App\Http\Controllers\Client\ProjectController as ClientProjectController;
 use App\Http\Controllers\Client\TaskActionController as ClientTaskActionController;
@@ -285,6 +286,8 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     Route::delete('/teams/{team}/members/{user}', [EmployeeTeamAdminController::class, 'removeMember'])->name('teams.members.remove');
     Route::get('/time', [EmployeeTimeEntryController::class, 'index'])->name('time.index');
     Route::post('/time', [EmployeeTimeEntryController::class, 'store'])->name('time.store');
+    Route::get('/forms', [EmployeeFormController::class, 'index'])->name('forms.index');
+    Route::post('/forms', [EmployeeFormController::class, 'store'])->name('forms.store');
 
     Route::get('/notifications/unread', [EmployeeNotificationController::class, 'unread'])->name('notifications.unread');
     Route::patch('/notifications/{notification}/read', [EmployeeNotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');

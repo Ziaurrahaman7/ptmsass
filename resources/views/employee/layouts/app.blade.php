@@ -115,6 +115,12 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                 Teams
             </a>
+            @if(auth()->user()->hasPermission('form.manage'))
+            <a href="{{ route('employee.forms.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('employee.forms.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Intake forms
+            </a>
+            @endif
             @if(auth()->user()->hasPermission('time.track'))
             <a href="{{ route('employee.time.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('employee.time.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>

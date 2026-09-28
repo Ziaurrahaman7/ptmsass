@@ -11,14 +11,22 @@ class PublicFormController extends Controller
 {
     public function show(string $token)
     {
-        $form = ProjectForm::query()->where('token', $token)->where('is_active', true)->firstOrFail();
+        $form = ProjectForm::query()
+            ->where('token', $token)
+            ->where('is_active', true)
+            ->with(['project', 'company'])
+            ->firstOrFail();
 
         return view('public.form', compact('form'));
     }
 
     public function submit(Request $request, string $token)
     {
-        $form = ProjectForm::query()->where('token', $token)->where('is_active', true)->with('project')->firstOrFail();
+        $form = ProjectForm::query()
+            ->where('token', $token)
+            ->where('is_active', true)
+            ->with(['project', 'company'])
+            ->firstOrFail();
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',

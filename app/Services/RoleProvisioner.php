@@ -12,7 +12,7 @@ class RoleProvisioner
     public function seedCatalog(): void
     {
         foreach (PermissionCatalog::all() as $key => $label) {
-            Permission::query()->firstOrCreate(['key' => $key], ['label' => $label]);
+            Permission::query()->updateOrCreate(['key' => $key], ['label' => $label]);
         }
     }
 

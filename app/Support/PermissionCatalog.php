@@ -16,19 +16,17 @@ class PermissionCatalog
             'settings.manage' => 'Manage workspace settings and roles',
             'form.manage' => 'Manage intake forms',
             'rule.manage' => 'Manage automation rules',
-            'approval.manage' => 'Configure approvals',
             'template.manage' => 'Manage task templates',
             'time.track' => 'Track time',
             'time.review' => 'Review timesheets',
             'report.view' => 'View cross-project reports',
-            'capacity.view' => 'View capacity planning',
         ];
     }
 
-    /** @deprecated Task actions use project membership (Viewer / Commenter / Editor). Kept for DB cleanup only. */
-    public static function legacyProjectTaskKeys(): array
+    /** @deprecated Hidden from Roles UI; kept for policy/DB cleanup only. */
+    public static function legacyHiddenKeys(): array
     {
-        return ['task.assign', 'task.edit', 'task.comment'];
+        return ['task.assign', 'task.edit', 'task.comment', 'approval.manage', 'capacity.view'];
     }
 
     public static function all(): array
