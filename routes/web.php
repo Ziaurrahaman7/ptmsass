@@ -169,6 +169,10 @@ Route::prefix('{slug}/admin')->name('company.')->middleware(['auth', 'company_ad
     Route::post('forms', [CompanyGapWorkspaceController::class, 'storeForm'])->name('forms.store');
     Route::get('rules', [CompanyGapWorkspaceController::class, 'rules'])->name('rules.index');
     Route::post('rules', [CompanyGapWorkspaceController::class, 'storeRule'])->name('rules.store');
+    Route::get('time', [EmployeeTimeEntryController::class, 'index'])->name('time.index');
+    Route::post('time', [EmployeeTimeEntryController::class, 'store'])->name('time.store');
+    Route::post('time/timer/start', [EmployeeTimeEntryController::class, 'startTimer'])->name('time.timer.start');
+    Route::post('time/timer/stop', [EmployeeTimeEntryController::class, 'stopTimer'])->name('time.timer.stop');
     Route::get('timesheets', [CompanyGapWorkspaceController::class, 'timesheets'])->name('timesheets.index');
     Route::post('timesheets/{time_entry}/review', [CompanyGapWorkspaceController::class, 'reviewTime'])->name('timesheets.review');
     Route::get('capacity', [CompanyGapWorkspaceController::class, 'capacity'])->name('capacity.index');
@@ -291,6 +295,8 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     Route::delete('/teams/{team}/members/{user}', [EmployeeTeamAdminController::class, 'removeMember'])->name('teams.members.remove');
     Route::get('/time', [EmployeeTimeEntryController::class, 'index'])->name('time.index');
     Route::post('/time', [EmployeeTimeEntryController::class, 'store'])->name('time.store');
+    Route::post('/time/timer/start', [EmployeeTimeEntryController::class, 'startTimer'])->name('time.timer.start');
+    Route::post('/time/timer/stop', [EmployeeTimeEntryController::class, 'stopTimer'])->name('time.timer.stop');
     Route::get('/forms', [EmployeeFormController::class, 'index'])->name('forms.index');
     Route::post('/forms', [EmployeeFormController::class, 'store'])->name('forms.store');
 

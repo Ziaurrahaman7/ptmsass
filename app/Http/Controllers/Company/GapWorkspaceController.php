@@ -139,12 +139,33 @@ class GapWorkspaceController extends Controller
         return back()->with('success', 'Rule saved.');
     }
 
-    public function timesheets(string $slug)
+    public function timesheets(Request $request, string $slug)
     {
         abort_unless(auth()->user()->hasPermission('time.review'), 403);
-        $entries = TimeEntry::query()->where('company_id', $this->companyId())->with('user', 'task', 'project')->latest('worked_on')->paginate(40);
+        if ($request->filled('week') && preg_match('/^(\d{4})-W(\d{2})$/', $request->input('week'), $m)) {
+            $weekStart = \Carbon\Carbon::now()->setISODate((int) $m[1], (int) $m[2])->startOfWeek();
+        } else {
+            $weekStart = now()->startOfWeek();
+        }
+        $weekEnd = $weekStart->copy()->endOfWeek();
 
-        return view('company.gap.timesheets', compact('entries'));
+        $entries = TimeEntry::query()
+            ->where('company_id', $this->companyId())
+            ->where('status', '!=', 'running')
+            ->whereBetween('worked_on', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->with('user', 'task', 'project')
+            ->latest('worked_on')
+            ->paginate(40)
+            ->withQueryString();
+
+        $weekTotals = TimeEntry::query()
+            ->where('company_id', $this->companyId())
+            ->finished()
+            ->whereBetween('worked_on', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->selectRaw('sum(minutes) as total, sum(case when billable = 1 then minutes else 0 end) as billable')
+            ->first();
+
+        return view('company.gap.timesheets', compact('entries', 'weekStart', 'weekEnd', 'weekTotals'));
     }
 
     public function reviewTime(Request $request, string $slug, TimeEntry $time_entry)
@@ -210,8 +231,9 @@ class GapWorkspaceController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('report.view'), 403);
         $projectId = $request->integer('project_id') ?: null;
+        $companyId = $this->companyId();
         $tasks = Task::query()
-            ->where('company_id', $this->companyId())
+            ->where('company_id', $companyId)
             ->when($projectId, function ($q) use ($projectId) {
                 $q->where(function ($inner) use ($projectId) {
                     $inner->where('project_id', $projectId)
@@ -221,9 +243,62 @@ class GapWorkspaceController extends Controller
             ->selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
-        $projects = Project::query()->where('company_id', $this->companyId())->orderBy('name')->get();
+        $projects = Project::query()->where('company_id', $companyId)->orderBy('name')->get();
 
-        return view('company.gap.reports', compact('tasks', 'projects', 'projectId'));
+        $timeBase = TimeEntry::query()
+            ->where('company_id', $companyId)
+            ->finished()
+            ->when($projectId, fn ($q) => $q->where('project_id', $projectId));
+
+        $timeSummary = [
+            'total_minutes' => (int) (clone $timeBase)->sum('minutes'),
+            'billable_minutes' => (int) (clone $timeBase)->where('billable', true)->sum('minutes'),
+            'entry_count' => (int) (clone $timeBase)->count(),
+        ];
+
+        $timeByPerson = (clone $timeBase)
+            ->selectRaw('user_id, sum(minutes) as total_minutes, sum(case when billable = 1 then minutes else 0 end) as billable_minutes')
+            ->groupBy('user_id')
+            ->orderByDesc('total_minutes')
+            ->get()
+            ->map(function ($row) {
+                $row->user = User::query()->find($row->user_id);
+
+                return $row;
+            });
+
+        $timeByProject = TimeEntry::query()
+            ->where('company_id', $companyId)
+            ->finished()
+            ->whereNotNull('project_id')
+            ->selectRaw('project_id, sum(minutes) as total_minutes, sum(case when billable = 1 then minutes else 0 end) as billable_minutes')
+            ->groupBy('project_id')
+            ->orderByDesc('total_minutes')
+            ->get()
+            ->map(function ($row) {
+                $row->project = Project::query()->find($row->project_id);
+
+                return $row;
+            });
+
+        $timeByTask = $projectId
+            ? (clone $timeBase)
+                ->whereNotNull('task_id')
+                ->selectRaw('task_id, sum(minutes) as total_minutes')
+                ->groupBy('task_id')
+                ->orderByDesc('total_minutes')
+                ->limit(15)
+                ->get()
+                ->map(function ($row) {
+                    $row->task = Task::query()->find($row->task_id);
+
+                    return $row;
+                })
+            : collect();
+
+        return view('company.gap.reports', compact(
+            'tasks', 'projects', 'projectId', 'timeSummary', 'timeByPerson', 'timeByProject', 'timeByTask'
+        ));
     }
 
     public function integrations(string $slug)

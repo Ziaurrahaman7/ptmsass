@@ -171,6 +171,63 @@ class PermissionGapTest extends TestCase
         );
     }
 
+    public function test_time_timer_start_stop_creates_pending_entry(): void
+    {
+        $ws = $this->workspace('acme');
+        $ws['project']->members()->attach($ws['employee']->id, ['role' => 'editor']);
+        $ws['task']->update(['assigned_to' => $ws['employee']->id]);
+
+        $this->actingAs($ws['employee'])
+            ->postJson(route('employee.time.timer.start', $ws['company']->slug), [
+                'task_id' => $ws['task']->id,
+                'billable' => true,
+            ])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertNotNull(\App\Models\TimeEntry::runningForUser($ws['employee']->id));
+
+        $this->actingAs($ws['employee'])
+            ->postJson(route('employee.time.timer.stop', $ws['company']->slug))
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $entry = \App\Models\TimeEntry::query()
+            ->where('user_id', $ws['employee']->id)
+            ->where('task_id', $ws['task']->id)
+            ->where('status', 'pending')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($entry);
+        $this->assertGreaterThan(0, $entry->minutes);
+        $this->assertTrue($entry->billable);
+    }
+
+    public function test_timesheet_reviewer_can_approve_pending_entry(): void
+    {
+        $ws = $this->workspace('acme');
+        $ws['project']->members()->attach($ws['employee']->id, ['role' => 'editor']);
+        $ws['task']->update(['assigned_to' => $ws['employee']->id]);
+
+        $entry = \App\Models\TimeEntry::create([
+            'company_id' => $ws['company']->id,
+            'user_id' => $ws['employee']->id,
+            'task_id' => $ws['task']->id,
+            'project_id' => $ws['project']->id,
+            'minutes' => 45,
+            'worked_on' => today(),
+            'billable' => false,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($ws['admin'])
+            ->post(route('company.timesheets.review', [$ws['company']->slug, $entry]), ['status' => 'approved'])
+            ->assertRedirect();
+
+        $this->assertSame('approved', $entry->fresh()->status);
+    }
+
     public function test_employee_can_create_personal_my_task(): void
     {
         $ws = $this->workspace('acme');

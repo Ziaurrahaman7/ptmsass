@@ -198,7 +198,7 @@
             </a>
             @endif
 
-            @if($adminCan('template.manage') || $adminCan('form.manage') || $adminCan('rule.manage') || $adminCan('time.review') || $adminCan('report.view') || $adminCan('integration.manage') || $adminCan('priority.manage'))
+            @if($adminCan('template.manage') || $adminCan('form.manage') || $adminCan('rule.manage') || $adminCan('time.track') || $adminCan('time.review') || $adminCan('report.view') || $adminCan('integration.manage') || $adminCan('priority.manage'))
             {{-- Settings --}}
             <div style="padding:14px 12px 6px;">
                 <span class="ptm-section-title">Settings</span>
@@ -222,9 +222,15 @@
                 Rules
             </a>
             @endif
+            @if($adminCan('time.track'))
+            <a href="{{ route('company.time.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.time.*') ? 'active' : '' }}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Time
+            </a>
+            @endif
             @if($adminCan('time.review'))
             <a href="{{ route('company.timesheets.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.timesheets.*') ? 'active' : '' }}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                 Timesheets
             </a>
             @endif

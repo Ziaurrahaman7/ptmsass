@@ -92,6 +92,7 @@ class TaskController extends Controller
             'due_date'    => 'sometimes|nullable|date',
             'list_group'  => 'sometimes|nullable|in:recent,later',
             'status'      => 'sometimes|in:todo,in_progress,in_review,done',
+            'estimated_minutes' => 'sometimes|nullable|integer|min:0|max:59999',
         ]);
         $task->update($data);
 
@@ -164,9 +165,12 @@ class TaskController extends Controller
                 ->get(['id', 'name'])
             : collect();
 
+        $taskLoggedMinutes = \App\Models\TimeEntry::loggedMinutesForTask($task->id);
+        $canTrackTime = auth()->user()->hasPermission('time.track');
+
         return view('employee.tasks._panel', compact(
             'task', 'isMine', 'slug', 'members', 'canUpdate', 'canComment', 'canAttach',
-            'canManageProjectLinks', 'attachableProjects'
+            'canManageProjectLinks', 'attachableProjects', 'taskLoggedMinutes', 'canTrackTime'
         ));
     }
 

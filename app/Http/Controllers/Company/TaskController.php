@@ -385,6 +385,7 @@ class TaskController extends Controller
     public function inlineUpdate(Request $request, string $slug, Task $task)
     {
         abort_if($task->company_id !== $this->companyId(), 403);
+        $this->authorize('update', $task);
 
         $data = $request->validate([
             'title'       => 'sometimes|required|string|max:255',
@@ -395,12 +396,13 @@ class TaskController extends Controller
             'due_date'    => 'sometimes|nullable|date',
             'list_group'  => 'sometimes|nullable|in:recent,later',
             'section_id'  => 'sometimes|nullable|exists:sections,id',
+            'estimated_minutes' => 'sometimes|nullable|integer|min:0|max:59999',
             'assignees'   => 'sometimes|array',
             'assignees.*' => 'exists:users,id',
         ]);
 
         $update = [];
-        foreach (['title', 'description', 'status', 'priority', 'start_date', 'due_date', 'list_group'] as $field) {
+        foreach (['title', 'description', 'status', 'priority', 'start_date', 'due_date', 'list_group', 'estimated_minutes'] as $field) {
             if ($request->has($field)) {
                 $update[$field] = $data[$field] ?? null;
             }
@@ -584,8 +586,10 @@ class TaskController extends Controller
                 ->get(['id', 'name'])
             : collect();
 
+        $taskLoggedMinutes = \App\Models\TimeEntry::loggedMinutesForTask($task->id);
+
         return view('company.tasks._panel', compact(
-            'task', 'members', 'sections', 'slug', 'canManageProjectLinks', 'attachableProjects'
+            'task', 'members', 'sections', 'slug', 'canManageProjectLinks', 'attachableProjects', 'taskLoggedMinutes'
         ));
     }
 

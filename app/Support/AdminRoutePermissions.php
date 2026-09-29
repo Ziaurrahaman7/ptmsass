@@ -17,6 +17,7 @@ class AdminRoutePermissions
             'company.templates.*' => 'template.manage',
             'company.forms.*' => 'form.manage',
             'company.rules.*' => 'rule.manage',
+            'company.time.*' => 'time.track',
             'company.timesheets.*' => 'time.review',
             'company.reports.*' => 'report.view',
             'company.integrations.*' => 'integration.manage',

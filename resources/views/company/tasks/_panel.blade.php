@@ -95,6 +95,8 @@
         'detachRoute' => 'company.tasks.projects.detach',
     ])
 
+    @include('shared.tasks._panel_time', ['canUpdate' => true, 'canTrackTime' => auth()->user()->hasPermission('time.track')])
+
     @if($task->project)
     <div style="display:grid; grid-template-columns:120px 1fr; align-items:center; gap:10px; padding:8px 0;">
         <span style="font-size:12px; color:var(--muted); font-weight:500;">Section</span>

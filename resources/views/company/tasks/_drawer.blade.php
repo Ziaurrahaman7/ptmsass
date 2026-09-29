@@ -139,6 +139,7 @@
             empMarkComplete: panelMarkComplete,
             empPanelStatus: (v) => { panelDirty = true; return patchField(panelTaskId, 'status', v).then(reloadPanel); },
             empPanelDescription: (v) => panelPatch('description', v),
+            empPanelField: (field, value) => panelPatch(field, value),
             empAddSubtask: panelAddSubtask,
             empAddComment: panelAddComment,
             empFollow: panelFollow,

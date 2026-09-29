@@ -179,6 +179,29 @@
         <header class="ptm-topbar" style="padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
             <div style="font-size:15px; font-weight:600; letter-spacing:-0.3px; color:var(--text);">{{ $title ?? 'Dashboard' }}</div>
             <div style="display:flex; align-items:center; gap:16px;">
+                @if(auth()->user()->hasPermission('time.track'))
+                @php $topbarRunningTimer = \App\Models\TimeEntry::runningForUser(auth()->id()); @endphp
+                @if($topbarRunningTimer)
+                <a href="{{ route('employee.time.index', $slug) }}" id="topbarTimerChip" style="display:flex; align-items:center; gap:8px; padding:6px 12px; border-radius:8px; border:1px solid rgba(34,211,238,0.45); background:rgba(34,211,238,0.1); color:#22d3ee; text-decoration:none; font-family:var(--mono); font-size:12px;" title="Timer running — open Time">
+                    <span style="width:7px; height:7px; border-radius:50%; background:#22d3ee; animation:topbarPulse 1.2s ease-in-out infinite;"></span>
+                    <span id="topbarTimerElapsed">00:00</span>
+                </a>
+                <style>@keyframes topbarPulse { 0%,100%{opacity:1} 50%{opacity:0.35} }</style>
+                <script>
+                (function(){
+                    const started = new Date(@json($topbarRunningTimer->started_at?->toIso8601String()));
+                    const el = document.getElementById('topbarTimerElapsed');
+                    function tick(){
+                        if(!el || !started) return;
+                        const sec = Math.max(0, Math.floor((Date.now() - started.getTime()) / 1000));
+                        const m = Math.floor(sec/60), s = sec%60;
+                        el.textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+                    }
+                    tick(); setInterval(tick, 1000);
+                })();
+                </script>
+                @endif
+                @endif
                 <div style="position:relative;">
                     <button id="searchBtn" onclick="openSearch()" title="Search (Ctrl+K)" style="background:var(--surface2); border:1px solid var(--border2); border-radius:8px; color:var(--muted); cursor:pointer; padding:6px 12px; display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; transition:all 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>

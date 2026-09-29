@@ -34,4 +34,26 @@ class TimeEntry extends Model
     {
         return $this->belongsTo(Project::class);
     }
+
+    public function scopeFinished($query)
+    {
+        return $query->where('status', '!=', 'running');
+    }
+
+    public static function runningForUser(int $userId): ?self
+    {
+        return static::query()
+            ->where('user_id', $userId)
+            ->where('status', 'running')
+            ->latest('id')
+            ->first();
+    }
+
+    public static function loggedMinutesForTask(int $taskId): int
+    {
+        return (int) static::query()
+            ->where('task_id', $taskId)
+            ->finished()
+            ->sum('minutes');
+    }
 }

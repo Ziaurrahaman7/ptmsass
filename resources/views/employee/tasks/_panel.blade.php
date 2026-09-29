@@ -85,6 +85,8 @@
         'detachRoute' => 'employee.tasks.projects.detach',
     ])
     @endif
+
+    @include('shared.tasks._panel_time', ['canUpdate' => $canUpdate ?? false, 'canTrackTime' => $canTrackTime ?? false])
 </div>
 
 {{-- Notes --}}

@@ -1103,6 +1103,15 @@
             body: JSON.stringify({description:value})
         });
     }
+    function empPanelField(field, value){
+        panelDirty = true;
+        const body = {}; body[field] = value;
+        fetch(`/${slug}/tasks/${panelTaskId}/inline`, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
+            body: JSON.stringify(body)
+        });
+    }
     function empAddSubtask(form){
         panelDirty = true;
         fetch(form.action, { method:'POST', headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}, body:new FormData(form) })
