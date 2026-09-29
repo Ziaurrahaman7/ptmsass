@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskAttachment;
 use App\Models\TaskComment;
@@ -143,7 +144,7 @@ class TaskController extends Controller
         abort_if($task->company_id !== auth()->user()->company_id, 403);
         $this->authorize('view', $task);
 
-        $task->load(['project', 'section', 'assignees', 'followers', 'comments.user', 'attachments.uploader', 'subtasks.assignees']);
+        $task->load(['project', 'projects', 'section', 'assignees', 'followers', 'comments.user', 'attachments.uploader', 'subtasks.assignees']);
         $members = User::where('company_id', $task->company_id)->where('is_active', true)->whereIn('role', ['employee', 'company_admin'])->get();
 
         $user = auth()->user();
@@ -154,8 +155,19 @@ class TaskController extends Controller
         $canUpdate = $user->can('update', $task);
         $canComment = $user->can('comment', $task);
         $canAttach = $user->can('attach', $task);
+        $canManageProjectLinks = $canUpdate;
+        $attachableProjects = $canManageProjectLinks
+            ? Project::query()
+                ->where('company_id', $task->company_id)
+                ->whereNotIn('id', $task->projects->pluck('id'))
+                ->orderBy('name')
+                ->get(['id', 'name'])
+            : collect();
 
-        return view('employee.tasks._panel', compact('task', 'isMine', 'slug', 'members', 'canUpdate', 'canComment', 'canAttach'));
+        return view('employee.tasks._panel', compact(
+            'task', 'isMine', 'slug', 'members', 'canUpdate', 'canComment', 'canAttach',
+            'canManageProjectLinks', 'attachableProjects'
+        ));
     }
 
     public function storeComment(Request $request, string $slug, Task $task)
@@ -259,6 +271,27 @@ class TaskController extends Controller
         abort_if($task->company_id !== auth()->user()->company_id, 403);
         abort_if($user->id !== auth()->id(), 403);
         $task->followers()->detach($user->id);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function attachProject(Request $request, string $slug, Task $task)
+    {
+        $this->authorize('update', $task);
+        $data = $request->validate(['project_id' => 'required|exists:projects,id']);
+        $project = Project::query()->where('company_id', auth()->user()->company_id)->findOrFail($data['project_id']);
+        $this->authorize('view', $project);
+        $task->projects()->syncWithoutDetaching([$project->id]);
+
+        return response()->json(['success' => true, 'project' => ['id' => $project->id, 'name' => $project->name]]);
+    }
+
+    public function detachProject(string $slug, Task $task, Project $project)
+    {
+        $this->authorize('update', $task);
+        abort_if((int) $project->company_id !== (int) auth()->user()->company_id, 404);
+        abort_if((int) $project->id === (int) $task->project_id, 422, 'Cannot unlink the primary project.');
+        $task->projects()->detach($project->id);
 
         return response()->json(['success' => true]);
     }

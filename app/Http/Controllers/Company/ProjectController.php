@@ -74,14 +74,14 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
 
-        $tasks = $project->tasks()
+        $tasks = $project->visibleTasksQuery()
             ->whereNull('parent_task_id')
-            ->with(['assignee', 'assignees', 'section', 'subtasks' => fn($q) => $q->with('assignees')->orderBy('position')->orderByDesc('created_at')])
+            ->with(['assignee', 'assignees', 'section', 'project', 'subtasks' => fn ($q) => $q->with('assignees')->orderBy('position')->orderByDesc('created_at')])
             ->withCount(['comments', 'subtasks', 'attachments'])
             ->orderBy('position')->orderByDesc('created_at')->get();
 
-        $scheduleTasks = $project->tasks()
-            ->with(['assignee', 'assignees', 'section', 'blockedByLinks.dependsOn'])
+        $scheduleTasks = $project->visibleTasksQuery()
+            ->with(['assignee', 'assignees', 'section', 'project', 'blockedByLinks.dependsOn'])
             ->orderBy('position')
             ->orderByDesc('created_at')
             ->get();

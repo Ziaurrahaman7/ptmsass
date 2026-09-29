@@ -114,8 +114,8 @@ class ProjectCsv
 
     public function exportToPath(Project $project, string $absolutePath): void
     {
-        $tasks = $project->tasks()
-            ->with(['assignees', 'section', 'parentTask', 'blockedBy', 'blocking'])
+        $tasks = $project->visibleTasksQuery()
+            ->with(['assignees', 'section', 'parentTask', 'blockedBy', 'blocking', 'project'])
             ->orderBy('position')
             ->get();
         $priorityNames = Priority::forCompany((int) $project->company_id)->pluck('name', 'slug');

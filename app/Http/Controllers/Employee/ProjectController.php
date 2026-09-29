@@ -56,9 +56,9 @@ class ProjectController extends Controller
         $perms = app(PermissionService::class);
         $user = auth()->user();
 
-        $query = Task::where('project_id', $project->id)
+        $query = $project->visibleTasksQuery()
             ->whereNull('parent_task_id')
-            ->with(['assignees', 'assignee', 'section', 'subtasks' => fn ($q) => $q->with('assignees')->orderBy('position')->orderByDesc('created_at')])
+            ->with(['assignees', 'assignee', 'section', 'project', 'subtasks' => fn ($q) => $q->with('assignees')->orderBy('position')->orderByDesc('created_at')])
             ->withCount(['comments', 'subtasks']);
 
         $canSeeAllInProject = $user->isCompanyAdmin()

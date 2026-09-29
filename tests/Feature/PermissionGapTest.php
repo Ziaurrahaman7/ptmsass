@@ -145,6 +145,32 @@ class PermissionGapTest extends TestCase
         $this->assertTrue($ws['task']->fresh()->projects()->where('projects.id', $ws['project']->id)->exists());
     }
 
+    public function test_linked_task_appears_on_both_project_lists_and_syncs_title(): void
+    {
+        $ws = $this->workspace('acme');
+        $projectB = Project::factory()->create([
+            'company_id' => $ws['company']->id,
+            'created_by' => $ws['admin']->id,
+            'name' => 'Project B',
+        ]);
+        $task = $ws['task'];
+        $task->projects()->syncWithoutDetaching([$projectB->id]);
+
+        $idsOnA = $ws['project']->visibleTasksQuery()->whereNull('parent_task_id')->pluck('id');
+        $idsOnB = $projectB->visibleTasksQuery()->whereNull('parent_task_id')->pluck('id');
+
+        $this->assertTrue($idsOnA->contains($task->id));
+        $this->assertTrue($idsOnB->contains($task->id));
+        $this->assertSame(1, Task::where('company_id', $ws['company']->id)->where('title', $task->title)->count());
+
+        $task->update(['title' => 'Multi-project synced title']);
+
+        $this->assertSame(
+            'Multi-project synced title',
+            $projectB->visibleTasksQuery()->where('tasks.id', $task->id)->value('title')
+        );
+    }
+
     public function test_employee_can_create_personal_my_task(): void
     {
         $ws = $this->workspace('acme');

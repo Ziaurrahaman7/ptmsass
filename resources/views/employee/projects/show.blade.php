@@ -11,11 +11,16 @@
             'done'        => ['label' => 'Done',        'color' => '#4ade80'],
         ];
         $groups = [];
+        $homeTasks = $tasks->filter(fn ($t) => (int) $t->project_id === (int) $project->id);
         foreach ($sections as $section) {
-            $groups[] = ['id' => $section->id, 'name' => $section->name, 'tasks' => $tasks->where('section_id', $section->id)];
+            $groups[] = ['id' => $section->id, 'name' => $section->name, 'tasks' => $homeTasks->where('section_id', $section->id), 'is_linked_group' => false];
         }
-        $noSection = $tasks->whereNull('section_id');
-        $groups[] = ['id' => null, 'name' => '(No section)', 'tasks' => $noSection];
+        $noSection = $homeTasks->whereNull('section_id');
+        $groups[] = ['id' => null, 'name' => '(No section)', 'tasks' => $noSection, 'is_linked_group' => false];
+        $linkedOnly = $tasks->filter(fn ($t) => (int) $t->project_id !== (int) $project->id);
+        if ($linkedOnly->isNotEmpty()) {
+            $groups[] = ['id' => null, 'name' => 'Linked from other projects', 'tasks' => $linkedOnly, 'is_linked_group' => true];
+        }
         $cfWidths = str_repeat(' 160px', $customFields->count());
         $colGrid = 'grid-template-columns:minmax(360px,1.5fr) 150px 175px 150px 130px'.$cfWidths.' 44px;';
         $tableMinWidth = 360 + 649 + (160 * $customFields->count());
@@ -480,9 +485,9 @@
                 @foreach($groups as $group)
                 <div x-data="{ open: true }" data-section-block data-sectionname="{{ $group['name'] }}">
                     {{-- Section header --}}
-                    <div class="al-sechead" style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--surface);">
+                    <div class="al-sechead" style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:{{ !empty($group['is_linked_group']) ? 'rgba(167,139,250,0.06)' : 'var(--surface)' }};">
                         <svg @click="open=!open" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="open ? '' : 'transform:rotate(-90deg)'" style="color:var(--muted); transition:transform 0.15s; cursor:pointer; flex-shrink:0;"><path d="M19 9l-7 7-7-7"/></svg>
-                        <span style="font-size:13px; font-weight:600; color:{{ $group['id'] ? 'var(--text)' : 'var(--muted)' }};">{{ $group['name'] }}</span>
+                        <span style="font-size:13px; font-weight:600; color:{{ !empty($group['is_linked_group']) ? '#a78bfa' : ($group['id'] ? 'var(--text)' : 'var(--muted)') }};">{{ $group['name'] }}</span>
                         <span style="font-size:11px; color:var(--muted); background:var(--surface2); padding:1px 7px; border-radius:10px; font-family:var(--mono);">{{ $group['tasks']->count() }}</span>
                         <div class="sec-actions" style="display:flex; align-items:center; gap:2px;">
                             <div style="position:relative;">
@@ -519,8 +524,9 @@
                                 $isMine = $task->assigned_to === $myId || $task->assignees->contains('id', $myId);
                                 $canEditTask = auth()->user()->can('update', $task);
                                 $sm = $statusMeta[$task->status] ?? $statusMeta['todo'];
+                                $isLinkedRow = !empty($group['is_linked_group']);
                             @endphp
-                            <div class="al-row al-gridrow" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" data-status="{{ $task->status }}" data-priority="{{ $task->priority }}" data-due="{{ $task->due_date?->format('Y-m-d') }}" data-assignees="{{ $task->assignees->pluck('id')->push($task->assigned_to)->filter()->unique()->implode(',') }}" data-createdby="{{ $task->created_by }}" data-created="{{ $task->created_at?->format('Y-m-d') }}" data-modified="{{ $task->updated_at?->format('Y-m-d') }}" data-section="{{ $group['id'] }}" data-sectionname="{{ $group['name'] }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
+                            <div class="al-row al-gridrow" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" data-status="{{ $task->status }}" data-priority="{{ $task->priority }}" data-due="{{ $task->due_date?->format('Y-m-d') }}" data-assignees="{{ $task->assignees->pluck('id')->push($task->assigned_to)->filter()->unique()->implode(',') }}" data-createdby="{{ $task->created_by }}" data-created="{{ $task->created_at?->format('Y-m-d') }}" data-modified="{{ $task->updated_at?->format('Y-m-d') }}" data-section="{{ $isLinkedRow ? '' : $group['id'] }}" data-sectionname="{{ $group['name'] }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
                                 <div class="al-cell c-name" style="gap:6px;">
                                     @if(($task->subtasks_count ?? 0) > 0)
@@ -535,6 +541,9 @@
                                         @if($task->status === 'done')<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                     </div>
                                     <span onclick="openPanel({{ $task->id }})" style="font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; flex:1;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text)'">{{ $task->title }}</span>
+                                    @if($isLinkedRow && $task->project)
+                                    <span style="font-size:10px; font-family:var(--mono); padding:2px 8px; border-radius:6px; color:#a78bfa; border:1px solid rgba(167,139,250,0.35); background:rgba(167,139,250,0.08); flex-shrink:0;">{{ $task->project->name }}</span>
+                                    @endif
                                     <button onclick="openPanel({{ $task->id }})" title="Open details" style="flex-shrink:0; color:var(--muted); background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:3px; padding:3px 5px; border-radius:6px;" onmouseover="this.style.color='var(--accent2)'; this.style.background='var(--surface2)'" onmouseout="this.style.color='var(--muted)'; this.style.background='transparent'">
                                         @if(($task->comments_count ?? 0) > 0)<span style="font-size:11px; font-family:var(--mono);">{{ $task->comments_count }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>@endif
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M14 10l7-7M21 14v5a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h5"/></svg>
@@ -1056,6 +1065,23 @@
                 body.querySelectorAll('.al-status').forEach(applyStatus);
                 if (window.Mention) Mention.bindAll(body);
             });
+    }
+    function panelAttachProject(projectId){
+        if(!panelTaskId || !projectId) return;
+        panelDirty = true;
+        fetch(`/${slug}/tasks/${panelTaskId}/projects`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
+            body:JSON.stringify({ project_id: parseInt(projectId, 10) })
+        }).then(r=>r.json()).then(d=>{ if(d.success) reloadPanel(); });
+    }
+    function panelDetachProject(projectId){
+        if(!panelTaskId || !projectId) return;
+        panelDirty = true;
+        fetch(`/${slug}/tasks/${panelTaskId}/projects/${projectId}`, {
+            method:'DELETE',
+            headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}
+        }).then(r=>r.json()).then(d=>{ if(d.success) reloadPanel(); });
     }
 
     function empPanelStatus(value){

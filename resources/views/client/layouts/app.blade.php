@@ -51,6 +51,19 @@
         .ptm-input:focus, .ptm-select:focus { outline: none; border-color: var(--accent2); }
         .ptm-alert-success { background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); color: var(--accent); border-radius: 8px; }
         .ptm-section-title { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+        .ptm-btn-primary {
+            background: rgba(34,211,238,0.12); border: 1px solid rgba(34,211,238,0.35);
+            color: var(--accent2); border-radius: 8px; padding: 8px 14px;
+            font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer;
+        }
+        .ptm-btn-ghost {
+            background: none; border: 1px solid var(--border2); color: var(--muted);
+            border-radius: 8px; padding: 8px 14px; font-family: var(--font); font-size: 13px; cursor: pointer;
+        }
+        @media (max-width: 960px) {
+            .client-project-grid { grid-template-columns: 1fr !important; }
+            .client-stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
     </style>
 </head>
 <body style="min-height:100vh;">

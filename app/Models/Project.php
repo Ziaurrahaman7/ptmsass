@@ -43,6 +43,19 @@ class Project extends Model
         return $this->belongsToMany(Task::class, 'task_project')->withTimestamps();
     }
 
+    /** Tasks whose home or task_project pivot includes this project (single task row, no copies). */
+    public function visibleTasksQuery()
+    {
+        $projectId = $this->id;
+
+        return Task::query()
+            ->where('company_id', $this->company_id)
+            ->where(function ($q) use ($projectId) {
+                $q->where('project_id', $projectId)
+                    ->orWhereHas('projects', fn ($p) => $p->where('projects.id', $projectId));
+            });
+    }
+
     public function sections()
     {
         return $this->hasMany(Section::class)->orderBy('position')->orderBy('id');
@@ -102,9 +115,12 @@ class Project extends Model
 
     public function progressPercentage(): int
     {
-        $total = $this->tasks()->count();
-        if ($total === 0) return 0;
-        $done = $this->tasks()->where('status', 'done')->count();
+        $total = $this->visibleTasksQuery()->whereNull('parent_task_id')->count();
+        if ($total === 0) {
+            return 0;
+        }
+        $done = $this->visibleTasksQuery()->whereNull('parent_task_id')->where('status', 'done')->count();
+
         return (int) round(($done / $total) * 100);
     }
 

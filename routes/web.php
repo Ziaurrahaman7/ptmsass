@@ -278,7 +278,9 @@ Route::prefix('{slug}')->name('employee.')->middleware(['auth', 'employee', 'com
     Route::delete('/tasks/comments/{comment}', [EmployeeTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
     Route::post('/tasks/{task}/attachments', [EmployeeTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
     Route::delete('/tasks/attachments/{attachment}', [EmployeeTaskController::class, 'destroyAttachment'])->name('tasks.attachments.destroy');
-    
+    Route::post('/tasks/{task}/projects', [EmployeeTaskController::class, 'attachProject'])->name('tasks.projects.attach');
+    Route::delete('/tasks/{task}/projects/{project}', [EmployeeTaskController::class, 'detachProject'])->name('tasks.projects.detach');
+
     // Notifications
     Route::get('/notifications', [EmployeeNotificationController::class, 'index'])->name('notifications.index');
     Route::get('/teams', [EmployeeTeamAdminController::class, 'index'])->name('teams.index');

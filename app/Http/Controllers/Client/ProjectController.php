@@ -12,9 +12,9 @@ class ProjectController extends Controller
         $user = auth()->user();
         abort_unless($project->clients()->where('user_id', $user->id)->exists(), 403);
 
-        $tasks = $project->tasks()
+        $tasks = $project->visibleTasksQuery()
             ->whereNull('parent_task_id')
-            ->with(['assignee', 'assignees'])
+            ->with(['assignee', 'assignees', 'project'])
             ->orderBy('position')->orderByDesc('created_at')
             ->get();
 

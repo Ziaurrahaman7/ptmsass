@@ -570,13 +570,23 @@ class TaskController extends Controller
         abort_if($task->company_id !== $this->companyId(), 403);
 
         $task->load([
-            'project', 'section', 'assignees', 'followers', 'comments.user',
+            'project', 'projects', 'section', 'assignees', 'followers', 'comments.user',
             'attachments.uploader', 'subtasks.assignees',
         ]);
         $members  = auth()->user()->company->users()->where('is_active', true)->get();
         $sections = $task->project?->sections()->get() ?? collect();
+        $canManageProjectLinks = auth()->user()->can('update', $task);
+        $attachableProjects = $canManageProjectLinks
+            ? Project::query()
+                ->where('company_id', $this->companyId())
+                ->whereNotIn('id', $task->projects->pluck('id'))
+                ->orderBy('name')
+                ->get(['id', 'name'])
+            : collect();
 
-        return view('company.tasks._panel', compact('task', 'members', 'sections', 'slug'));
+        return view('company.tasks._panel', compact(
+            'task', 'members', 'sections', 'slug', 'canManageProjectLinks', 'attachableProjects'
+        ));
     }
 
     /**
@@ -703,16 +713,26 @@ class TaskController extends Controller
         $this->authorize('update', $task);
         $data = $request->validate(['project_id' => 'required|exists:projects,id']);
         $project = Project::query()->where('company_id', $this->companyId())->findOrFail($data['project_id']);
+        $this->authorize('view', $project);
         $task->projects()->syncWithoutDetaching([$project->id]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'project' => ['id' => $project->id, 'name' => $project->name]]);
+        }
 
         return back()->with('success', 'Task linked to '.$project->name.'.');
     }
 
-    public function detachProject(string $slug, Task $task, Project $project)
+    public function detachProject(Request $request, string $slug, Task $task, Project $project)
     {
         $this->authorize('update', $task);
+        abort_if((int) $project->company_id !== (int) $this->companyId(), 404);
         abort_if((int) $project->id === (int) $task->project_id, 422, 'Cannot unlink the primary project.');
         $task->projects()->detach($project->id);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
 
         return back()->with('success', 'Project unlinked.');
     }

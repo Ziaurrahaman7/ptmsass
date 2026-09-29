@@ -78,6 +78,13 @@
         <span style="font-size:12px; color:var(--muted); font-weight:500;">Section</span>
         <span style="font-size:13px; color:{{ $task->project ? 'var(--text)' : 'var(--purple, #a78bfa)' }};">{{ $task->project ? ($task->section?->name ?? 'No section') : 'Personal' }}</span>
     </div>
+
+    @if($task->project_id)
+    @include('shared.tasks._panel_project_links', [
+        'attachRoute' => 'employee.tasks.projects.attach',
+        'detachRoute' => 'employee.tasks.projects.detach',
+    ])
+    @endif
 </div>
 
 {{-- Notes --}}

@@ -11,11 +11,16 @@
         ];
         // Ordered groups: each section, then a "(No section)" bucket.
         $groups = [];
+        $homeTasks = $tasks->filter(fn ($t) => (int) $t->project_id === (int) $project->id);
         foreach ($sections as $section) {
-            $groups[] = ['id' => $section->id, 'name' => $section->name, 'tasks' => $tasks->where('section_id', $section->id)];
+            $groups[] = ['id' => $section->id, 'name' => $section->name, 'tasks' => $homeTasks->where('section_id', $section->id), 'is_linked_group' => false];
         }
-        $noSection = $tasks->whereNull('section_id');
-        $groups[] = ['id' => null, 'name' => '(No section)', 'tasks' => $noSection];
+        $noSection = $homeTasks->whereNull('section_id');
+        $groups[] = ['id' => null, 'name' => '(No section)', 'tasks' => $noSection, 'is_linked_group' => false];
+        $linkedOnly = $tasks->filter(fn ($t) => (int) $t->project_id !== (int) $project->id);
+        if ($linkedOnly->isNotEmpty()) {
+            $groups[] = ['id' => null, 'name' => 'Linked from other projects', 'tasks' => $linkedOnly, 'is_linked_group' => true];
+        }
         $cfWidths = str_repeat(' 160px', $customFields->count());
         $colGrid = 'grid-template-columns:minmax(360px,1.5fr) 150px 175px 150px 130px'.$cfWidths.' 44px;';
         $tableMinWidth = 360 + 649 + (160 * $customFields->count());
@@ -722,7 +727,7 @@
                 @foreach($groups as $group)
                 <div x-data="{ open: true }" data-section-block data-sectionname="{{ $group['name'] }}">
                     {{-- Section header --}}
-                    <div class="al-sechead" style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--surface);">
+                    <div class="al-sechead" style="display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:{{ !empty($group['is_linked_group']) ? 'rgba(167,139,250,0.06)' : 'var(--surface)' }};">
                         <svg @click="open=!open" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :style="open ? '' : 'transform:rotate(-90deg)'" style="color:var(--muted); transition:transform 0.15s; cursor:pointer; flex-shrink:0;"><path d="M19 9l-7 7-7-7"/></svg>
 
                         @if($group['id'])
@@ -734,7 +739,7 @@
                                 <button type="button" onclick="toggleSecRename({{ $group['id'] }})" class="ptm-btn-ghost" style="padding:4px 9px; font-size:11px;">✕</button>
                             </form>
                         @else
-                            <span style="font-size:13px; font-weight:600; color:var(--muted);">{{ $group['name'] }}</span>
+                            <span style="font-size:13px; font-weight:600; color:{{ !empty($group['is_linked_group']) ? '#a78bfa' : 'var(--muted)' }};">{{ $group['name'] }}</span>
                         @endif
 
                         @if($group['id'])
@@ -796,8 +801,11 @@
                     {{-- Task rows --}}
                     <div x-show="open" class="al-tasklist" data-section-id="{{ $group['id'] }}">
                         @foreach($group['tasks'] as $task)
-                            @php $sm = $statusMeta[$task->status] ?? $statusMeta['todo']; @endphp
-                            <div class="al-row al-gridrow" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" data-status="{{ $task->status }}" data-priority="{{ $task->priority }}" data-due="{{ $task->due_date?->format('Y-m-d') }}" data-assignees="{{ $task->assignees->pluck('id')->push($task->assigned_to)->filter()->unique()->implode(',') }}" data-createdby="{{ $task->created_by }}" data-created="{{ $task->created_at?->format('Y-m-d') }}" data-modified="{{ $task->updated_at?->format('Y-m-d') }}" data-section="{{ $group['id'] }}" data-sectionname="{{ $group['name'] }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
+                            @php
+                                $sm = $statusMeta[$task->status] ?? $statusMeta['todo'];
+                                $isLinkedRow = !empty($group['is_linked_group']);
+                            @endphp
+                            <div class="al-row al-gridrow{{ $isLinkedRow ? ' al-row-linked' : '' }}" id="row-{{ $task->id }}" data-title="{{ strtolower($task->title) }}" data-status="{{ $task->status }}" data-priority="{{ $task->priority }}" data-due="{{ $task->due_date?->format('Y-m-d') }}" data-assignees="{{ $task->assignees->pluck('id')->push($task->assigned_to)->filter()->unique()->implode(',') }}" data-createdby="{{ $task->created_by }}" data-created="{{ $task->created_at?->format('Y-m-d') }}" data-modified="{{ $task->updated_at?->format('Y-m-d') }}" data-section="{{ $isLinkedRow ? '' : $group['id'] }}" data-sectionname="{{ $group['name'] }}" style="display:grid; {{ $colGrid }} border-bottom:1px solid var(--border); transition:background 0.1s;">
                                 {{-- Name --}}
                                 <div class="al-cell c-name" style="gap:6px;">
                                     <span class="al-drag" title="Drag to move / reorder">
@@ -815,6 +823,9 @@
                                         @if($task->status === 'done')<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>@endif
                                     </div>
                                     <input class="al-name-input" value="{{ $task->title }}" onchange="patchField({{ $task->id }}, 'title', this.value)" onkeydown="if(event.key==='Enter'){this.blur();}">
+                                    @if($isLinkedRow && $task->project)
+                                    <span style="font-size:10px; font-family:var(--mono); padding:2px 8px; border-radius:6px; color:#a78bfa; border:1px solid rgba(167,139,250,0.35); background:rgba(167,139,250,0.08); flex-shrink:0;" title="Primary project">{{ $task->project->name }}</span>
+                                    @endif
                                     {{-- Hover-only meta/actions: move · comment · attachment · open details --}}
                                     <div class="al-row-actions">
                                         <button class="al-metaicon" onclick="openMoveMenu(event, {{ $task->id }})" title="Move to section">
@@ -2282,6 +2293,23 @@
                 body.querySelectorAll('.al-pri').forEach(applyPri);
                 if (window.Mention) Mention.bindAll(body);
             });
+    }
+    function panelAttachProject(projectId){
+        if(!panelTaskId || !projectId) return;
+        panelDirty = true;
+        fetch(`/${slug}/admin/tasks/${panelTaskId}/projects`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken,'Accept':'application/json'},
+            body:JSON.stringify({ project_id: parseInt(projectId, 10) })
+        }).then(r=>r.json()).then(d=>{ if(d.success) reloadPanel(); });
+    }
+    function panelDetachProject(projectId){
+        if(!panelTaskId || !projectId) return;
+        panelDirty = true;
+        fetch(`/${slug}/admin/tasks/${panelTaskId}/projects/${projectId}`, {
+            method:'DELETE',
+            headers:{'X-CSRF-TOKEN':csrfToken,'Accept':'application/json'}
+        }).then(r=>r.json()).then(d=>{ if(d.success) reloadPanel(); });
     }
 
     function panelPatch(field, value){
