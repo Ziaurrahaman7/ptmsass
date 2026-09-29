@@ -3,16 +3,13 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
-use App\Models\ApiToken;
 use App\Models\AutomationRule;
 use App\Models\Project;
 use App\Models\ProjectForm;
-use App\Models\SecurityAuditLog;
 use App\Models\Task;
 use App\Models\TaskTemplate;
 use App\Models\TimeEntry;
 use App\Models\User;
-use App\Models\Webhook;
 use App\Services\TaskTemplateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -303,75 +300,26 @@ class GapWorkspaceController extends Controller
 
     public function integrations(string $slug)
     {
-        abort_unless(auth()->user()->hasPermission('integration.manage'), 403);
-        $tokens = ApiToken::query()->where('company_id', $this->companyId())->latest()->get();
-        $webhooks = Webhook::query()->where('company_id', $this->companyId())->latest()->get();
-
-        return view('company.gap.integrations', compact('tokens', 'webhooks'));
+        return redirect()->route('company.dashboard', $slug);
     }
 
     public function storeToken(Request $request, string $slug)
     {
-        abort_unless(auth()->user()->hasPermission('integration.manage'), 403);
-        $data = $request->validate(['name' => 'required|string|max:80']);
-        $plain = Str::random(48);
-        ApiToken::create([
-            'user_id' => auth()->id(),
-            'company_id' => $this->companyId(),
-            'name' => $data['name'],
-            'token' => hash('sha256', $plain),
-        ]);
-
-        return back()->with('success', 'Token created. Copy it now: '.$plain);
+        return redirect()->route('company.dashboard', $slug);
     }
 
     public function storeWebhook(Request $request, string $slug)
     {
-        abort_unless(auth()->user()->hasPermission('integration.manage'), 403);
-        $data = $request->validate([
-            'url' => 'required|url',
-            'event' => 'required|string|max:80',
-        ]);
-        Webhook::create([
-            'company_id' => $this->companyId(),
-            'url' => $data['url'],
-            'event' => $data['event'],
-            'secret' => Str::random(24),
-            'is_active' => true,
-        ]);
-
-        return back()->with('success', 'Webhook saved.');
+        return redirect()->route('company.dashboard', $slug);
     }
 
     public function security(string $slug)
     {
-        abort_unless(auth()->user()->hasPermission('settings.manage'), 403);
-        $company = auth()->user()->company;
-        $logs = SecurityAuditLog::query()->where('company_id', $this->companyId())->latest()->limit(50)->get();
-
-        return view('company.gap.security', compact('company', 'logs'));
+        return redirect()->route('company.dashboard', $slug);
     }
 
     public function updateSecurity(Request $request, string $slug)
     {
-        abort_unless(auth()->user()->hasPermission('settings.manage'), 403);
-        $data = $request->validate([
-            'mfa_required' => 'nullable|boolean',
-            'trusted_domains' => 'nullable|string',
-        ]);
-        $domains = array_values(array_filter(array_map('trim', explode(',', $data['trusted_domains'] ?? ''))));
-        auth()->user()->company->update([
-            'mfa_required' => (bool) ($data['mfa_required'] ?? false),
-            'trusted_domains' => $domains,
-        ]);
-        SecurityAuditLog::create([
-            'company_id' => $this->companyId(),
-            'user_id' => auth()->id(),
-            'action' => 'security.updated',
-            'ip' => $request->ip(),
-            'meta' => $data,
-        ]);
-
-        return back()->with('success', 'Security settings saved.');
+        return redirect()->route('company.dashboard', $slug);
     }
 }

@@ -57,8 +57,8 @@ class PermissionCatalog
                 'hint' => 'Invite and manage workspace members',
             ],
             'settings.manage' => [
-                'label' => 'Roles & security',
-                'hint' => 'Roles page and security settings',
+                'label' => 'Roles',
+                'hint' => 'Roles and permissions page',
             ],
             'project.view' => [
                 'label' => 'View projects',
@@ -158,7 +158,7 @@ class PermissionCatalog
     /** @deprecated Hidden from Roles UI; kept for policy/DB cleanup only. */
     public static function legacyHiddenKeys(): array
     {
-        return ['task.assign', 'task.edit', 'task.comment', 'approval.manage', 'capacity.view'];
+        return ['task.assign', 'task.edit', 'task.comment', 'approval.manage', 'capacity.view', 'integration.manage'];
     }
 
     public static function all(): array

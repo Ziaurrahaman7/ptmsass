@@ -198,7 +198,7 @@
             </a>
             @endif
 
-            @if($adminCan('template.manage') || $adminCan('form.manage') || $adminCan('rule.manage') || $adminCan('time.track') || $adminCan('time.review') || $adminCan('report.view') || $adminCan('integration.manage') || $adminCan('priority.manage'))
+            @if($adminCan('template.manage') || $adminCan('form.manage') || $adminCan('rule.manage') || $adminCan('time.track') || $adminCan('time.review') || $adminCan('report.view') || $adminCan('priority.manage'))
             {{-- Settings --}}
             <div style="padding:14px 12px 6px;">
                 <span class="ptm-section-title">Settings</span>
@@ -238,18 +238,6 @@
             <a href="{{ route('company.reports.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.reports.*') ? 'active' : '' }}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
                 Reports
-            </a>
-            @endif
-            @if($adminCan('integration.manage'))
-            <a href="{{ route('company.integrations.index', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.integrations.*') ? 'active' : '' }}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/></svg>
-                API / Webhooks
-            </a>
-            @endif
-            @if($adminCan('settings.manage'))
-            <a href="{{ route('company.security.edit', $slug) }}" class="ptm-nav-link {{ request()->routeIs('company.security.*') ? 'active' : '' }}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                Security
             </a>
             @endif
             @if($adminCan('priority.manage'))
